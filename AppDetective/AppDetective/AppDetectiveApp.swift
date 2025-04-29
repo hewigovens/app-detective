@@ -1,0 +1,101 @@
+//
+//  AppDetectiveApp.swift
+//  AppDetective
+//
+//  Created by hewig on 4/29/25.
+//
+
+import SwiftUI
+
+@main
+struct AppDetectiveApp: App {
+    // Use AppStorage to persist the selected folder's bookmark data
+    @AppStorage("selectedFolderBookmark") private var selectedFolderBookmark: Data?
+    // Use @StateObject for the ViewModel lifecycle
+    @StateObject private var contentViewModel = ContentViewModel()
+
+    var body: some Scene {
+        WindowGroup {
+            // Use a Group to dynamically switch views based on viewModel.folderURL
+            Group {
+                if contentViewModel.folderURL != nil {
+                    // Display ContentView, viewModel is guaranteed to exist
+                    ContentView(viewModel: contentViewModel)
+                        .task { // Re-add task modifier to trigger scan when ContentView appears
+                            print("[AppDetectiveApp] ContentView appeared, triggering scan via .task...")
+                            await contentViewModel.scanApplications()
+                        }
+                } else {
+                    // Show onboarding if no URL is set in the ViewModel yet
+                    OnboardingView { bookmarkData in
+                        // Save the bookmark data
+                        selectedFolderBookmark = bookmarkData
+                        print("Bookmark data saved.")
+                        // Attempt to resolve the URL immediately, which updates the ViewModel
+                        resolveBookmark()
+                    }
+                }
+            }
+            // No longer need onChange(of: resolvedFolderURL) as ViewModel is stable
+            .onAppear {
+                // Attempt to resolve the bookmark when the view appears
+                // This will update the viewModel's folderURL if successful
+                print("[AppDetectiveApp] onAppear, attempting to resolve bookmark...")
+                resolveBookmark()
+            }
+            // Watch for changes in the bookmark data itself (e.g., if cleared)
+            .onChange(of: selectedFolderBookmark) { _, newData in
+                print("[AppDetectiveApp] selectedFolderBookmark changed, resolving...")
+                resolveBookmark()
+            }
+        }
+    }
+
+    // Function to resolve the bookmark data into a URL and update the ViewModel
+    private func resolveBookmark() {
+        guard let bookmarkData = selectedFolderBookmark else {
+            print("No bookmark data found. Clearing ViewModel URL.")
+            // Ensure the view model's URL is nil if no bookmark exists
+            if contentViewModel.folderURL != nil {
+                contentViewModel.folderURL = nil
+                // Optionally clear other VM state if needed when folder is lost
+                contentViewModel.appResults = []
+                contentViewModel.errorMessage = nil
+                contentViewModel.navigationTitle = "Select Folder"
+            }
+            return
+        }
+
+        do {
+            var isStale = false
+            let url = try URL(resolvingBookmarkData: bookmarkData, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
+
+            if isStale {
+                print("Bookmark is stale, attempting to refresh...")
+                // If stale, create a new bookmark data and save it
+                let freshBookmarkData = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
+                selectedFolderBookmark = freshBookmarkData
+                print("Refreshed and saved new bookmark data.")
+            }
+
+            // Successfully resolved URL - update the ViewModel's URL
+            // Check if it's different before assigning to prevent unnecessary updates/scans
+            if contentViewModel.folderURL != url {
+                 print("Bookmark resolved successfully: \(url.path). Updating ViewModel URL.")
+                 contentViewModel.folderURL = url
+                 // Scan is now triggered by .task on ContentView when it appears due to this change
+            } else {
+                 print("Bookmark resolved successfully, but URL hasn't changed.")
+            }
+
+        } catch {
+            print("Error resolving bookmark: \(error.localizedDescription)")
+            // Clear the invalid/stale bookmark data if resolution fails
+            selectedFolderBookmark = nil
+            // Clear the ViewModel's URL
+            contentViewModel.folderURL = nil
+            contentViewModel.errorMessage = "Error resolving bookmark."
+            contentViewModel.navigationTitle = "Error"
+        }
+    }
+}
