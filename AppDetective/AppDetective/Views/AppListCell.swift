@@ -27,28 +27,24 @@ struct AppListCell: View {
             }
             .frame(width: 40, height: 40) // Consistent frame
 
-            VStack(alignment: .leading) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(appInfo.name)
                     .font(.headline)
                     .lineLimit(1)
-                Text(appInfo.techStack.rawValue)
-                    .font(.caption)
-                    .padding(.horizontal, 8) // Add horizontal padding
-                    .padding(.vertical, 4) // Add vertical padding
-                    .background(Color.blue.opacity(0.2)) // Add a background color
-                    .foregroundColor(.blue) // Set text color
-                    .cornerRadius(8) // Round the corners
+                // Display joined tech stack names
+                Text(appInfo.techStacks.displayNames.joined(separator: ", "))
+                    .font(.subheadline)
+                    .foregroundColor(appInfo.techStacks.mainColor) // Use prioritized color
+                    .lineLimit(1) // Prevent wrapping if too many stacks
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(appInfo.techStacks.mainColor.opacity(0.15)) // Subtle background using the color
+                    .cornerRadius(4)
 
                 // Display size if loaded from cache, else placeholder
-                if let size = cachedSizeString {
-                    Text(size)
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                } else {
-                    Text("Calculating size...") // Placeholder text
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                }
+                Text(viewModel.getSizeString(for: appInfo.path) ?? "Loading size...")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
 
             Spacer() // Pushes content to the left
@@ -65,28 +61,28 @@ struct AppListCell_Previews: PreviewProvider {
                 appInfo: AppInfo(
                     name: "ExampleApp very long name to test truncation.app",
                     path: "/Applications/Calculator.app",
-                    techStack: .electron
+                    techStacks: .electron
                 )
             ) // Use a real app path for preview icon/size
             AppListCell(
                 appInfo: AppInfo(
                     name: "Another App.app",
                     path: "/Applications/Safari.app",
-                    techStack: .swiftUI
+                    techStacks: .swiftUI
                 )
             )
             AppListCell(
                 appInfo: AppInfo(
                     name: "MyPythonThing.app",
                     path: "/System/Applications/Messages.app",
-                    techStack: .python
+                    techStacks: .python
                 )
             )
             AppListCell(
                 appInfo: AppInfo(
                     name: "UnknownApp.app",
                     path: "/System/Applications/Mail.app",
-                    techStack: .unknown
+                    techStacks: []
                 )
             )
         }

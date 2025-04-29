@@ -1,70 +1,292 @@
 import Foundation
 
+class DetectService {
+    private let fileManager = FileManager.default
 
+    // Known Electron framework directory names (add more as discovered)
+    private let electronFrameworkNames: Set<String> = [
+        "Electron Framework.framework",
+        "Microsoft Edge Framework.framework"
+        // "Other Electron Variant.framework"
+    ]
 
-struct DetectService {
+    // Helper function to run otool -L on the executable
+    private func checkExecutableLibraries(executableURL: URL) -> TechStack {
+        var detectedStacks: TechStack = []
+        let pipe = Pipe()
+        let process = Process()
+        process.launchPath = "/usr/bin/otool"
+        process.arguments = ["-L", executableURL.path]
+        process.standardOutput = pipe
 
-    let fileManager = FileManager.default
+        print("[DetectService-otool] Running otool -L on \(executableURL.path)")
 
-    /// Detects the likely primary technology stack of a given .app bundle.
-    /// - Parameter appURL: The URL of the .app bundle.
-    /// - Returns: A `TechStack` enum value.
-    func detectStack(for appURL: URL) -> TechStack {
-        // Ensure security scope access is active if needed when calling this.
+        do {
+            try process.run()
+            process.waitUntilExit()
 
-        // --- Electron Check --- 
-        // Look for the Electron framework or typical Electron app structure.
-        let electronFrameworkPath = appURL.appendingPathComponent("Contents/Frameworks/Electron Framework.framework")
-        let electronAsarPath = appURL.appendingPathComponent("Contents/Resources/app.asar") // Common Electron packaging
-        if fileManager.fileExists(atPath: electronFrameworkPath.path) || fileManager.fileExists(atPath: electronAsarPath.path) {
-            return .electron
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            if let output = String(data: data, encoding: .utf8) {
+                // print("[DetectService-otool] Output:\n\(output)") // Debug: Print full output
+                if output.contains("SwiftUI") {
+                    print("[DetectService-otool] Detected SwiftUI library.")
+                    detectedStacks.insert(.swiftUI)
+                }
+                // Check for general Swift libraries (might indicate AppKit/UIKit without SwiftUI)
+                if output.contains("/usr/lib/swift/libswift") || output.contains("@rpath/libswift") {
+                    print("[DetectService-otool] Detected Swift libraries.")
+                    // We can't definitively say AppKit or UIKit just from this,
+                    // but it confirms Swift usage. Resource checks might differentiate later.
+                }
+                // Add checks for other specific dylibs if needed (e.g., Qt, Python)
+                if output.contains("Python") {
+                    print("[DetectService-otool] Detected Python library linkage.")
+                    detectedStacks.insert(.python)
+                }
+                if output.contains("Qt") { // Or specific Qt library names
+                    print("[DetectService-otool] Detected Qt library linkage.")
+                    detectedStacks.insert(.qt)
+                }
+            }
+        } catch {
+            print("[DetectService-otool] Error running otool: \(error)")
         }
+        return detectedStacks
+    }
 
-        // --- SwiftUI Check --- 
-        // More complex: Requires analyzing binaries or specific plist keys.
-        // Simplistic check: Look for Swift libraries, especially SwiftUI-related ones.
-        // This is a weak heuristic, as many apps might use Swift.
-        let swiftLibsPath = appURL.appendingPathComponent("Contents/Frameworks/libswiftSwiftUI.dylib") // Example
-        if fileManager.fileExists(atPath: swiftLibsPath.path) {
-            // Could also check Info.plist for specific keys if needed
-            return .swiftUI // Tentative guess
-        }
+    // Main detection function - now returns an OptionSet
+    func detectStack(for appURL: URL) async -> TechStack {
+        var detectedStacks: TechStack = []
+        var appToAnalyzeURL = appURL // Start with the outer URL
+
+        // --- Priority 0: Check for Wrapped iOS App Structure --- 
+        let wrapperPath = appURL.appendingPathComponent("Wrapper").path
+        let wrappedBundleSymlinkPath = wrapperPath + "/WrappedBundle"
         
-        // --- AppKit/UIKit Check (Native) ---
-        // Check for compiled Swift/Objective-C code and absence of Electron markers.
-        // Look for the main executable.
-        let infoPlistPath = appURL.appendingPathComponent("Contents/Info.plist")
-        let macosPath = appURL.appendingPathComponent("Contents/MacOS")
-        if let plistDict = NSDictionary(contentsOf: infoPlistPath), 
-           let executableName = plistDict["CFBundleExecutable"] as? String {
-            let executablePath = macosPath.appendingPathComponent(executableName)
-            if fileManager.fileExists(atPath: executablePath.path) {
-                 // This is a very broad check, essentially confirming it's a standard macOS app.
-                 // If not Electron or SwiftUI (by our simple checks), assume native AppKit.
-                 // More sophisticated checks would look at linked frameworks.
-                 return .uiKitAppKit // Default native guess
+        if fileManager.fileExists(atPath: wrapperPath), 
+           fileManager.fileExists(atPath: wrappedBundleSymlinkPath) {
+           
+            print("[DetectService] Detected Wrapper structure, likely iOS app on Mac.")
+            do {
+                 // Resolve the symlink or find the .app inside Wrapper
+                 let symlinkDest = try fileManager.destinationOfSymbolicLink(atPath: wrappedBundleSymlinkPath)
+                 // Destination is relative to the symlink's directory (Wrapper)
+                 let innerAppPath = URL(fileURLWithPath: wrapperPath).appendingPathComponent(symlinkDest).path
+                 
+                 if innerAppPath.hasSuffix(".app") && fileManager.fileExists(atPath: innerAppPath) {
+                     appToAnalyzeURL = URL(fileURLWithPath: innerAppPath)
+                     print("[DetectService] Analyzing inner app bundle: \(appToAnalyzeURL.path)")
+                     // Assume Catalyst or UIKit if wrapped
+                     detectedStacks.insert(.catalyst) // Strong indicator
+                     detectedStacks.insert(.uiKit) // Likely present in Catalyst/iOS apps
+                 } else {
+                      print("[DetectService] WrappedBundle symlink in Wrapper does not point to a valid .app: \(symlinkDest)")
+                      // Fallback: Try finding the first .app in Wrapper if symlink failed
+                      if let wrapperContents = try? fileManager.contentsOfDirectory(atPath: wrapperPath), 
+                         let innerAppName = wrapperContents.first(where: { $0.hasSuffix(".app") }) {
+                           appToAnalyzeURL = URL(fileURLWithPath: wrapperPath).appendingPathComponent(innerAppName)
+                           print("[DetectService] Analyzing inner app bundle (fallback): \(appToAnalyzeURL.path)")
+                           detectedStacks.insert(.catalyst)
+                           detectedStacks.insert(.uiKit)
+                      } else {
+                           print("[DetectService] Could not determine inner app bundle within Wrapper.")
+                           // Continue analysis on the outer app, but the result might be less accurate
+                      }
+                 }
+            } catch {
+                 print("[DetectService] Error reading WrappedBundle symlink: \(error). Continuing with outer bundle.")
             }
         }
 
-        // --- Python Check --- 
-        // Look for Python scripts, frameworks (e.g., Python.framework), or common packagers (PyInstaller, briefcase).
-        let pythonFrameworkPath = appURL.appendingPathComponent("Contents/Frameworks/Python.framework")
-        let mainPyPath = appURL.appendingPathComponent("Contents/Resources/main.py") // Common entry point
-        // Add checks for specific packager structures if needed
-        if fileManager.fileExists(atPath: pythonFrameworkPath.path) || fileManager.fileExists(atPath: mainPyPath.path) {
-            return .python
+        // --- Define paths based on the app we are actually analyzing --- 
+        let frameworksPath = appToAnalyzeURL.appendingPathComponent("Contents/Frameworks").path
+        let resourcesPath = appToAnalyzeURL.appendingPathComponent("Contents/Resources").path
+        let macosPath = appToAnalyzeURL.appendingPathComponent("Contents/MacOS").path
+
+        // --- Priority 1: Check Executable with otool (using appToAnalyzeURL) ---
+        if let executableName = getExecutableName(from: appToAnalyzeURL),
+           let executableURL = findExecutable(in: macosPath, named: executableName)
+        {
+            let otoolStacks = checkExecutableLibraries(executableURL: executableURL)
+            detectedStacks.formUnion(otoolStacks)
+        } else {
+            print("[DetectService] Could not find or determine executable for otool check in \(appToAnalyzeURL.path).")
         }
 
-        // --- Basic Web Wrapper Check ---
-        // Look for only HTML/JS/CSS files in Resources, minimal native code.
-        let resourcesPath = appURL.appendingPathComponent("Contents/Resources")
-        if let contents = try? fileManager.contentsOfDirectory(atPath: resourcesPath.path),
-           contents.contains(where: { $0.lowercased().hasSuffix(".html") }) && 
-           !fileManager.fileExists(atPath: electronFrameworkPath.path) /* Not Electron */ {
-            return .webWrapper
+        // --- Priority 2: Check Specific Known Structures (using appToAnalyzeURL) --- 
+
+        // Check for Tauri (pake)
+        if fileManager.fileExists(atPath: macosPath + "/pake") {
+            print("[DetectService] Detected Tauri (pake executable).")
+            detectedStacks.insert(.tauri)
+            // Tauri apps often use Swift libs too, otool might have caught .swiftUI
+            // but we prioritize the Tauri flag here if pake exists.
         }
 
-        // --- Fallback --- 
-        return .unknown
+        // --- Priority 3: Check Frameworks Directory (using appToAnalyzeURL) --- 
+        if fileManager.fileExists(atPath: frameworksPath) {
+            do {
+                let frameworkItems = try fileManager.contentsOfDirectory(atPath: frameworksPath)
+                for item in frameworkItems {
+                    if electronFrameworkNames.contains(item) {
+                        print("[DetectService] Detected Electron framework: \(item)")
+                        detectedStacks.insert(.electron)
+                        break // Found one Electron variant, no need to check others
+                    }
+                    if item.contains("Flutter") { // e.g., FlutterEmbedder.framework
+                        print("[DetectService] Detected Flutter framework.")
+                        detectedStacks.insert(.flutter)
+                    }
+                    if item.contains("Xamarin") || item.contains("Microsoft.Maui") { // Xamarin.Mac.framework, Microsoft.Maui.dll?
+                        print("[DetectService] Detected Xamarin/MAUI framework/library.")
+                        detectedStacks.insert(.xamarin)
+                    }
+                    if item.lowercased().contains("qt") { // Qt*.framework
+                        print("[DetectService] Detected Qt framework.")
+                        detectedStacks.insert(.qt)
+                    }
+                    // Note: SwiftUI, AppKit, UIKit frameworks are usually system-level,
+                    // not typically bundled here unless it's special.
+                    // otool check is more reliable for these.
+                }
+            } catch {
+                print("[DetectService] Error reading Frameworks directory: \(error)")
+            }
+        }
+
+        // --- Priority 4: Check Resources Directory (using appToAnalyzeURL) --- 
+        if fileManager.fileExists(atPath: resourcesPath) {
+            // Check for AppKit Nibs/Storyboards
+            if directoryContains(path: resourcesPath, extensions: ["nib", "storyboardc"]) {
+                 print("[DetectService] Detected AppKit resources (.nib/.storyboardc).")
+                 detectedStacks.insert(.appKit)
+            }
+            
+            // Check for Electron 'app.asar' or 'app' directory
+            if fileManager.fileExists(atPath: resourcesPath + "/app.asar") || fileManager.fileExists(atPath: resourcesPath + "/app") {
+                if !detectedStacks.contains(.electron) { // Check if not already found via framework
+                    print("[DetectService] Detected Electron resources (app.asar or app dir).")
+                    detectedStacks.insert(.electron)
+                }
+            }
+            // Check for Python resources (e.g., .pyc files, specific lib folders)
+            if directoryContains(path: resourcesPath, extensions: ["py", "pyc"]) {
+                if !detectedStacks.contains(.python) { // Check if not already found via otool
+                    print("[DetectService] Detected Python resources.")
+                    detectedStacks.insert(.python)
+                }
+            }
+            // Check for Java resources (.jar files)
+            if directoryContains(path: resourcesPath, extensions: ["jar"]) {
+                print("[DetectService] Detected Java resources (.jar).")
+                detectedStacks.insert(.java)
+            }
+            // Check for Flutter assets
+            if fileManager.fileExists(atPath: resourcesPath + "/flutter_assets") {
+                if !detectedStacks.contains(.flutter) {
+                    print("[DetectService] Detected Flutter resources (flutter_assets).")
+                    detectedStacks.insert(.flutter)
+                }
+            }
+            // Check for React Native bundle
+            if fileManager.fileExists(atPath: resourcesPath + "/main.jsbundle") || fileManager.fileExists(atPath: resourcesPath + "/index.bundle") {
+                print("[DetectService] Detected React Native bundle.")
+                detectedStacks.insert(.reactNative)
+            }
+            // Check for generic web wrapper indicators (e.g., specific HTML/JS files if not Electron/RN)
+            // This is less reliable and should have lower priority
+            // if fileManager.fileExists(atPath: resourcesPath + "/index.html") && detectedStacks.isEmpty {
+            //      detectedStacks.insert(.webWrapper)
+            // }
+        }
+
+        // --- Priority 5: Infer AppKit/UIKit based on Info.plist and otool (using appToAnalyzeURL) --- 
+        if let infoPlist = readInfoPlist(from: appToAnalyzeURL) {
+            // Check for Catalyst marker explicitly (might be redundant if Wrapper detected, but good to check)
+            if infoPlist["LSRequiresNativeExecution"] as? Bool == true {
+                 print("[DetectService] Detected Catalyst via Info.plist.")
+                 detectedStacks.insert(.catalyst)
+                 detectedStacks.insert(.uiKit) // Assume UIKit if Catalyst
+            }
+            
+            // Refined AppKit Inference: If otool detected Swift, but not SwiftUI,
+            // and .appKit wasn't already found via nibs/storyboards, and not Catalyst -> likely AppKit
+            let swiftLinked = checkExecutableLibraries(executableURL: findExecutable(in: macosPath, named: getExecutableName(from: appToAnalyzeURL) ?? "")!).rawValue > 0 // Re-check otool for Swift linkage (crude)
+            if !detectedStacks.contains(.swiftUI) && 
+               !detectedStacks.contains(.appKit) && // Check if not already found
+               !detectedStacks.contains(.catalyst) && // Ensure not Catalyst
+               swiftLinked
+            {
+                 print("[DetectService] Inferring AppKit based on Swift linkage (no SwiftUI/Nibs/Catalyst).")
+                 detectedStacks.insert(.appKit)
+            }
+            
+            // If Catalyst was detected (either by Wrapper or Info.plist), ensure UIKit is set
+            if detectedStacks.contains(.catalyst) {
+                 detectedStacks.insert(.uiKit)
+            }
+        }
+
+        // --- Final Cleanup & Fallback --- 
+        // If both AppKit and UIKit/Catalyst are present (e.g., wrapped app with some AppKit resources?)
+        // Prioritize Catalyst/UIKit as the primary environment for wrapped apps.
+        if detectedStacks.contains(.catalyst) || detectedStacks.contains(.uiKit) {
+             detectedStacks.remove(.appKit) // Less likely to be the *primary* stack in a wrapped/Catalyst scenario
+             print("[DetectService] Prioritizing UIKit/Catalyst over potentially detected AppKit resources due to wrapper/plist.")
+        }
+        
+        if detectedStacks.isEmpty {
+            print("[DetectService] No specific stack detected for \(appURL.lastPathComponent), marking as Other.")
+            detectedStacks.insert(.other) // Use 'other' instead of 'unknown' from OptionSet
+        }
+
+        print("[DetectService] Final detected stacks for \(appURL.lastPathComponent): \(detectedStacks.displayNames.joined(separator: ", "))")
+        return detectedStacks
+    }
+
+    // Helper to read Info.plist
+    private func readInfoPlist(from appURL: URL) -> [String: Any]? {
+        let plistPath = appURL.appendingPathComponent("Contents/Info.plist").path
+        guard fileManager.fileExists(atPath: plistPath),
+              let plistData = try? Data(contentsOf: URL(fileURLWithPath: plistPath))
+        else {
+            return nil
+        }
+        return try? PropertyListSerialization.propertyList(from: plistData, options: [], format: nil) as? [String: Any]
+    }
+
+    // Helper to get executable name from Info.plist
+    private func getExecutableName(from appURL: URL) -> String? {
+        return readInfoPlist(from: appURL)?["CFBundleExecutable"] as? String
+    }
+
+    // Helper to find the actual executable file
+    private func findExecutable(in macosDir: String, named execName: String) -> URL? {
+        let execURL = URL(fileURLWithPath: macosDir).appendingPathComponent(execName)
+        if fileManager.isExecutableFile(atPath: execURL.path) {
+            return execURL
+        }
+        // Fallback: Sometimes the executable might be different (e.g., helper)
+        // Look for the first executable file in Contents/MacOS if primary not found
+        if let contents = try? fileManager.contentsOfDirectory(at: URL(fileURLWithPath: macosDir), includingPropertiesForKeys: [.isExecutableKey], options: .skipsHiddenFiles) {
+            for fileURL in contents {
+                if (try? fileURL.resourceValues(forKeys: [.isExecutableKey]).isExecutable) == true {
+                    print("[DetectService] Found fallback executable: \(fileURL.lastPathComponent)")
+                    return fileURL
+                }
+            }
+        }
+        return nil // Not found
+    }
+
+    // Helper function to check if a directory contains files with specific extensions
+    private func directoryContains(path: String, extensions: [String]) -> Bool {
+        guard let enumerator = fileManager.enumerator(atPath: path) else { return false }
+        for case let file as String in enumerator {
+            if extensions.contains((file as NSString).pathExtension.lowercased()) {
+                return true
+            }
+        }
+        return false
     }
 }

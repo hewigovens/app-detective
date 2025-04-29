@@ -20,12 +20,14 @@ class ContentViewModel: ObservableObject {
     private let scanService = ScanService()
     private let detectService = DetectService()
     private var loadedMetadataCount: Int = 0
+    private let diskCacheService = DiskCacheService() // Add instance of disk cache service
 
     // Keep existing init for previews or direct instantiation if needed
     init(folderURL: URL?) {
         self.folderURL = folderURL
         self.navigationTitle = folderURL?.lastPathComponent ?? "App Detective"
         metadataLoader.setViewModel(self) // Ensure loader has reference
+        loadCachesFromDisk() // Load caches when initialized
     }
 
     // Add a default initializer
@@ -33,6 +35,52 @@ class ContentViewModel: ObservableObject {
         self.folderURL = nil
         self.navigationTitle = "App Detective"
         metadataLoader.setViewModel(self) // Ensure loader has reference
+        loadCachesFromDisk() // Load caches when initialized
+    }
+
+    // MARK: - Cache Loading/Saving
+
+    private func loadCachesFromDisk() {
+        print("[ViewModel] Attempting to load caches from disk...")
+        if let loadedIcons = diskCacheService.loadIconCache() {
+            self.iconCache = loadedIcons
+        }
+        if let loadedSizes = diskCacheService.loadSizeCache() {
+            self.sizeCache = loadedSizes
+        }
+    }
+
+    // MARK: - Scanning and Loading Logic
+
+    // Add function to clear caches and trigger a full rescan
+    func clearCachesAndRescan() {
+        print("[ViewModel] Clearing caches and initiating rescan...")
+        // Clear disk caches
+        diskCacheService.clearAllCaches()
+
+        // Clear in-memory state
+        iconCache.removeAll()
+        sizeCache.removeAll()
+        appResults.removeAll() // Clear previous scan results
+        errorMessage = nil
+        scanProgress = 0.0
+        metadataLoadProgress = 0.0
+        totalMetadataItems = 0
+        loadedMetadataCount = 0
+        navigationTitle = "App Detective" // Reset title
+
+        // Ensure isLoading is false before starting scan
+        isLoading = false 
+
+        // Trigger the scan if a folder is selected
+        if folderURL != nil {
+             Task {
+                 await scanApplications()
+             }
+        } else {
+             navigationTitle = "Select Folder" // Or appropriate initial state
+             print("[ViewModel] No folder selected, cannot rescan.")
+        }
     }
 
     func scanApplications() async {
@@ -83,12 +131,13 @@ class ContentViewModel: ObservableObject {
 
             // Use TaskGroup for concurrent detection
             await withTaskGroup(of: AppInfo?.self) { group in
-                for appURL in allAppURLs {
+                for url in allAppURLs {
                     group.addTask { [weak self] in
                         guard let self = self else { return nil }
-                        let appName = appURL.deletingPathExtension().lastPathComponent
-                        let stack = await self.detectService.detectStack(for: appURL)
-                        return AppInfo(name: appName, path: appURL.path, techStack: stack)
+                        let appName = url.deletingPathExtension().lastPathComponent
+                        let detectedStack = await self.detectService.detectStack(for: url)
+                        let appInfo = AppInfo(name: appName, path: url.path, techStacks: detectedStack)
+                        return appInfo
                     }
                 }
 
@@ -195,9 +244,13 @@ class ContentViewModel: ObservableObject {
         // Update caches (no need for cacheQueue if always called on main actor)
         if let data = iconData {
             iconCache[path] = data
+            // Save updated icon cache to disk
+            diskCacheService.saveIconCache(iconCache)
         }
         if let size = sizeString {
             sizeCache[path] = size
+            // Save updated size cache to disk
+            diskCacheService.saveSizeCache(sizeCache)
         }
 
         // Update progress only if this is a new item being fully cached

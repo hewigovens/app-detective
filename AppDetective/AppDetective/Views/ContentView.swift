@@ -35,8 +35,25 @@ struct ContentView: View {
             }
         }
         .navigationTitle(viewModel.navigationTitle) // Use the viewModel's published title
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    viewModel.clearCachesAndRescan()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                    Text("Rescan") // Optional label
+                }
+                .help("Clear cache and rescan the selected folder") // Tooltip
+                .disabled(viewModel.isLoading) // Disable while scanning/loading
+            }
+        }
         .background(.regularMaterial) // Add vibrant background
         .frame(minWidth: 500, minHeight: 400) // Set a reasonable default size
+        .task {
+            // Initial scan when view appears, if needed (or handled by folder selection)
+            // If viewModel.folderURL is already set and results are empty,
+            // consider triggering scan here.
+        }
     }
 }
 
