@@ -65,12 +65,21 @@ class MetadataLoaderService {
         // Notify on the main thread when ALL operations in this group are done
         group.notify(queue: DispatchQueue.main) { [weak self] in
             print("[MetadataLoader] Finished concurrent batch.")
-            self?.activeGroup = nil // Mark batch as finished
+            guard let self = self else { return }
 
-            // If more items were added while processing, kick off a new batch
-            if !(self?.loadQueue.isEmpty ?? true) {
-                print("[MetadataLoader] New items added, starting next batch...")
-                self?.processQueue()
+            self.activeGroup = nil // Mark batch as finished
+
+            // Check if the queue is now empty
+            if self.loadQueue.isEmpty {
+                print("[MetadataLoader] Load queue is empty. All metadata loaded.")
+                // Call the completion handler on the ViewModel
+                 Task { // Use Task since viewModel function is async if needed, though currently sync
+                      self.viewModel?.metadataLoadingDidComplete()
+                 }
+            } else {
+                 // If more items were added while processing, kick off a new batch
+                 print("[MetadataLoader] Items still in queue (\(self.loadQueue.count)), starting next batch...")
+                 self.processQueue()
             }
         }
     }

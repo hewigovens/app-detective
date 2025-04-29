@@ -10,16 +10,16 @@ class ContentViewModel: ObservableObject {
     @Published var errorMessage: String? = nil
     @Published var navigationTitle: String = "App Detective"
     @Published var folderURL: URL? = nil
+    @Published var metadataLoadProgress: Double = 0.0
+    @Published var totalMetadataItems: Int = 0
 
-    // Centralized Caches
     private var iconCache: [String: Data] = [:]
     private var sizeCache: [String: String] = [:]
     private let cacheQueue = DispatchQueue(label: "hi.hewig.app.detective.cacheQueue") // For thread-safe access
-
-    // Background loading service
     private let metadataLoader = MetadataLoaderService()
     private let scanService = ScanService()
     private let detectService = DetectService()
+    private var loadedMetadataCount: Int = 0
 
     // Keep existing init for previews or direct instantiation if needed
     init(folderURL: URL?) {
@@ -88,17 +88,17 @@ class ContentViewModel: ObservableObject {
                         guard let self = self else { return nil }
                         let appName = appURL.deletingPathExtension().lastPathComponent
                         let stack = await self.detectService.detectStack(for: appURL)
-                        return AppInfo(name: appName, path: appURL.path, techStack: stack.rawValue)
+                        return AppInfo(name: appName, path: appURL.path, techStack: stack)
                     }
                 }
 
                 for await result in group {
                     // Only update progress counter here
                     if totalAppsToScan > 0 {
-                         // Calculate progress based on appended apps
-                         let currentProgress = Double(detectedApps.count + 1) / Double(totalAppsToScan)
-                         self.scanProgress = min(currentProgress, 1.0) // Update scanProgress directly
-                         // DO NOT update navigationTitle percentage here
+                        // Calculate progress based on appended apps
+                        let currentProgress = Double(detectedApps.count + 1) / Double(totalAppsToScan)
+                        self.scanProgress = min(currentProgress, 1.0) // Update scanProgress directly
+                        // DO NOT update navigationTitle percentage here
                     }
 
                     if let appInfo = result {
@@ -114,33 +114,64 @@ class ContentViewModel: ObservableObject {
         } catch let error as ScanService.ScanError {
             errorMessage = error.localizedDescription
             navigationTitle = "Scan Error" // Set error title
+            isLoading = false // Stop loading on error
         } catch {
             errorMessage = "An unexpected error occurred: \(error.localizedDescription)"
             navigationTitle = "Unexpected Error" // Set error title
+            isLoading = false // Stop loading on error
         }
 
-        // --- Final State Update ---
-        isLoading = false // Set loading to false *after* processing
-
-        // Set final navigation title based on outcome (only if no error occurred)
+        // --- Final State Update Logic Moved ---
+        // If an error occurred during scan, isLoading is already false.
+        // If scan succeeded, decide whether to continue loading or finish.
         if errorMessage == nil {
-             scanProgress = 1.0 // Ensure progress hits 100% on success
-             if appResults.isEmpty {
-                 navigationTitle = "No Apps Found"
-             } else {
-                 navigationTitle = "Detected Apps (\(appResults.count))"
-             }
-        } 
-        // If errorMessage is not nil, the title was already set in catch blocks
+            if appResults.isEmpty {
+                // No apps found, finish now.
+                isLoading = false
+                navigationTitle = "No Apps Found"
+                scanProgress = 1.0
+                print("Finished scanning. No apps found.")
+            } else {
+                // Apps found, start metadata loading phase.
+                // Initialize metadata tracking state
+                totalMetadataItems = appResults.count
+                loadedMetadataCount = 0
+                metadataLoadProgress = 0.0
+                // Set initial title for metadata phase
+                navigationTitle = "Loading Details (0%)..."
+                // Keep isLoading = true
+                scanProgress = 1.0 // Scan part is done.
+                print("Finished scan phase. Starting metadata load for \(appResults.count) apps.")
+                // --- Start background loading after scan ---
+                let pathsToLoad = appResults.map { $0.path } // Use appResults now
+                metadataLoader.enqueuePaths(pathsToLoad)
+                // -------------------------------------------
+            }
+        }
+        // If errorMessage is not nil, isLoading and title are set in catch blocks.
+        // Removed final print here, moved to completion points.
+    }
 
-        print("Finished scanning. Final count: \(appResults.count) apps. Title: \(navigationTitle)")
-        // --------------------------
-
-        // --- Start background loading after scan ---
-        // Ensure we use the final sorted list
-        let pathsToLoad = detectedApps.map { $0.path }
-        metadataLoader.enqueuePaths(pathsToLoad)
-        // -------------------------------------------
+    // Called by MetadataLoaderService when all items are processed
+    @MainActor
+    func metadataLoadingDidComplete() {
+        print("[ViewModel] Metadata loading complete.")
+        // Ensure we only update state if we were actually loading metadata
+        if isLoading { // Check isLoading to prevent accidental state change if scan errored earlier
+            isLoading = false
+            metadataLoadProgress = 1.0 // Ensure metadata progress hits 100%
+            // Final title should reflect the results loaded during the scan phase
+            if appResults.isEmpty { // Should ideally not happen if metadata was loaded, but check anyway
+                navigationTitle = "No Apps Found"
+            } else {
+                navigationTitle = "Apps (\(appResults.count))"
+            }
+            // Ensure progress is visually complete
+            scanProgress = 1.0
+            print("Finished all phases. Final count: \(appResults.count) apps. Title: \(navigationTitle)")
+        } else {
+            print("[ViewModel] metadataLoadingDidComplete called but isLoading was already false.")
+        }
     }
 
     // MARK: - Caching Methods
@@ -158,12 +189,27 @@ class ContentViewModel: ObservableObject {
         // Notify SwiftUI that this object is about to change
         objectWillChange.send()
 
+        // Check if data was already cached to avoid double counting progress
+        let wasAlreadyCached = (iconCache[path] != nil && sizeCache[path] != nil)
+
         // Update caches (no need for cacheQueue if always called on main actor)
         if let data = iconData {
             iconCache[path] = data
         }
         if let size = sizeString {
             sizeCache[path] = size
+        }
+
+        // Update progress only if this is a new item being fully cached
+        if !wasAlreadyCached && iconCache[path] != nil && sizeCache[path] != nil && totalMetadataItems > 0 {
+            loadedMetadataCount += 1
+            metadataLoadProgress = Double(loadedMetadataCount) / Double(totalMetadataItems)
+            // Update navigation title with percentage
+            let percentage = Int(metadataLoadProgress * 100)
+            navigationTitle = "Loading Details (\(percentage)%...)"
+            print("[ViewModel] Metadata Progress: \(percentage)% (\(loadedMetadataCount)/\(totalMetadataItems))")
+        } else if totalMetadataItems == 0 {
+            print("[ViewModel] Warning: cacheData called but totalMetadataItems is 0.")
         }
     }
 }

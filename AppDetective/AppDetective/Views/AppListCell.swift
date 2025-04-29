@@ -31,7 +31,7 @@ struct AppListCell: View {
                 Text(appInfo.name)
                     .font(.headline)
                     .lineLimit(1)
-                Text(appInfo.techStack)
+                Text(appInfo.techStack.rawValue)
                     .font(.caption)
                     .padding(.horizontal, 8) // Add horizontal padding
                     .padding(.vertical, 4) // Add vertical padding
@@ -54,17 +54,41 @@ struct AppListCell: View {
             Spacer() // Pushes content to the left
         }
         .padding(.vertical, 4)
-        .background(Color.white)
+        .background(.regularMaterial)
     }
 }
 
 struct AppListCell_Previews: PreviewProvider {
     static var previews: some View {
         List {
-            AppListCell(appInfo: AppInfo(name: "ExampleApp very long name to test truncation.app", path: "/Applications/Calculator.app", techStack: "Electron")) // Use a real app path for preview icon/size
-            AppListCell(appInfo: AppInfo(name: "Another App.app", path: "/Applications/Safari.app", techStack: "SwiftUI"))
-            AppListCell(appInfo: AppInfo(name: "MyPythonThing.app", path: "/System/Applications/Messages.app", techStack: "Python"))
-            AppListCell(appInfo: AppInfo(name: "UnknownApp.app", path: "/System/Applications/Mail.app", techStack: "Unknown"))
+            AppListCell(
+                appInfo: AppInfo(
+                    name: "ExampleApp very long name to test truncation.app",
+                    path: "/Applications/Calculator.app",
+                    techStack: .electron
+                )
+            ) // Use a real app path for preview icon/size
+            AppListCell(
+                appInfo: AppInfo(
+                    name: "Another App.app",
+                    path: "/Applications/Safari.app",
+                    techStack: .swiftUI
+                )
+            )
+            AppListCell(
+                appInfo: AppInfo(
+                    name: "MyPythonThing.app",
+                    path: "/System/Applications/Messages.app",
+                    techStack: .python
+                )
+            )
+            AppListCell(
+                appInfo: AppInfo(
+                    name: "UnknownApp.app",
+                    path: "/System/Applications/Mail.app",
+                    techStack: .unknown
+                )
+            )
         }
         .frame(width: 350) // Increase preview width slightly
     }
