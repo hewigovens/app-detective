@@ -50,7 +50,6 @@ struct AppListCell: View {
             Spacer() // Pushes content to the left
         }
         .padding(.vertical, 4)
-        .background(.regularMaterial)
     }
 }
 
