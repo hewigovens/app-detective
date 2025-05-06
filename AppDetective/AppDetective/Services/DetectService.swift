@@ -76,9 +76,7 @@ class DetectService {
                  if innerAppPath.hasSuffix(".app") && fileManager.fileExists(atPath: innerAppPath) {
                      appToAnalyzeURL = URL(fileURLWithPath: innerAppPath)
                      print("[DetectService] Analyzing inner app bundle: \(appToAnalyzeURL.path)")
-                     // Assume Catalyst or UIKit if wrapped
                      detectedStacks.insert(.catalyst) // Strong indicator
-                     detectedStacks.insert(.uiKit) // Likely present in Catalyst/iOS apps
                  } else {
                       print("[DetectService] WrappedBundle symlink in Wrapper does not point to a valid .app: \(symlinkDest)")
                       // Fallback: Try finding the first .app in Wrapper if symlink failed
@@ -87,7 +85,6 @@ class DetectService {
                            appToAnalyzeURL = URL(fileURLWithPath: wrapperPath).appendingPathComponent(innerAppName)
                            print("[DetectService] Analyzing inner app bundle (fallback): \(appToAnalyzeURL.path)")
                            detectedStacks.insert(.catalyst)
-                           detectedStacks.insert(.uiKit)
                       } else {
                            print("[DetectService] Could not determine inner app bundle within Wrapper.")
                            // Continue analysis on the outer app, but the result might be less accurate
@@ -206,7 +203,6 @@ class DetectService {
             if infoPlist["LSRequiresNativeExecution"] as? Bool == true {
                  print("[DetectService] Detected Catalyst via Info.plist.")
                  detectedStacks.insert(.catalyst)
-                 detectedStacks.insert(.uiKit) // Assume UIKit if Catalyst
             }
             
             // Refined AppKit Inference: If otool detected Swift, but not SwiftUI,
@@ -220,17 +216,12 @@ class DetectService {
                  print("[DetectService] Inferring AppKit based on Swift linkage (no SwiftUI/Nibs/Catalyst).")
                  detectedStacks.insert(.appKit)
             }
-            
-            // If Catalyst was detected (either by Wrapper or Info.plist), ensure UIKit is set
-            if detectedStacks.contains(.catalyst) {
-                 detectedStacks.insert(.uiKit)
-            }
         }
 
         // --- Final Cleanup & Fallback --- 
         // If both AppKit and UIKit/Catalyst are present (e.g., wrapped app with some AppKit resources?)
         // Prioritize Catalyst/UIKit as the primary environment for wrapped apps.
-        if detectedStacks.contains(.catalyst) || detectedStacks.contains(.uiKit) {
+        if detectedStacks.contains(.catalyst) {
              detectedStacks.remove(.appKit) // Less likely to be the *primary* stack in a wrapped/Catalyst scenario
              print("[DetectService] Prioritizing UIKit/Catalyst over potentially detected AppKit resources due to wrapper/plist.")
         }
