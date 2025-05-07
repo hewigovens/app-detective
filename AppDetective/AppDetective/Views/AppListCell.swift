@@ -26,7 +26,7 @@ struct AppListCell: View {
                         .foregroundColor(.secondary)
                 }
             }
-            .frame(width: 40, height: 40) // Consistent frame
+            .frame(width: 44, height: 44) // Consistent frame
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(appInfo.name)
@@ -44,7 +44,7 @@ struct AppListCell: View {
                     .foregroundColor(.secondary)
             }
 
-            Spacer() // Pushes content to the left and tech stack to the right
+            Spacer()
 
             // Display joined tech stack names
             if !appInfo.techStacks.isEmpty { // Only show if there are tech stacks
@@ -59,6 +59,14 @@ struct AppListCell: View {
             }
         }
         .padding(.vertical, 4)
+        .contextMenu {
+            Button {
+                NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: appInfo.path)])
+            } label: {
+                Text("Show in Finder")
+                Image(systemName: "folder")
+            }
+        }
     }
 }
 

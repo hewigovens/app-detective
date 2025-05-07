@@ -31,10 +31,9 @@ class DetectService {
         let frameworksPath = contentsUrl.appendingPathComponent("/Frameworks")
         let resourcesPath = contentsUrl.appendingPathComponent("/Resources")
 
-        let infoPlist = readInfoPlist(from: infoPlistUrl)
-
         guard
-            let executableName = getExecutableName(from: appToAnalyzeURL, infoPlist: infoPlist),
+            let infoPlist = readInfoPlist(from: infoPlistUrl),
+            let executableName = infoPlist["CFBundleExecutable"] as? String,
             let executableURL = findExecutable(
                 in: executableDir.path,
                 named: executableName
@@ -78,11 +77,6 @@ class DetectService {
             resourcesPath: resourcesPath.path,
             infoPlist: infoPlist
         )
-
-        // Handle specific app exceptions (e.g., Steam)
-        if getBundleID(from: appToAnalyzeURL) == "com.valvesoftware.steam" {
-            print("[DetectService] Steam detected. Detection result: \(finalResolvedStacks.displayNames.joined(separator: ", "))")
-        }
 
         print("[DetectService] Final detected stacks for \(appToAnalyzeURL.lastPathComponent): \(finalResolvedStacks.displayNames.joined(separator: ", "))")
         return finalResolvedStacks
@@ -445,23 +439,13 @@ class DetectService {
 
     /// Reads the Info.plist file from the app bundle.
     private func readInfoPlist(from infoPlist: URL) -> [String: Any]? {
-        guard let plistData = try? Data(contentsOf: infoPlist) else {
-            print("[DetectService] Error reading Info.plist at \(infoPlist.path): File not found or not readable.")
-            return nil
-        }
         do {
+            let plistData = try Data(contentsOf: infoPlist)
             return try PropertyListSerialization.propertyList(from: plistData, options: [], format: nil) as? [String: Any]
         } catch {
             print("[DetectService] Error parsing Info.plist at \(infoPlist.path): \(error.localizedDescription)")
             return nil
         }
-    }
-
-    /// Retrieves the bundle executable name from Info.plist.
-    /// Optionally accepts a pre-read Info.plist to avoid redundant file access.
-    private func getExecutableName(from appURL: URL, infoPlist: [String: Any]? = nil) -> String? {
-        let plistToUse = infoPlist ?? readInfoPlist(from: appURL)
-        return plistToUse?["CFBundleExecutable"] as? String
     }
 
     /// Finds the main executable file within the app's MacOS directory.
@@ -484,10 +468,5 @@ class DetectService {
             print("[DetectService] Error finding executable in \(directoryPath): \(error.localizedDescription)")
         }
         return nil
-    }
-
-    /// Retrieves the bundle identifier from the Info.plist.
-    func getBundleID(from appURL: URL) -> String? {
-        return readInfoPlist(from: appURL)?["CFBundleIdentifier"] as? String
     }
 }
