@@ -14,29 +14,58 @@ class ContentViewModel: ObservableObject {
     @Published var totalMetadataItems: Int = 0
 
     // Category ViewModel
-    let categoryViewModel = CategoryViewModel()
+    let categoryViewModel: CategoryViewModel
 
     private var iconCache: [String: Data] = [:]
     private var sizeCache: [String: String] = [:]
     private let cacheQueue = DispatchQueue(label: Constants.BundleId + ".cacheQueue")
-    private let metadataLoader = MetadataLoaderService()
-    private let scanService = ScanService()
-    private let detectService = DetectService()
+    private let metadataLoader: MetadataLoaderService
+    private let scanService: ScanService
+    private let detectService: DetectService
     private var loadedMetadataCount: Int = 0
-    private let diskCacheService = DiskCacheService() // Add instance of disk cache service
+    private let diskCacheService: DiskCacheService
+
+    // Initialization for live app usage
+    init() {
+        self.diskCacheService = DiskCacheService()
+        self.metadataLoader = MetadataLoaderService()
+        self.detectService = DetectService()
+        self.scanService = ScanService()
+        self.categoryViewModel = CategoryViewModel()
+        loadExistingCaches()
+        setupMetadataLoaderCallbacks()
+        print("[ViewModel] ContentViewModel initialized for live app.")
+    }
+
+    // Initialization for previews or testing with a specific folder
+    init(folderURL: URL?, categoryViewModel: CategoryViewModel) {
+        self.folderURL = folderURL
+        self.diskCacheService = DiskCacheService()
+        self.metadataLoader = MetadataLoaderService()
+        self.detectService = DetectService()
+        self.scanService = ScanService()
+        self.categoryViewModel = categoryViewModel
+        loadExistingCaches()
+        setupMetadataLoaderCallbacks()
+        print("[ViewModel] ContentViewModel initialized for preview/test. Folder: \(folderURL?.path ?? "Not set")")
+    }
+
+    private func loadExistingCaches() {
+        print("[ViewModel] Attempting to load existing caches from disk...")
+        self.iconCache = diskCacheService.loadIconCache() ?? [:]
+        self.sizeCache = diskCacheService.loadSizeCache() ?? [:]
+        print("[ViewModel] Loaded \(self.iconCache.count) icons and \(self.sizeCache.count) sizes from disk cache.")
+    }
 
     // Keep existing init for previews or direct instantiation if needed
     init(folderURL: URL?) {
         self.folderURL = folderURL
         self.navigationTitle = folderURL?.lastPathComponent ?? Constants.AppName
-        setupMetadataLoaderCallbacks()
-        loadCachesFromDisk()
-    }
-
-    // Add a default initializer
-    init() {
-        self.folderURL = nil
-        self.navigationTitle = Constants.AppName
+        self.diskCacheService = DiskCacheService()
+        self.metadataLoader = MetadataLoaderService()
+        self.detectService = DetectService()
+        self.scanService = ScanService()
+        self.categoryViewModel = CategoryViewModel()
         setupMetadataLoaderCallbacks()
         loadCachesFromDisk()
     }
@@ -81,7 +110,7 @@ class ContentViewModel: ObservableObject {
 
         // Clear in-memory state
         iconCache.removeAll()
-        sizeCache.removeAll()
+        sizeCache.removeAll() // Clear size cache as well
         appResults.removeAll() // Clear previous scan results
         errorMessage = nil
         scanProgress = 0.0
@@ -242,8 +271,42 @@ class ContentViewModel: ObservableObject {
                 print("Finished scan phase. Starting metadata load for \(appResults.count) apps.")
                 // --- Start background loading after scan ---
                 let pathsToLoad = appResults.map { $0.path } // Use appResults now
-                metadataLoader.enqueuePaths(pathsToLoad)
-                // -------------------------------------------
+                var pathsRequiringMetadataLoad: [String] = []
+                var initiallyCachedCount = 0
+
+                for path in pathsToLoad {
+                    if let iconData = self.iconCache[path], let size = self.sizeCache[path] {
+                        // If data is in cache, apply it to the AppInfo model directly
+                        if let index = self.appResults.firstIndex(where: { $0.path == path }) {
+                            self.appResults[index].iconData = iconData
+                            self.appResults[index].size = size
+                            // Consider adding an `isMetadataLoaded` flag to AppInfo if more granular control is needed
+                        }
+                        initiallyCachedCount += 1
+                    } else {
+                        pathsRequiringMetadataLoad.append(path)
+                    }
+                }
+                
+                self.loadedMetadataCount = initiallyCachedCount
+                self.totalMetadataItems = appResults.count
+
+                if totalMetadataItems > 0 {
+                    self.metadataLoadProgress = Double(self.loadedMetadataCount) / Double(self.totalMetadataItems)
+                } else {
+                    self.metadataLoadProgress = 1.0 // Or 0.0, if no apps, should be 1.0 as it's 'done'
+                }
+
+                print("[ViewModel] From \(appResults.count) apps: \(initiallyCachedCount) had full metadata cached, \(pathsRequiringMetadataLoad.count) require loading.")
+
+                if pathsRequiringMetadataLoad.isEmpty {
+                    print("[ViewModel] All metadata already cached. Completing metadata phase immediately.")
+                    // No need to call isLoading = true here, it's already true from the start of startInitialLoadOrRescan
+                    self.metadataLoadingDidComplete() // This will set isLoading to false
+                } else {
+                    print("[ViewModel] Enqueuing \(pathsRequiringMetadataLoad.count) paths for metadata loading.")
+                    self.metadataLoader.enqueuePaths(pathsRequiringMetadataLoad)
+                }
             }
         }
         // If errorMessage is not nil, isLoading and title are set in catch blocks.

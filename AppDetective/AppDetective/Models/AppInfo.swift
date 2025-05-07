@@ -7,4 +7,8 @@ struct AppInfo: Identifiable, Hashable {
     let path: String
     let techStacks: TechStack
     let category: Category
+
+    // Added for cache
+    var iconData: Data?
+    var size: String?
 }
