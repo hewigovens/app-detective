@@ -42,7 +42,6 @@ class DetectService {
             print("[DetectService] Critical: Could not find or determine executable for \(appToAnalyzeURL.path). Returning .other")
             return .other
         }
-        print("[DetectService] Identified executable: \(executableURL.path)")
 
         // --- Step 2: Framework Directory Analysis ---
         let frameworkStacks = scanFrameworksDirectory(
@@ -96,7 +95,7 @@ class DetectService {
 
         let fullResolved = URL(fileURLWithPath: path)
             .resolvingSymlinksInPath()
-        print("Fully resolved path: \(fullResolved)")
+        print("[DetectService] Step 1: Fully resolved path: \(fullResolved)")
 
         return (fullResolved, true)
     }
@@ -104,7 +103,6 @@ class DetectService {
     /// Step 2: Scans the Frameworks directory for known framework signatures (Electron, CEF, Flutter, .NET, Python, Qt).
     private func scanFrameworksDirectory(frameworksPath: String) -> TechStack {
         var detectedStacks: TechStack = []
-        print("[DetectService] Step 2: Scanning Frameworks directory: \(frameworksPath)")
 
         guard fileManager.fileExists(atPath: frameworksPath) else {
             print("[DetectService] Step 2: Frameworks directory does not exist at \(frameworksPath).")
@@ -119,54 +117,41 @@ class DetectService {
 
         do {
             let frameworkItems = try fileManager.contentsOfDirectory(atPath: frameworksPath)
-            print("[DetectService] Step 2: Found items in Frameworks: \(frameworkItems.joined(separator: ", "))")
 
             for item in frameworkItems {
                 // Electron
                 if electronIndicators.contains(item) {
-                    print("[DetectService] Step 2: Detected Electron indicator: \(item)")
                     detectedStacks.insert(.electron)
                 }
 
                 // Microsoft Edge
                 if microsoftEdgeIndicators.contains(item) {
-                    print("[DetectService] Step 2: Detected Microsoft Edge indicator: \(item)")
                     detectedStacks.insert(.microsoftEdge)
                 }
 
                 // Chromium Embedded Framework (CEF)
                 if cefIndicators.contains(item) {
-                    print("[DetectService] Step 2: Detected CEF indicator: \(item)")
                     detectedStacks.insert(.cef)
                 }
 
                 // Flutter
                 if flutterSpecificFrameworks.contains(item) || item.contains("Flutter") {
-                    print("[DetectService] Step 2: Detected Flutter indicator: \(item)")
                     detectedStacks.insert(.flutter)
                 }
 
                 // .NET/Xamarin/MAUI (Assemblies)
                 // Look for common .NET assembly patterns or specific framework names
-                if item.contains("Xamarin") || item.contains("Microsoft.Maui") || item.contains("MonoBundle") || item.hasSuffix(".dylib") && item.lowercased().contains("system.") {
-                    print("[DetectService] Step 2: Detected .NET/Xamarin/MAUI indicator: \(item)")
+                if item.contains("Xamarin") || item.contains("Microsoft.Maui") || item.contains("MonoBundle") {
                     detectedStacks.insert(.xamarin)
                 }
 
                 // Python
                 if item == "Python.framework" || (item.lowercased().contains("python") && item.hasSuffix(".framework")) {
-                    print("[DetectService] Step 2: Detected Python indicator: \(item)")
                     detectedStacks.insert(.python)
                 }
 
-                // Qt
                 // Qt frameworks often start with "Qt" e.g., QtCore.framework, or contain Qt in their name like QtWebEngineCore.framework
                 if item.starts(with: "Qt") && item.hasSuffix(".framework") {
-                    print("[DetectService] Step 2: Detected Qt indicator (prefix): \(item)")
-                    detectedStacks.insert(.qt)
-                } else if item.contains("Qt") && item.hasSuffix(".framework") {
-                    // Broader check for frameworks like QtWebEngineCore.framework
-                    print("[DetectService] Step 2: Detected Qt indicator (contains): \(item)")
                     detectedStacks.insert(.qt)
                 }
             }
@@ -174,9 +159,6 @@ class DetectService {
             print("[DetectService] Step 2: Error reading Frameworks directory at \(frameworksPath): \(error.localizedDescription)")
         }
 
-        if !detectedStacks.isEmpty {
-            print("[DetectService] Step 2: Finished scanFrameworksDirectory. Detected: \(detectedStacks.displayNames.joined(separator: ", "))")
-        }
         return detectedStacks
     }
 
@@ -184,7 +166,6 @@ class DetectService {
     /// Only checks for stacks not already found by higher priority steps.
     private func scanResourcesDirectory(resourcesPath: String, currentStacks: TechStack) -> TechStack {
         var detectedStacks: TechStack = []
-        print("[DetectService] Step 3: Scanning Resources directory: \(resourcesPath) with current stacks: \(currentStacks.displayNames.joined(separator: ", "))")
 
         guard fileManager.fileExists(atPath: resourcesPath) else {
             print("[DetectService] Step 3: Resources directory does not exist at \(resourcesPath).")
@@ -203,9 +184,6 @@ class DetectService {
             }
         }
 
-        if !detectedStacks.isEmpty {
-            print("[DetectService] Step 3: Finished scanResourcesDirectory. Detected: \(detectedStacks.displayNames.joined(separator: ", "))")
-        }
         return detectedStacks
     }
 
@@ -338,13 +316,11 @@ class DetectService {
 
         // Java
         if stringsOutput.contains("java/lang") {
-            print("[DetectService] Step 5: Strings analysis detected 'java'.")
             return [.java]
         }
 
         // Tauri: Presence of "tauri"
         if stringsOutput.contains("tauri") { // Case-sensitive as per typical binary content
-            print("[DetectService] Step 5: Strings analysis detected 'tauri'.")
             return [.tauri]
         }
 
@@ -355,13 +331,11 @@ class DetectService {
 
         // GPUI: Presence of "gpui" (as per DetectionRules.md)
         if stringsOutput.contains("/gpui/") {
-            print("[DetectService] Step 5: Strings analysis detected 'gpui'.")
             return [.gpui]
         }
 
         // Iced: Presence of "iced_wgpu" (as per DetectionRules.md)
         if stringsOutput.contains("iced_wgpu") {
-            print("[DetectService] Step 5: Strings analysis detected 'iced_wgpu'.")
             return [.iced]
         }
 
@@ -371,29 +345,19 @@ class DetectService {
     /// Step 6: Resolves conflicts between detected stacks and applies final inferences.
     private func resolveConflictsAndFallback(currentStacks: TechStack, appURL: URL, resourcesPath: String, infoPlist: [String: Any]?) -> TechStack {
         var resolvedStacks = currentStacks
-        print("[DetectService] Step 6: Starting conflict resolution with stacks: \(resolvedStacks.displayNames.joined(separator: ", ")). App: \(appURL.lastPathComponent)")
 
-        // 1. Info.plist check for Catalyst (augment detection)
-        if let plist = infoPlist, plist["LSRequiresNativeExecution"] as? Bool == true {
-            if !resolvedStacks.contains(.catalyst) {
-                print("[DetectService] Step 6: Adding .catalyst based on LSRequiresNativeExecution in Info.plist.")
-                resolvedStacks.insert(.catalyst)
-            }
-        }
-
-        // 2. Check nibs and storyboards for AppKit
+        // 1. Check nibs and storyboards for AppKit
         if directoryContains(path: resourcesPath, extensions: ["nib", "storyboardc"]) {
             print("[DetectService] Step 3: Detected AppKit resources (.nib/.storyboardc).")
             resolvedStacks.insert(.appKit)
         }
 
-        // 3. Remove AppKit nif it has 2 major stacks
+        // 2. Remove AppKit nif it has 2 major stacks
         if resolvedStacks.toArray.count > 2 {
             resolvedStacks.remove(.appKit)
         }
 
         if resolvedStacks.isEmpty {
-            print("[DetectService] Step 6: Stacks became empty after .other removal. Setting to .other.")
             resolvedStacks.insert(.appKit)
         }
 
@@ -440,7 +404,9 @@ class DetectService {
     /// Reads the Info.plist file from the app bundle.
     private func readInfoPlist(from infoPlist: URL) -> [String: Any]? {
         do {
-            let plistData = try Data(contentsOf: infoPlist)
+            guard let plistData = try? Data(contentsOf: infoPlist) else {
+                return nil
+            }
             return try PropertyListSerialization.propertyList(from: plistData, options: [], format: nil) as? [String: Any]
         } catch {
             print("[DetectService] Error parsing Info.plist at \(infoPlist.path): \(error.localizedDescription)")

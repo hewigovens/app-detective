@@ -52,9 +52,9 @@ class ContentViewModel: ObservableObject {
 
     private func loadExistingCaches() {
         print("[ViewModel] Attempting to load existing caches from disk...")
-        self.iconCache = diskCacheService.loadIconCache() ?? [:]
-        self.sizeCache = diskCacheService.loadSizeCache() ?? [:]
-        print("[ViewModel] Loaded \(self.iconCache.count) icons and \(self.sizeCache.count) sizes from disk cache.")
+        iconCache = diskCacheService.loadIconCache() ?? [:]
+        sizeCache = diskCacheService.loadSizeCache() ?? [:]
+        print("[ViewModel] Loaded \(iconCache.count) icons and \(sizeCache.count) sizes from disk cache.")
     }
 
     // Keep existing init for previews or direct instantiation if needed
@@ -275,11 +275,11 @@ class ContentViewModel: ObservableObject {
                 var initiallyCachedCount = 0
 
                 for path in pathsToLoad {
-                    if let iconData = self.iconCache[path], let size = self.sizeCache[path] {
+                    if let iconData = iconCache[path], let size = sizeCache[path] {
                         // If data is in cache, apply it to the AppInfo model directly
-                        if let index = self.appResults.firstIndex(where: { $0.path == path }) {
-                            self.appResults[index].iconData = iconData
-                            self.appResults[index].size = size
+                        if let index = appResults.firstIndex(where: { $0.path == path }) {
+                            appResults[index].iconData = iconData
+                            appResults[index].size = size
                             // Consider adding an `isMetadataLoaded` flag to AppInfo if more granular control is needed
                         }
                         initiallyCachedCount += 1
@@ -287,14 +287,14 @@ class ContentViewModel: ObservableObject {
                         pathsRequiringMetadataLoad.append(path)
                     }
                 }
-                
-                self.loadedMetadataCount = initiallyCachedCount
-                self.totalMetadataItems = appResults.count
+
+                loadedMetadataCount = initiallyCachedCount
+                totalMetadataItems = appResults.count
 
                 if totalMetadataItems > 0 {
-                    self.metadataLoadProgress = Double(self.loadedMetadataCount) / Double(self.totalMetadataItems)
+                    metadataLoadProgress = Double(loadedMetadataCount) / Double(totalMetadataItems)
                 } else {
-                    self.metadataLoadProgress = 1.0 // Or 0.0, if no apps, should be 1.0 as it's 'done'
+                    metadataLoadProgress = 1.0 // Or 0.0, if no apps, should be 1.0 as it's 'done'
                 }
 
                 print("[ViewModel] From \(appResults.count) apps: \(initiallyCachedCount) had full metadata cached, \(pathsRequiringMetadataLoad.count) require loading.")
@@ -302,10 +302,10 @@ class ContentViewModel: ObservableObject {
                 if pathsRequiringMetadataLoad.isEmpty {
                     print("[ViewModel] All metadata already cached. Completing metadata phase immediately.")
                     // No need to call isLoading = true here, it's already true from the start of startInitialLoadOrRescan
-                    self.metadataLoadingDidComplete() // This will set isLoading to false
+                    metadataLoadingDidComplete() // This will set isLoading to false
                 } else {
                     print("[ViewModel] Enqueuing \(pathsRequiringMetadataLoad.count) paths for metadata loading.")
-                    self.metadataLoader.enqueuePaths(pathsRequiringMetadataLoad)
+                    metadataLoader.enqueuePaths(pathsRequiringMetadataLoad)
                 }
             }
         }
@@ -377,7 +377,6 @@ class ContentViewModel: ObservableObject {
             // Update navigation title with percentage
             let percentage = Int(metadataLoadProgress * 100)
             navigationTitle = "Loading Details (\(percentage)%...)"
-            print("[ViewModel] Metadata Progress: \(percentage)% (\(loadedMetadataCount)/\(totalMetadataItems))")
         } else if totalMetadataItems == 0 {
             print("[ViewModel] Warning: cacheData called but totalMetadataItems is 0.")
         }

@@ -13,61 +13,62 @@ struct AppDetectiveApp: App {
     @AppStorage("selectedFolderBookmark") private var selectedFolderBookmark: Data?
     // Use @StateObject for the ViewModel lifecycle
     @StateObject private var contentViewModel = ContentViewModel()
+    @State private var isResolvingBookmark: Bool = true // New state for loading
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                if contentViewModel.folderURL != nil {
-                    // Display ContentView, viewModel is guaranteed to exist
-                    ContentView(viewModel: contentViewModel)
-                        .task { // Re-add task modifier to trigger scan when ContentView appears
-                            print("[AppDetectiveApp] ContentView appeared, triggering scan via .task...")
-                            await contentViewModel.scanApplications()
-                        }
+            Group { // Outer group for loading state
+                if isResolvingBookmark {
+                    Spacer()
                 } else {
-                    // Show onboarding if no URL is set in the ViewModel yet
-                    OnboardingView { bookmarkData in
-                        // Save the bookmark data
-                        selectedFolderBookmark = bookmarkData
-                        print("Bookmark data saved.")
-                        // Attempt to resolve the URL immediately, which updates the ViewModel
-                        resolveBookmark()
+                    // Existing logic to choose between ContentView and OnboardingView
+                    Group {
+                        if contentViewModel.folderURL != nil {
+                            // Display ContentView, viewModel is guaranteed to exist
+                            ContentView(viewModel: contentViewModel)
+                                .task { // Re-add task modifier to trigger scan when ContentView appears
+                                    print("[AppDetectiveApp] ContentView appeared, triggering scan via .task...")
+                                    await contentViewModel.scanApplications()
+                                }
+                        } else {
+                            // Show onboarding if no URL is set in the ViewModel yet
+                            OnboardingView { bookmarkData in
+                                // Save the bookmark data
+                                selectedFolderBookmark = bookmarkData
+                                print("Bookmark data saved.")
+                                // Attempt to resolve the URL immediately, which updates the ViewModel
+                                // We also need to ensure isResolvingBookmark becomes false if user selects a folder here
+                                // but resolveBookmark() already handles setting isResolvingBookmark = false.
+                                resolveBookmark()
+                            }
+                        }
                     }
                 }
             }
-            // No longer need onChange(of: resolvedFolderURL) as ViewModel is stable
+            // Modifiers moved to the outer Group to ensure they are active
             .onAppear {
                 // Attempt to resolve the bookmark when the view appears
                 // This will update the viewModel's folderURL if successful
                 print("[AppDetectiveApp] onAppear, attempting to resolve bookmark...")
                 resolveBookmark()
             }
-            // Watch for changes in the bookmark data itself (e.g., if cleared)
-            .onChange(of: selectedFolderBookmark) { _, _ in
+            .onChange(of: selectedFolderBookmark) { _, _ in // Using new syntax for Swift 5.5+
                 print("[AppDetectiveApp] selectedFolderBookmark changed, resolving...")
                 resolveBookmark()
             }
-            // NEW: Watch for changes in the ViewModel's folderURL that might have been set by selectNewFolderAndScan
-            .onChange(of: contentViewModel.folderURL) { _, newURL in
+            .onChange(of: contentViewModel.folderURL) { _, newURL in // Using new syntax
                 if let urlToSave = newURL {
                     do {
-                        // Attempt to create new bookmark data from the URL set in the ViewModel
                         let newBookmarkData = try urlToSave.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
-                        // Only update @AppStorage if the new bookmark data is actually different from the current one
-                        // This helps prevent potential update loops if resolveBookmark also triggers this.
                         if newBookmarkData != selectedFolderBookmark {
                             print("[AppDetectiveApp] contentViewModel.folderURL changed to \(urlToSave.path). Saving new bookmark.")
                             selectedFolderBookmark = newBookmarkData
                         }
                     } catch {
                         print("[AppDetectiveApp] Error creating bookmark data from contentViewModel.folderURL: \(error.localizedDescription)")
-                        // Optionally clear the selectedFolderBookmark if creating new one fails from a valid URL
-                        // selectedFolderBookmark = nil
                     }
                 } else {
-                    // If folderURL in ViewModel becomes nil (e.g., user action to clear selection, if implemented)
-                    // then clear our persisted bookmark.
-                    if selectedFolderBookmark != nil { // Avoid unnecessary nil assignment
+                    if selectedFolderBookmark != nil {
                         print("[AppDetectiveApp] contentViewModel.folderURL is nil. Clearing persisted bookmark.")
                         selectedFolderBookmark = nil
                     }
@@ -88,6 +89,7 @@ struct AppDetectiveApp: App {
                 contentViewModel.errorMessage = nil
                 contentViewModel.navigationTitle = "Select Folder"
             }
+            isResolvingBookmark = false // Update loading state
             return
         }
 
@@ -122,5 +124,6 @@ struct AppDetectiveApp: App {
             contentViewModel.errorMessage = "Error resolving bookmark."
             contentViewModel.navigationTitle = "Error"
         }
+        isResolvingBookmark = false // Update loading state
     }
 }
