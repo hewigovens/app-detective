@@ -25,42 +25,57 @@ struct ContentView: View {
             CategoryView(viewModel: categoryViewModel)
                 .navigationTitle("Filters")
         } detail: {
-            VStack {
-                if let msg = errorMessage {
-                    Text("Error: \(msg)")
-                        .foregroundColor(.red)
-                        .padding()
-                } else {
-                    if viewModel.appResults.isEmpty && !isLoading {
-                        Text("No apps found or scan not started.")
-                    } else if !viewModel.appResults.isEmpty {
-                        // Display filtered apps based on selected category and tech stack
-                        List(categoryViewModel.filteredApps) { app in
-                            AppListCell(appInfo: app)
-                        }
-                        .environmentObject(viewModel)
-
-                        // Add a footer showing the current filter
-                        HStack(spacing: 4) {
-                            if let selectedCategory = categoryViewModel.selectedCategory {
-                                Text("Showing \(categoryViewModel.filteredApps.count) apps in \(selectedCategory.displayName)")
-                            } else {
-                                Text("Showing \(categoryViewModel.filteredApps.count) of \(viewModel.appResults.count) apps")
+            ZStack {
+                // Layer 1: Content VStack
+                VStack {
+                    if let msg = errorMessage {
+                        Text("Error: \(msg)")
+                            .foregroundColor(.red)
+                            .padding()
+                    } else {
+                        if viewModel.appResults.isEmpty && !isLoading {
+                            Text("No apps found or scan not started.")
+                                .frame(maxWidth: .infinity, maxHeight: .infinity) // Center message
+                        } else if !viewModel.appResults.isEmpty {
+                            // Display filtered apps based on selected category and tech stack
+                            List(categoryViewModel.filteredApps) { app in
+                                AppListCell(appInfo: app)
                             }
+                            .environmentObject(viewModel)
 
-                            if let selectedTechStack = categoryViewModel.selectedTechStack {
-                                Text(
-                                    "with \(TechStack.flagNames[selectedTechStack.rawValue] ?? "Unknown")"
-                                )
+                            // Add a footer showing the current filter
+                            HStack(spacing: 4) {
+                                if let selectedCategory = categoryViewModel.selectedCategory {
+                                    Text("Showing \(categoryViewModel.filteredApps.count) apps in \(selectedCategory.displayName)")
+                                } else {
+                                    Text("Showing \(categoryViewModel.filteredApps.count) of \(viewModel.appResults.count) apps")
+                                }
+
+                                if let selectedTechStack = categoryViewModel.selectedTechStack {
+                                    Text(
+                                        "with \(TechStack.flagNames[selectedTechStack.rawValue] ?? "Unknown")"
+                                    )
+                                }
                             }
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.bottom, 8)
+                        } else {
+                            Spacer()
                         }
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.bottom, 8)
-                    } else if isLoading {
-                        ProgressView("Scanning...")
                     }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                // Layer 2: Loading Overlay
+                if isLoading {
+                    ProgressView("Scanning...")
+                        .padding(16)
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
+                        .transition(.opacity.animation(.easeInOut(duration: 0.2)))
                 }
             }
             .navigationTitle(viewModel.navigationTitle)

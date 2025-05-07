@@ -45,10 +45,9 @@ class CategoryViewModel: ObservableObject {
             categories[app.category]?.append(app)
         }
 
-        // If no category is selected or the selected category no longer exists, select the first one
-        if selectedCategory == nil || (selectedCategory != nil && categories[selectedCategory!] == nil) {
-            selectedCategory = sortedCategories.first
-        }
+        // Always reset to show all apps with no specific category or tech stack selected after an update.
+        selectedCategory = nil
+        selectedTechStack = nil
     }
 
     // Select a specific category
