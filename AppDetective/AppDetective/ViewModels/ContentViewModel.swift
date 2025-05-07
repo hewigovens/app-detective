@@ -86,6 +86,31 @@ class ContentViewModel: ObservableObject {
         }
     }
 
+    func selectNewFolderAndScan() {
+        let openPanel = NSOpenPanel()
+        openPanel.canChooseFiles = false
+        openPanel.canChooseDirectories = true
+        openPanel.allowsMultipleSelection = false
+        openPanel.prompt = "Select Folder"
+
+        if openPanel.runModal() == .OK {
+            if let newURL = openPanel.url {
+                // Stop accessing the old security-scoped resource, if any
+                folderURL?.stopAccessingSecurityScopedResource()
+
+                folderURL = newURL // Update to the new folder URL
+
+                print("[ViewModel] New folder selected: \(newURL.path). Initiating rescan.")
+                // Call clearCachesAndRescan, which will use the new folderURL
+                clearCachesAndRescan()
+            } else {
+                print("[ViewModel] No folder was selected from the panel.")
+            }
+        } else {
+            print("[ViewModel] Folder selection panel was cancelled.")
+        }
+    }
+
     func scanApplications() async {
         // Ensure we have a valid URL before scanning
         guard let currentFolderURL = folderURL else {
@@ -139,7 +164,7 @@ class ContentViewModel: ObservableObject {
                         guard let self = self else { return nil }
                         let appName = url.deletingPathExtension().lastPathComponent
                         let detectedStack = await self.detectService.detectStack(for: url)
-                        let category = self.detectService.extractCategory(from: url)
+                        let category = await self.detectService.extractCategory(from: url)
                         let appInfo = AppInfo(name: appName, path: url.path, techStacks: detectedStack, category: category)
                         return appInfo
                     }
@@ -150,8 +175,7 @@ class ContentViewModel: ObservableObject {
                     if totalAppsToScan > 0 {
                         // Calculate progress based on appended apps
                         let currentProgress = Double(detectedApps.count + 1) / Double(totalAppsToScan)
-                        self.scanProgress = min(currentProgress, 1.0) // Update scanProgress directly
-                        // DO NOT update navigationTitle percentage here
+                        self.scanProgress = min(currentProgress, 1.0)
                     }
 
                     if let appInfo = result {

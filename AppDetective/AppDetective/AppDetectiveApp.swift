@@ -16,7 +16,6 @@ struct AppDetectiveApp: App {
 
     var body: some Scene {
         WindowGroup {
-            // Use a Group to dynamically switch views based on viewModel.folderURL
             Group {
                 if contentViewModel.folderURL != nil {
                     // Display ContentView, viewModel is guaranteed to exist
@@ -44,9 +43,35 @@ struct AppDetectiveApp: App {
                 resolveBookmark()
             }
             // Watch for changes in the bookmark data itself (e.g., if cleared)
-            .onChange(of: selectedFolderBookmark) { _, newData in
+            .onChange(of: selectedFolderBookmark) { _, _ in
                 print("[AppDetectiveApp] selectedFolderBookmark changed, resolving...")
                 resolveBookmark()
+            }
+            // NEW: Watch for changes in the ViewModel's folderURL that might have been set by selectNewFolderAndScan
+            .onChange(of: contentViewModel.folderURL) { _, newURL in
+                if let urlToSave = newURL {
+                    do {
+                        // Attempt to create new bookmark data from the URL set in the ViewModel
+                        let newBookmarkData = try urlToSave.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
+                        // Only update @AppStorage if the new bookmark data is actually different from the current one
+                        // This helps prevent potential update loops if resolveBookmark also triggers this.
+                        if newBookmarkData != selectedFolderBookmark {
+                            print("[AppDetectiveApp] contentViewModel.folderURL changed to \(urlToSave.path). Saving new bookmark.")
+                            selectedFolderBookmark = newBookmarkData
+                        }
+                    } catch {
+                        print("[AppDetectiveApp] Error creating bookmark data from contentViewModel.folderURL: \(error.localizedDescription)")
+                        // Optionally clear the selectedFolderBookmark if creating new one fails from a valid URL
+                        // selectedFolderBookmark = nil
+                    }
+                } else {
+                    // If folderURL in ViewModel becomes nil (e.g., user action to clear selection, if implemented)
+                    // then clear our persisted bookmark.
+                    if selectedFolderBookmark != nil { // Avoid unnecessary nil assignment
+                        print("[AppDetectiveApp] contentViewModel.folderURL is nil. Clearing persisted bookmark.")
+                        selectedFolderBookmark = nil
+                    }
+                }
             }
         }
     }
@@ -81,11 +106,11 @@ struct AppDetectiveApp: App {
             // Successfully resolved URL - update the ViewModel's URL
             // Check if it's different before assigning to prevent unnecessary updates/scans
             if contentViewModel.folderURL != url {
-                 print("Bookmark resolved successfully: \(url.path). Updating ViewModel URL.")
-                 contentViewModel.folderURL = url
-                 // Scan is now triggered by .task on ContentView when it appears due to this change
+                print("Bookmark resolved successfully: \(url.path). Updating ViewModel URL.")
+                contentViewModel.folderURL = url
+                // Scan is now triggered by .task on ContentView when it appears due to this change
             } else {
-                 print("Bookmark resolved successfully, but URL hasn't changed.")
+                print("Bookmark resolved successfully, but URL hasn't changed.")
             }
 
         } catch {

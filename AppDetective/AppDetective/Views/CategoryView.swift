@@ -140,7 +140,7 @@ struct CategoryView: View {
                             .fill(techStack.mainColor)
                             .frame(width: 12, height: 12)
 
-                        Text(techStack.flagNames[techStack.rawValue] ?? "Unknown")
+                        Text(TechStack.flagNames[techStack.rawValue] ?? "Unknown")
                             .fontWeight(viewModel.selectedTechStack == techStack ? .bold : .regular)
 
                         Spacer()

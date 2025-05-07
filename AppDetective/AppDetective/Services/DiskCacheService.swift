@@ -1,7 +1,6 @@
 import Foundation
 
 class DiskCacheService {
-
     private let iconCacheFileName = "iconCache.plist"
     private let sizeCacheFileName = "sizeCache.plist"
 
@@ -102,22 +101,22 @@ class DiskCacheService {
 
     // MARK: - Clearing
 
-     func clearAllCaches() {
-         guard let directoryURL = cacheDirectoryURL else { return }
-         let iconFileURL = directoryURL.appendingPathComponent(iconCacheFileName)
-         let sizeFileURL = directoryURL.appendingPathComponent(sizeCacheFileName)
+    func clearAllCaches() {
+        guard let directoryURL = cacheDirectoryURL else { return }
+        let iconFileURL = directoryURL.appendingPathComponent(iconCacheFileName)
+        let sizeFileURL = directoryURL.appendingPathComponent(sizeCacheFileName)
 
-         do {
-             if FileManager.default.fileExists(atPath: iconFileURL.path) {
-                 try FileManager.default.removeItem(at: iconFileURL)
-                 print("[DiskCache] Cleared icon cache file at \(iconFileURL.path)")
-             }
-             if FileManager.default.fileExists(atPath: sizeFileURL.path) {
-                 try FileManager.default.removeItem(at: sizeFileURL)
-                 print("[DiskCache] Cleared size cache file at \(sizeFileURL.path)")
-             }
-         } catch {
-             print("[DiskCache] Error clearing cache files: \(error)")
-         }
-     }
+        do {
+            if FileManager.default.fileExists(atPath: iconFileURL.path) {
+                try FileManager.default.removeItem(at: iconFileURL)
+                print("[DiskCache] Cleared icon cache file at \(iconFileURL.path)")
+            }
+            if FileManager.default.fileExists(atPath: sizeFileURL.path) {
+                try FileManager.default.removeItem(at: sizeFileURL)
+                print("[DiskCache] Cleared size cache file at \(sizeFileURL.path)")
+            }
+        } catch {
+            print("[DiskCache] Error clearing cache files: \(error)")
+        }
+    }
 }

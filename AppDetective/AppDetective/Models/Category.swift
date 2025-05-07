@@ -95,7 +95,7 @@ extension Category {
         switch self {
         case .developerTools: return "🛠️"
         case .utilities: return "🔧"
-        case .productivity: return "✅"
+        case .productivity: return "📊"
         case .reference: return "📚"
         case .socialNetworking: return "👥"
         case .education: return "🎓"
@@ -114,7 +114,7 @@ extension Category {
         case .travel: return "✈️"
         case .sports: return "⚽"
         case .video: return "🎬"
-        case .uncategorized: return "❓"
+        case .uncategorized: return "📁"
         }
     }
 }

@@ -32,15 +32,6 @@ struct AppListCell: View {
                 Text(appInfo.name)
                     .font(.headline)
                     .lineLimit(1)
-                // Display joined tech stack names
-                Text(appInfo.techStacks.displayNames.joined(separator: ", "))
-                    .font(.subheadline)
-                    .foregroundColor(appInfo.techStacks.mainColor) // Use prioritized color
-                    .lineLimit(1) // Prevent wrapping if too many stacks
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 2)
-                    .background(appInfo.techStacks.mainColor.opacity(0.15)) // Subtle background using the color
-                    .cornerRadius(4)
 
                 // Display category
                 Text(appInfo.category.displayName)
@@ -53,7 +44,19 @@ struct AppListCell: View {
                     .foregroundColor(.secondary)
             }
 
-            Spacer() // Pushes content to the left
+            Spacer() // Pushes content to the left and tech stack to the right
+
+            // Display joined tech stack names
+            if !appInfo.techStacks.isEmpty { // Only show if there are tech stacks
+                Text(appInfo.techStacks.displayNames.joined(separator: ", "))
+                    .font(.subheadline)
+                    .foregroundColor(appInfo.techStacks.mainColor) // Use prioritized color
+                    .lineLimit(1) // Prevent wrapping if too many stacks
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(appInfo.techStacks.mainColor.opacity(0.15)) // Subtle background using the color
+                    .cornerRadius(4)
+            }
         }
         .padding(.vertical, 4)
     }

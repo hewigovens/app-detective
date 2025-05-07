@@ -1,7 +1,7 @@
 import Foundation
 
 // System category identifiers used in Info.plist files
-struct AppCategoryConstants {
+enum AppCategoryConstants {
     static let developerTools = "public.app-category.developer-tools"
     static let utilities = "public.app-category.utilities"
     static let productivity = "public.app-category.productivity"

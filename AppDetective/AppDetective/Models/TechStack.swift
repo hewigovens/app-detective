@@ -5,79 +5,95 @@ struct TechStack: OptionSet, Codable, Hashable {
     let rawValue: Int
 
     static let swiftUI = TechStack(rawValue: 1 << 0)
-    static let appKit = TechStack(rawValue: 1 << 2)
-    static let catalyst = TechStack(rawValue: 1 << 3)
-    static let electron = TechStack(rawValue: 1 << 4)
-    static let python = TechStack(rawValue: 1 << 5)
-    static let qt = TechStack(rawValue: 1 << 6)
-    static let java = TechStack(rawValue: 1 << 7)
-    static let xamarin = TechStack(rawValue: 1 << 8) // .NET MAUI falls here too
-    static let flutter = TechStack(rawValue: 1 << 9)
-    static let reactNative = TechStack(rawValue: 1 << 10)
-    static let tauri = TechStack(rawValue: 1 << 11) // Added for pake/Tauri
-    static let wxWidgets = TechStack(rawValue: 1 << 12) // Added for wxWidgets
-    static let cef = TechStack(rawValue: 1 << 13) // Chromium Embedded Framework
+    static let appKit = TechStack(rawValue: 1 << 1)
+    static let catalyst = TechStack(rawValue: 1 << 2)
+    static let electron = TechStack(rawValue: 1 << 3)
+    static let python = TechStack(rawValue: 1 << 4)
+    static let qt = TechStack(rawValue: 1 << 5)
+    static let java = TechStack(rawValue: 1 << 6)
+    static let xamarin = TechStack(rawValue: 1 << 7) // .NET MAUI falls here too
+    static let flutter = TechStack(rawValue: 1 << 8)
+    static let reactNative = TechStack(rawValue: 1 << 9)
+    static let tauri = TechStack(rawValue: 1 << 10)
+    static let wxWidgets = TechStack(rawValue: 1 << 11)
+    static let cef = TechStack(rawValue: 1 << 12)
+    static let microsoftEdge = TechStack(rawValue: 1 << 13)
+    static let gtk = TechStack(rawValue: 1 << 14)
+    static let gpui = TechStack(rawValue: 1 << 15)
+    static let iced = TechStack(rawValue: 1 << 16)
+    static let other = TechStack(rawValue: 1 << 17)
 
     static let native: TechStack = [.swiftUI, .appKit, .catalyst]
-    static let crossPlatform: TechStack = [.electron, .qt, .java, .xamarin, .flutter, .reactNative, .tauri, .python, .wxWidgets, .cef] // Python often used with others
+    static let crossPlatform: TechStack = [
+        .electron, .cef, .python, .qt, .wxWidgets, .gtk, .java,
+        .xamarin, .flutter, .reactNative, .tauri, .gpui, .iced, .microsoftEdge,
+    ]
 
-    // String representation for each flag
-    var flagNames: [Int: String] {
-        [
-            Self.swiftUI.rawValue: "SwiftUI",
-            Self.appKit.rawValue: "AppKit",
-            Self.catalyst.rawValue: "Catalyst",
-            Self.electron.rawValue: "Electron",
-            Self.python.rawValue: "Python",
-            Self.qt.rawValue: "Qt",
-            Self.java.rawValue: "Java",
-            Self.xamarin.rawValue: "Xamarin/MAUI",
-            Self.flutter.rawValue: "Flutter",
-            Self.reactNative.rawValue: "React Native",
-            Self.tauri.rawValue: "Tauri",
-            Self.wxWidgets.rawValue: "wxWidgets",
-            Self.cef.rawValue: "Chromium Embedded Framework"
-        ]
+    static let flagNames: [Int: String] = [
+        Self.swiftUI.rawValue: "SwiftUI",
+        Self.appKit.rawValue: "AppKit",
+        Self.catalyst.rawValue: "Catalyst",
+        Self.electron.rawValue: "Electron",
+        Self.python.rawValue: "Python",
+        Self.qt.rawValue: "Qt",
+        Self.java.rawValue: "Java",
+        Self.xamarin.rawValue: "Xamarin/MAUI",
+        Self.flutter.rawValue: "Flutter",
+        Self.reactNative.rawValue: "React Native",
+        Self.tauri.rawValue: "Tauri",
+        Self.wxWidgets.rawValue: "wxWidgets",
+        Self.cef.rawValue: "Chromium Embedded Framework",
+        Self.gpui.rawValue: "GPUI",
+        Self.iced.rawValue: "Iced",
+        Self.microsoftEdge.rawValue: "Microsoft Edge",
+        Self.gtk.rawValue: "GTK",
+        Self.other.rawValue: "Other",
+    ]
+
+    // Prioritized main color
+    var mainColor: Color {
+        switch self {
+        case .swiftUI: return Color.blue
+        case .appKit: return Color.orange
+        case .catalyst: return Color.purple
+        case .electron: return Color.cyan
+        case .cef: return Color(hex: "#3498db") // A specific blue for CEF
+        case .python: return Color.green
+        case .qt: return Color(hex: "#4CAF50") // Qt's official green
+        case .wxWidgets: return Color(hex: "#7B61D9") // wxWidgets purple
+        case .gtk: return Color(hex: "#729FCF") // GTK blue
+        case .java: return Color.red
+        case .xamarin: return Color(hex: "#3498DB") // Xamarin blue
+        case .flutter: return Color.teal
+        case .reactNative: return Color(hex: "#61DAFB") // React's blue
+        case .tauri: return Color(hex: "#FFC131") // Tauri's yellow
+        case .gpui: return Color(hex: "#FF6B6B") // A reddish color for GPUI
+        case .iced: return Color(hex: "#A0D2DB") // A light blue for Iced
+        case .microsoftEdge: return Color(hex: "#0078D4") // Microsoft's blue
+        case .other: return Color.gray
+        default:
+            // For combined flags, attempt to find a primary color or default to gray
+            if self.contains(.swiftUI) { return Color.blue }
+            if self.contains(.appKit) { return Color.orange }
+            return Color.gray
+        }
     }
 
     // Computed property to get names of contained stacks
     var displayNames: [String] {
         var names: [String] = []
-        for (key, name) in self.flagNames {
-            if self.contains(TechStack(rawValue: key)) {
-                names.append(name)
+        for (rawKey, value) in Self.flagNames {
+            let key = TechStack(rawValue: rawKey)
+            if self.contains(key) {
+                names.append(value)
             }
         }
-        // If empty, return 'AppKit' as fallback
-        if names.isEmpty {
-            return ["AppKit"] // AppKit as default fallback when nothing else detected
-        }
-        // Remove AppKit from display if any other framework is detected
-        // Since almost all Mac apps link against AppKit, we only show it when it's the only framework
-        if names.count > 1 && names.contains("AppKit") {
-            names.removeAll { $0 == "AppKit" }
-        }
-        return names.sorted() // Sort for consistent display
+        return names.sorted()
     }
 
-    // Prioritized main color
-    var mainColor: Color {
-        // Prioritize native stacks first
-        if self.contains(.swiftUI) { return .blue }
-        if self.contains(.appKit) { return .purple }
-        if self.contains(.catalyst) { return .teal }
-        // Then cross-platform
-        if self.contains(.electron) { return .indigo }
-        if self.contains(.flutter) { return .pink }
-        if self.contains(.reactNative) { return .mint }
-        if self.contains(.tauri) { return .brown }
-        if self.contains(.qt) { return .green }
-        if self.contains(.wxWidgets) { return .orange }
-        if self.contains(.xamarin) { return .cyan }
-        if self.contains(.python) { return Color(red: 0.2, green: 0.4, blue: 0.6) }
-        if self.contains(.java) { return .red }
-        if self.contains(.cef) { return Color(red: 0.0, green: 0.6, blue: 0.9) } // Chromium blue
-        // Fallback - appKit purple
-        return .purple // Default is AppKit color
+    var toArray: [TechStack] {
+        Self.flagNames.enumerated().map { (key, _) in
+            TechStack(rawValue: key)
+        }
     }
 }

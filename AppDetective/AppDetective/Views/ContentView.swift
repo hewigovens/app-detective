@@ -49,7 +49,9 @@ struct ContentView: View {
                             }
 
                             if let selectedTechStack = categoryViewModel.selectedTechStack {
-                                Text("with \(selectedTechStack.flagNames[selectedTechStack.rawValue] ?? "Unknown")")
+                                Text(
+                                    "with \(TechStack.flagNames[selectedTechStack.rawValue] ?? "Unknown")"
+                                )
                             }
                         }
                         .font(.caption)
@@ -64,14 +66,25 @@ struct ContentView: View {
             .navigationTitle(viewModel.navigationTitle)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        viewModel.clearCachesAndRescan()
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                        Text("Rescan")
+                    HStack {
+                        Button {
+                            viewModel.selectNewFolderAndScan()
+                        } label: {
+                            Image(systemName: "folder.badge.plus")
+                            Text("Select Folder")
+                        }
+                        .help("Select a new folder to scan for applications")
+                        .disabled(viewModel.isLoading)
+
+                        Button {
+                            viewModel.clearCachesAndRescan()
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                            Text("Rescan")
+                        }
+                        .help("Clear cache and rescan the selected folder")
+                        .disabled(viewModel.isLoading)
                     }
-                    .help("Clear cache and rescan the selected folder")
-                    .disabled(viewModel.isLoading)
                 }
             }
             .background(.regularMaterial)

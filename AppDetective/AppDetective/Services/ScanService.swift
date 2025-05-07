@@ -1,7 +1,6 @@
 import Foundation
 
 struct ScanService {
-
     enum ScanError: Error, LocalizedError {
         case directoryEnumerationFailed(Error)
         case notADirectory(URL)
@@ -28,19 +27,19 @@ struct ScanService {
 
         var appURLs: [URL] = []
         let fileManager = FileManager.default
-        
+
         do {
             // Enumerate the directory contents, skipping subdirectories for now (level 1)
-            let contents = try fileManager.contentsOfDirectory(at: folderURL, 
-                                                              includingPropertiesForKeys: [.isDirectoryKey],
-                                                              options: [.skipsHiddenFiles, .skipsSubdirectoryDescendants]) // Only top level
-            
+            let contents = try fileManager.contentsOfDirectory(at: folderURL,
+                                                               includingPropertiesForKeys: [.isDirectoryKey, .isApplicationKey],
+                                                               options: [.skipsHiddenFiles, .skipsSubdirectoryDescendants]) // Only top level
+
             for itemURL in contents {
                 // Check if it's an application bundle (.app extension)
                 if itemURL.pathExtension.lowercased() == "app" {
-                     // Simple check: verify it's actually a directory (bundles are directories)
-                     var itemIsDir: ObjCBool = false
-                     if fileManager.fileExists(atPath: itemURL.path, isDirectory: &itemIsDir), itemIsDir.boolValue {
+                    // Simple check: verify it's actually a directory (bundles are directories)
+                    var itemIsDir: ObjCBool = false
+                    if fileManager.fileExists(atPath: itemURL.path, isDirectory: &itemIsDir), itemIsDir.boolValue {
                         appURLs.append(itemURL)
                         print("Found app: \(itemURL.lastPathComponent)")
                     }
@@ -50,7 +49,7 @@ struct ScanService {
             print("Error enumerating directory \(folderURL.path): \(error)")
             throw ScanError.directoryEnumerationFailed(error)
         }
-        
+
         return appURLs
     }
 }
