@@ -8,7 +8,8 @@ struct AppListCell: View {
     var body: some View {
         // Get data directly from ViewModel cache within the body calculation
         let cachedIconData = viewModel.getIconData(for: appInfo.path)
-        let cachedSizeString = viewModel.getSizeString(for: appInfo.path)
+        // Replace the unused variable with _ to avoid the warning
+        let _ = viewModel.getSizeString(for: appInfo.path)
 
         HStack(spacing: 12) {
             // Display icon if loaded from cache, else placeholder
@@ -41,6 +42,11 @@ struct AppListCell: View {
                     .background(appInfo.techStacks.mainColor.opacity(0.15)) // Subtle background using the color
                     .cornerRadius(4)
 
+                // Display category
+                Text(appInfo.category.displayName)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
                 // Display size if loaded from cache, else placeholder
                 Text(viewModel.getSizeString(for: appInfo.path) ?? "Loading size...")
                     .font(.caption)
@@ -60,31 +66,36 @@ struct AppListCell_Previews: PreviewProvider {
                 appInfo: AppInfo(
                     name: "ExampleApp very long name to test truncation.app",
                     path: "/Applications/Calculator.app",
-                    techStacks: .electron
+                    techStacks: .electron,
+                    category: .utilities
                 )
             ) // Use a real app path for preview icon/size
             AppListCell(
                 appInfo: AppInfo(
                     name: "Another App.app",
                     path: "/Applications/Safari.app",
-                    techStacks: .swiftUI
+                    techStacks: .appKit,
+                    category: .reference
                 )
             )
             AppListCell(
                 appInfo: AppInfo(
                     name: "MyPythonThing.app",
                     path: "/System/Applications/Messages.app",
-                    techStacks: .python
+                    techStacks: .python,
+                    category: .socialNetworking
                 )
             )
             AppListCell(
                 appInfo: AppInfo(
                     name: "UnknownApp.app",
                     path: "/System/Applications/Mail.app",
-                    techStacks: []
+                    techStacks: [],
+                    category: .productivity
                 )
             )
         }
         .frame(width: 350) // Increase preview width slightly
+        .environmentObject(ContentViewModel()) // Provide the environment object for preview
     }
 }

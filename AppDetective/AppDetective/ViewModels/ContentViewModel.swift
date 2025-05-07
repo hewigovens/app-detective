@@ -13,6 +13,9 @@ class ContentViewModel: ObservableObject {
     @Published var metadataLoadProgress: Double = 0.0
     @Published var totalMetadataItems: Int = 0
 
+    // Category ViewModel
+    let categoryViewModel = CategoryViewModel()
+
     private var iconCache: [String: Data] = [:]
     private var sizeCache: [String: String] = [:]
     private let cacheQueue = DispatchQueue(label: "hi.hewig.app.detective.cacheQueue") // For thread-safe access
@@ -43,10 +46,10 @@ class ContentViewModel: ObservableObject {
     private func loadCachesFromDisk() {
         print("[ViewModel] Attempting to load caches from disk...")
         if let loadedIcons = diskCacheService.loadIconCache() {
-            self.iconCache = loadedIcons
+            iconCache = loadedIcons
         }
         if let loadedSizes = diskCacheService.loadSizeCache() {
-            self.sizeCache = loadedSizes
+            sizeCache = loadedSizes
         }
     }
 
@@ -70,16 +73,16 @@ class ContentViewModel: ObservableObject {
         navigationTitle = "App Detective" // Reset title
 
         // Ensure isLoading is false before starting scan
-        isLoading = false 
+        isLoading = false
 
         // Trigger the scan if a folder is selected
         if folderURL != nil {
-             Task {
-                 await scanApplications()
-             }
+            Task {
+                await scanApplications()
+            }
         } else {
-             navigationTitle = "Select Folder" // Or appropriate initial state
-             print("[ViewModel] No folder selected, cannot rescan.")
+            navigationTitle = "Select Folder" // Or appropriate initial state
+            print("[ViewModel] No folder selected, cannot rescan.")
         }
     }
 
@@ -136,7 +139,8 @@ class ContentViewModel: ObservableObject {
                         guard let self = self else { return nil }
                         let appName = url.deletingPathExtension().lastPathComponent
                         let detectedStack = await self.detectService.detectStack(for: url)
-                        let appInfo = AppInfo(name: appName, path: url.path, techStacks: detectedStack)
+                        let category = self.detectService.extractCategory(from: url)
+                        let appInfo = AppInfo(name: appName, path: url.path, techStacks: detectedStack, category: category)
                         return appInfo
                     }
                 }
@@ -159,6 +163,9 @@ class ContentViewModel: ObservableObject {
             // Sort results alphabetically by name before updating state
             detectedApps.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
             appResults = detectedApps // Assign results *before* setting final state
+
+            // Update the category ViewModel with our app results
+            categoryViewModel.updateCategories(with: appResults)
 
         } catch let error as ScanService.ScanError {
             errorMessage = error.localizedDescription
@@ -213,11 +220,14 @@ class ContentViewModel: ObservableObject {
             if appResults.isEmpty { // Should ideally not happen if metadata was loaded, but check anyway
                 navigationTitle = "No Apps Found"
             } else {
-                navigationTitle = "Apps (\(appResults.count))"
+                navigationTitle = "App Detective"
             }
             // Ensure progress is visually complete
             scanProgress = 1.0
             print("Finished all phases. Final count: \(appResults.count) apps. Title: \(navigationTitle)")
+
+            // Update the category ViewModel with our finalized app results
+            categoryViewModel.updateCategories(with: appResults)
         } else {
             print("[ViewModel] metadataLoadingDidComplete called but isLoading was already false.")
         }

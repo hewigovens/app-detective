@@ -1,5 +1,5 @@
 import Combine
-import SwiftUI // For NSImage, NSWorkspace
+import SwiftUI
 
 // Service responsible for loading icon and size metadata in the background.
 @MainActor // Service itself operates on main actor for safe ViewModel interaction
@@ -73,13 +73,13 @@ class MetadataLoaderService {
             if self.loadQueue.isEmpty {
                 print("[MetadataLoader] Load queue is empty. All metadata loaded.")
                 // Call the completion handler on the ViewModel
-                 Task { // Use Task since viewModel function is async if needed, though currently sync
-                      self.viewModel?.metadataLoadingDidComplete()
-                 }
+                Task { // Use Task since viewModel function is async if needed, though currently sync
+                    self.viewModel?.metadataLoadingDidComplete()
+                }
             } else {
-                 // If more items were added while processing, kick off a new batch
-                 print("[MetadataLoader] Items still in queue (\(self.loadQueue.count)), starting next batch...")
-                 self.processQueue()
+                // If more items were added while processing, kick off a new batch
+                print("[MetadataLoader] Items still in queue (\(self.loadQueue.count)), starting next batch...")
+                self.processQueue()
             }
         }
     }

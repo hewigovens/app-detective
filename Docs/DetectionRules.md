@@ -26,7 +26,36 @@ App Detective can currently detect the following technology stacks:
 
 The detection process is being optimized to prioritize more reliable methods and reduce redundant checks:
 
-### Priority 1: Binary Analysis (otool)
+### Priority 1: Structure-Based Detection
+- **Catalyst**: Checks for iOS app wrapper structure
+  - Detects both root-level WrappedBundle symlinks and those inside Wrapper directory
+  - This cannot be reliably detected via otool, so structure check is essential
+- **Electron**: Checks for Electron framework presence
+  - "Electron Framework.framework", "Microsoft Edge Framework.framework", etc.
+
+### Priority 2: Framework Directory Analysis
+- Only performed if otool doesn't provide conclusive results
+- Examines bundled frameworks within the app
+- Detects:
+  - Electron frameworks
+  - Flutter engine
+  - .NET/Xamarin assemblies
+
+### Priority 3: Selective Resource Analysis
+- Only checks for frameworks not already detected by higher priority methods
+- Targeted checks for:
+  - **AppKit**: .nib/.storyboardc resources (if not detected via otool)
+  - **Tauri**: pake.json and related files
+  - **Flutter**: flutter_assets directory
+  - **React Native**: *.jsbundle files
+
+### Priority 4: Info.plist and Final Inference
+- Checks Info.plist for Catalyst markers (LSRequiresNativeExecution)
+- Makes final inferences based on collected evidence
+- Resolves conflicts between detected stacks
+- Falls back to "Other" when no specific stack is detected
+
+### Priority 5: Binary Analysis (otool)
 - Uses `otool -L` to analyze library dependencies as the primary detection method
 - This is the most reliable way to detect what frameworks an app actually uses
 - Detects:
@@ -38,91 +67,66 @@ The detection process is being optimized to prioritize more reliable methods and
   - **Java**: JNI/JVM libraries
   - **Electron**: Presence of Chromium/Electron-related libraries
   - **Rust**: Rust standard libraries (for Tauri apps)
-
-### Priority 2: Structure-Based Detection
-- **Catalyst**: Checks for iOS app wrapper structure
-  - Detects both root-level WrappedBundle symlinks and those inside Wrapper directory
-  - This cannot be reliably detected via otool, so structure check is essential
-- **Electron**: Checks for Electron framework presence
-  - "Electron Framework.framework", "Microsoft Edge Framework.framework", etc.
-
-### Priority 3: Framework Directory Analysis
-- Only performed if otool doesn't provide conclusive results
-- Examines bundled frameworks within the app
-- Detects:
-  - Electron frameworks
-  - Flutter engine
-  - .NET/Xamarin assemblies
-
-### Priority 4: Selective Resource Analysis
-- Only checks for frameworks not already detected by higher priority methods
-- Targeted checks for:
-  - **AppKit**: .nib/.storyboardc resources (if not detected via otool)
-  - **Tauri**: pake.json and related files
-  - **Flutter**: flutter_assets directory
-  - **React Native**: *.jsbundle files
-
-### Priority 5: Info.plist and Final Inference
-- Checks Info.plist for Catalyst markers (LSRequiresNativeExecution)
-- Makes final inferences based on collected evidence
-- Resolves conflicts between detected stacks
-- Falls back to "Other" when no specific stack is detected
+- Exception list for specific bundle IDs:
+  - **Steam**: Requires custom detection approach due to its unique structure
+  - **Xcode**: Requires specialized detection for its complex tech stack
+  - Other complex applications may be added to this exception list as needed
 
 ## Improved Detection Markers and Heuristics
 
 ### Native Apple Frameworks
-- **SwiftUI**: 
+- **SwiftUI**:
   - Primary: SwiftUI framework in `otool -L` output
   - Secondary: SwiftUI-specific resource files
 
-- **AppKit**: 
+- **AppKit**:
   - Primary: AppKit framework in `otool -L` output
   - Secondary: .nib/.storyboardc resources
   - Tertiary: Swift usage without SwiftUI/Catalyst
 
-- **Catalyst**: 
+- **Catalyst**:
   - Primary: iOS app wrapper structure (either symlink pattern)
   - Secondary: LSRequiresNativeExecution=true in Info.plist
   - Tertiary: UIKit frameworks in `otool -L` output on macOS app
 
 ### Cross-Platform Frameworks
-- **Electron**: 
+- **Electron**:
   - Primary: Electron/Chromium libraries in `otool -L` output
   - Secondary: Electron framework presence ("Electron Framework.framework")
   - Tertiary: app.asar or app directory in Resources
 
-- **Python**: 
+- **Python**:
   - Primary: "libpython" in `otool -L` output
   - Secondary: Python modules or executable
   - Tertiary: .py/.pyc files in Resources
 
-- **Qt**: 
+- **Qt**:
   - Primary: Qt libraries in `otool -L` output (QtCore, QtGui, etc.)
   - Secondary: Qt plugins or resources
 
-- **wxWidgets**: 
+- **wxWidgets**:
   - Primary: wxWidgets libraries in `otool -L` output
   - Secondary: `wx_main` entry symbol in appdata.json or similar files
   - Tertiary: Resources containing wxWidgets-specific files
 
-- **Java**: 
+- **Java**:
   - Primary: JNI/JVM libraries in `otool -L` output
   - Secondary: .jar files in Resources
 
-- **Xamarin/MAUI**: 
+- **Xamarin/MAUI**:
   - Primary: Mono/.NET libraries in `otool -L` output
   - Secondary: .NET assemblies in Frameworks directory
 
-- **Flutter**: 
+- **Flutter**:
   - Primary: Flutter engine libraries in `otool -L` output
   - Secondary: Flutter engine in Frameworks
   - Tertiary: flutter_assets directory in Resources
 
-- **React Native**: 
+- **React Native**:
   - Primary: React Native specific libraries in `otool -L` output
   - Secondary: .jsbundle files in Resources
 
-- **Tauri**: 
+- **Tauri**:
   - Primary: Rust libraries in `otool -L` output
   - Secondary: pake.json or other Tauri markers
 
@@ -152,7 +156,7 @@ Potential improvements to the optimized detection algorithm:
    - Python apps with Qt interfaces
    - Rust components in otherwise web-based apps
 
-5. **Performance Optimization**: 
+5. **Performance Optimization**:
    - Cache `otool -L` results
    - Skip filesystem checks when binary analysis is conclusive
    - Use more targeted file lookups instead of directory enumeration

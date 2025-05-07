@@ -6,4 +6,5 @@ struct AppInfo: Identifiable, Hashable {
     let name: String
     let path: String
     let techStacks: TechStack
+    let category: Category
 }
