@@ -78,7 +78,7 @@ class DiskCacheService {
         do {
             let data = try encoder.encode(cache)
             try data.write(to: fileURL, options: [.atomic]) // Atomic write for safety
-            print("[DiskCache] Successfully saved icon cache (\(cache.count) items) to \(fileURL.path)")
+            print("[DiskCache] Successfully saved icon cache (\(cache.count) items)")
         } catch {
             print("[DiskCache] Error saving icon cache to \(fileURL.path): \(error)")
         }
@@ -93,7 +93,7 @@ class DiskCacheService {
         do {
             let data = try encoder.encode(cache)
             try data.write(to: fileURL, options: [.atomic]) // Atomic write for safety
-            print("[DiskCache] Successfully saved size cache (\(cache.count) items) to \(fileURL.path)")
+            print("[DiskCache] Successfully saved size cache (\(cache.count) items)")
         } catch {
             print("[DiskCache] Error saving size cache to \(fileURL.path): \(error)")
         }

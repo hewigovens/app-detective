@@ -2,10 +2,10 @@ import Combine
 import SwiftUI
 
 // Service responsible for loading icon and size metadata in the background.
-@MainActor // Service itself operates on main actor for safe ViewModel interaction
 class MetadataLoaderService {
-    // Weak reference to avoid retain cycles if VM holds the service
-    private weak var viewModel: ContentViewModel?
+    // Callbacks for communication, to be set by the client (e.g., ContentViewModel)
+    var onMetadataItemLoaded: ((_ path: String, _ iconData: Data?, _ sizeString: String?) -> Void)?
+    var onAllMetadataLoaded: (() -> Void)?
 
     private var loadQueue: [String] = [] // Queue of app paths to process
     private let processingQueue: OperationQueue = {
@@ -18,10 +18,6 @@ class MetadataLoaderService {
 
     private var activeGroup: DispatchGroup? // To track completion of a batch
 
-    func setViewModel(_ viewModel: ContentViewModel) {
-        self.viewModel = viewModel
-    }
-
     // Add paths to the loading queue and start processing if not already running
     func enqueuePaths(_ paths: [String]) {
         print("[MetadataLoader] Enqueuing \(paths.count) paths.")
@@ -32,25 +28,36 @@ class MetadataLoaderService {
     private func processQueue() {
         // Don't start a new batch if one is already running or queue is empty
         guard activeGroup == nil, !loadQueue.isEmpty else {
-            if activeGroup != nil { print("[MetadataLoader] Batch already running.") }
-            if loadQueue.isEmpty { print("[MetadataLoader] Queue empty.") }
+            if activeGroup != nil { print("[MetadataLoader] processQueue called, but batch already running (activeGroup is not nil).") }
+            if loadQueue.isEmpty { print("[MetadataLoader] processQueue called, but queue is empty.") }
+            // If queue is empty AND activeGroup is nil, it might mean we finished the last item of a previous batch
+            // and onAllMetadataLoaded should have been called. Or it's an initial empty state.
+            if loadQueue.isEmpty && activeGroup == nil {
+                print("[MetadataLoader] processQueue: Queue empty and no active group. Ensuring onAllMetadataLoaded is called if necessary.")
+                // This might be redundant if notify handles it, but as a safeguard:
+                // Only call if we're not expecting a group notification.
+                // However, this check is tricky. The notify block is the primary place.
+            }
             return
         }
 
-        print("[MetadataLoader] Starting concurrent batch for up to \(loadQueue.count) items...")
+        print("[MetadataLoader] Starting new concurrent batch for up to \(loadQueue.count) items...")
 
         let group = DispatchGroup()
         activeGroup = group // Mark batch as active
+        print("[MSvc] Batch Started. Group: \(group)")
 
         // Add all current items in the queue as operations
+        var operationsScheduled = 0
         while let path = getNextPath() { // Consume paths from the queue
+            operationsScheduled += 1
             group.enter()
             processingQueue.addOperation { [weak self] in
                 // --- Autorelease Pool for each operation's work ---
                 autoreleasepool {
-                    print("[MetadataLoader] Processing: \(path)")
                     // Check self validity within the operation block
                     guard let self = self else {
+                        print("[MSvc] Op: self is nil for path \(path). Leaving group.")
                         group.leave()
                         return
                     }
@@ -61,24 +68,32 @@ class MetadataLoaderService {
                 group.leave()
             }
         }
+        print("[MSvc] Scheduled \(operationsScheduled) ops for batch.")
 
         // Notify on the main thread when ALL operations in this group are done
         group.notify(queue: DispatchQueue.main) { [weak self] in
-            print("[MetadataLoader] Finished concurrent batch.")
-            guard let self = self else { return }
+            guard let self = self else { 
+                print("[MSvc] Notify: self is nil.")
+                return 
+            }
+            print("[MSvc] Notify: Group \(group) completed.")
 
+            // Critical: Check if the activeGroup is the *same* group that is notifying.
+            if self.activeGroup !== group {
+                print("[MSvc] Notify: Stale notification from group \(group). Active: \(String(describing: self.activeGroup)). Ignoring.")
+                return
+            }
+
+            print("[MSvc] Notify: activeGroup matches. Clearing.")
             self.activeGroup = nil // Mark batch as finished
 
             // Check if the queue is now empty
             if self.loadQueue.isEmpty {
-                print("[MetadataLoader] Load queue is empty. All metadata loaded.")
-                // Call the completion handler on the ViewModel
-                Task { // Use Task since viewModel function is async if needed, though currently sync
-                    self.viewModel?.metadataLoadingDidComplete()
-                }
+                print("[MSvc] Notify: Queue empty. Calling onAllMetadataLoaded.")
+                self.onAllMetadataLoaded?()
             } else {
                 // If more items were added while processing, kick off a new batch
-                print("[MetadataLoader] Items still in queue (\(self.loadQueue.count)), starting next batch...")
+                print("[MSvc] Notify: Queue has \(self.loadQueue.count) items. Next batch.")
                 self.processQueue()
             }
         }
@@ -90,45 +105,31 @@ class MetadataLoaderService {
         return loadQueue.removeFirst()
     }
 
-    // Perform the actual loading (blocking work, called from background queue)
     private func loadMetadata(for path: String) {
         // ** This entire function now runs synchronously on the processingQueue **
 
-        // --- Step 1: Check Cache (Requires brief sync jump to MainActor) ---
-        var isCached = false
-        let group = DispatchGroup()
-        group.enter()
-        Task { @MainActor [weak self] in
-            guard let self = self, let viewModel = self.viewModel else {
-                group.leave()
-                return
-            }
-            if viewModel.getIconData(for: path) != nil, viewModel.getSizeString(for: path) != nil {
-                // print("[MetadataLoader] Already cached: \(path)") // Optional: Reduce logging
-                isCached = true
-            }
-            group.leave()
-        }
-        group.wait() // Wait for MainActor check to complete
-
-        // If it was already cached, we're done for this path.
-        guard !isCached else { return }
-
         // --- Step 2: Perform Loading Work (Synchronously on this background thread) ---
         autoreleasepool { // Keep autoreleasepool for the loading work itself
-            print("[MetadataLoader] Loading data for: \(path)")
             let iconData = NSWorkspace.shared.icon(forFile: path).tiffRepresentation
-            let size = self.getTotalBundleSize(atPath: path)
-            let sizeString = (size != nil) ? self.formatSize(bytes: size!) : nil
+            let sizeInBytes = getTotalBundleSize(atPath: path)
+            let sizeString = sizeInBytes != nil ? formatSize(bytes: sizeInBytes!) : nil
+
+            // Create a smaller thumbnail from the original icon data
             var thumbnailData: Data?
             if let fullData = iconData, let fullImage = NSImage(data: fullData) {
                 thumbnailData = self.createThumbnailData(from: fullImage)
             }
 
-            // --- Step 3: Update Cache (Dispatch ONLY this part back to MainActor) ---
-            Task { @MainActor [weak self] in
-                print("[MetadataLoader] Caching data for: \(path)")
-                await self?.viewModel?.cacheData(path: path, iconData: thumbnailData, sizeString: sizeString)
+            // --- Step 3: Invoke Callback with Loaded Data (Dispatch to MainActor) ---
+            // Capture necessary data for the main thread dispatch
+            let finalPath = path
+            let finalThumbnailData = thumbnailData
+            let finalSizeString = sizeString
+
+            DispatchQueue.main.async { [weak self] in
+                // Ensure self is still valid, though less critical here as we're not accessing much of self
+                guard self != nil else { return }
+                self?.onMetadataItemLoaded?(finalPath, finalThumbnailData, finalSizeString)
             }
         } // End autoreleasepool for loading work
     }
@@ -160,18 +161,14 @@ class MetadataLoaderService {
 
             // Prioritize totalFileSize, fallback to totalFileAllocatedSize
             if let totalSize = resourceValues.totalFileSize {
-                print("[MetadataLoader] Using totalFileSize for \(path): \(totalSize)")
                 return Int64(totalSize)
             } else if let allocatedSize = resourceValues.totalFileAllocatedSize {
-                print("[MetadataLoader] Using totalFileAllocatedSize for \(path): \(allocatedSize)")
                 return Int64(allocatedSize)
             } else {
-                print("[MetadataLoader] Both resource keys nil for \(path). Falling back to manual calculation.")
                 // Fallback to manual calculation
                 return calculateDirectorySize(atPath: path)
             }
         } catch {
-            print("[MetadataLoader] Error getting resource values for \(path): \(error). Falling back to manual calculation.")
             // Also fallback to manual calculation on error
             return calculateDirectorySize(atPath: path)
         }
@@ -198,7 +195,6 @@ class MetadataLoaderService {
                 // Decide if you want to return nil here or just skip the file
             }
         }
-        print("[MetadataLoader] Manually calculated size for \(path): \(totalSize)")
         return totalSize
     }
 

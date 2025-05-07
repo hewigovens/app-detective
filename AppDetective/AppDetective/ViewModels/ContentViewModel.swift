@@ -8,7 +8,7 @@ class ContentViewModel: ObservableObject {
     @Published var totalAppsToScan: Int = 0
     @Published var appResults: [AppInfo] = []
     @Published var errorMessage: String? = nil
-    @Published var navigationTitle: String = "App Detective"
+    @Published var navigationTitle: String = Constants.AppName
     @Published var folderURL: URL? = nil
     @Published var metadataLoadProgress: Double = 0.0
     @Published var totalMetadataItems: Int = 0
@@ -18,7 +18,7 @@ class ContentViewModel: ObservableObject {
 
     private var iconCache: [String: Data] = [:]
     private var sizeCache: [String: String] = [:]
-    private let cacheQueue = DispatchQueue(label: "hi.hewig.app.detective.cacheQueue") // For thread-safe access
+    private let cacheQueue = DispatchQueue(label: Constants.BundleId + ".cacheQueue")
     private let metadataLoader = MetadataLoaderService()
     private let scanService = ScanService()
     private let detectService = DetectService()
@@ -28,17 +28,17 @@ class ContentViewModel: ObservableObject {
     // Keep existing init for previews or direct instantiation if needed
     init(folderURL: URL?) {
         self.folderURL = folderURL
-        self.navigationTitle = folderURL?.lastPathComponent ?? "App Detective"
-        metadataLoader.setViewModel(self) // Ensure loader has reference
-        loadCachesFromDisk() // Load caches when initialized
+        self.navigationTitle = folderURL?.lastPathComponent ?? Constants.AppName
+        setupMetadataLoaderCallbacks()
+        loadCachesFromDisk()
     }
 
     // Add a default initializer
     init() {
         self.folderURL = nil
-        self.navigationTitle = "App Detective"
-        metadataLoader.setViewModel(self) // Ensure loader has reference
-        loadCachesFromDisk() // Load caches when initialized
+        self.navigationTitle = Constants.AppName
+        setupMetadataLoaderCallbacks()
+        loadCachesFromDisk()
     }
 
     // MARK: - Cache Loading/Saving
@@ -50,6 +50,24 @@ class ContentViewModel: ObservableObject {
         }
         if let loadedSizes = diskCacheService.loadSizeCache() {
             sizeCache = loadedSizes
+        }
+    }
+
+    // Setup callbacks for MetadataLoaderService
+    private func setupMetadataLoaderCallbacks() {
+        metadataLoader.onMetadataItemLoaded = { [weak self] path, iconData, sizeString in
+            // This closure will be called on the main thread by MetadataLoaderService
+            guard let self = self else { return }
+            Task {
+                // Ensure cacheData is called within a Task if it's async and to keep it on MainActor
+                await self.cacheData(path: path, iconData: iconData, sizeString: sizeString)
+            }
+        }
+
+        metadataLoader.onAllMetadataLoaded = { [weak self] in
+            // This closure will be called on the main thread by MetadataLoaderService
+            guard let self = self else { return }
+            self.metadataLoadingDidComplete() // This is already @MainActor
         }
     }
 
@@ -70,7 +88,7 @@ class ContentViewModel: ObservableObject {
         metadataLoadProgress = 0.0
         totalMetadataItems = 0
         loadedMetadataCount = 0
-        navigationTitle = "App Detective" // Reset title
+        navigationTitle = Constants.AppName
 
         // Ensure isLoading is false before starting scan
         isLoading = false
@@ -235,7 +253,7 @@ class ContentViewModel: ObservableObject {
     // Called by MetadataLoaderService when all items are processed
     @MainActor
     func metadataLoadingDidComplete() {
-        print("[ViewModel] Metadata loading complete.")
+        print("[ViewModel] Attempting to complete metadata loading. Current isLoading: \(isLoading)")
         // Ensure we only update state if we were actually loading metadata
         if isLoading { // Check isLoading to prevent accidental state change if scan errored earlier
             isLoading = false
@@ -244,16 +262,22 @@ class ContentViewModel: ObservableObject {
             if appResults.isEmpty { // Should ideally not happen if metadata was loaded, but check anyway
                 navigationTitle = "No Apps Found"
             } else {
-                navigationTitle = "App Detective"
+                navigationTitle = folderURL?.lastPathComponent ?? Constants.AppName
             }
             // Ensure progress is visually complete
             scanProgress = 1.0
-            print("Finished all phases. Final count: \(appResults.count) apps. Title: \(navigationTitle)")
+            print("[ViewModel] Finished all phases. Final count: \(appResults.count) apps. Title: \(navigationTitle)")
 
             // Update the category ViewModel with our finalized app results
             categoryViewModel.updateCategories(with: appResults)
+
+            // Save caches to disk ONCE after all items are processed
+            print("[ViewModel] Saving final icon and size caches to disk...")
+            diskCacheService.saveIconCache(iconCache)
+            diskCacheService.saveSizeCache(sizeCache)
+
         } else {
-            print("[ViewModel] metadataLoadingDidComplete called but isLoading was already false.")
+            print("[ViewModel] metadataLoadingDidComplete called but isLoading was already false. State not changed.")
         }
     }
 
@@ -278,13 +302,9 @@ class ContentViewModel: ObservableObject {
         // Update caches (no need for cacheQueue if always called on main actor)
         if let data = iconData {
             iconCache[path] = data
-            // Save updated icon cache to disk
-            diskCacheService.saveIconCache(iconCache)
         }
         if let size = sizeString {
             sizeCache[path] = size
-            // Save updated size cache to disk
-            diskCacheService.saveSizeCache(sizeCache)
         }
 
         // Update progress only if this is a new item being fully cached

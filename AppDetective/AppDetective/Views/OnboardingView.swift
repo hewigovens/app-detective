@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct OnboardingView: View {
     // State variable to store the bookmark data
@@ -17,10 +17,10 @@ struct OnboardingView: View {
                 .frame(width: 100, height: 100)
                 .foregroundColor(.accentColor)
 
-            Text("Welcome to App Detective!")
+            Text("Welcome to \(Constants.AppName)!")
                 .font(.largeTitle)
 
-            Text("To get started, App Detective needs permission to scan a folder containing your applications. This allows the app to analyze the tech stack used by each application.")
+            Text("To get started, \(Constants.AppName) needs permission to scan a folder containing your applications. This allows the app to analyze the tech stack used by each application.")
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 
