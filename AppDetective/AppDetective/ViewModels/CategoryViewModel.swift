@@ -1,15 +1,16 @@
 import Foundation
+import LSAppCategory
 import SwiftUI
 
 class CategoryViewModel: ObservableObject {
-    @Published var categories: [Category: [AppInfo]] = [:] // Maps categories to arrays of apps
+    @Published var categories: [AppCategory: [AppInfo]] = [:] // Maps categories to arrays of apps
     @Published var allApps: [AppInfo] = []
-    @Published var selectedCategory: Category? // Currently selected category
+    @Published var selectedCategory: AppCategory? // Currently selected category
     @Published var selectedTechStack: TechStack? // Currently selected tech stack for filtering
 
     // Returns all categories, sorted alphabetically
-    var sortedCategories: [Category] {
-        Array(categories.keys).sorted { $0.displayName < $1.displayName }
+    var sortedCategories: [AppCategory] {
+        Array(categories.keys).sorted { $0.description < $1.description }
     }
 
     // Returns apps for the selected category and tech stack
@@ -51,7 +52,7 @@ class CategoryViewModel: ObservableObject {
     }
 
     // Select a specific category
-    func selectCategory(_ category: Category?) {
+    func selectCategory(_ category: AppCategory?) {
         selectedCategory = category
     }
 
@@ -61,12 +62,12 @@ class CategoryViewModel: ObservableObject {
     }
 
     // Get a count of apps in each category
-    func count(for category: Category) -> Int {
+    func count(for category: AppCategory) -> Int {
         categories[category]?.count ?? 0
     }
 
     // Get a count of apps for a specific tech stack in a category
-    func count(for category: Category, techStack: TechStack) -> Int {
+    func count(for category: AppCategory, techStack: TechStack) -> Int {
         (categories[category] ?? []).filter { $0.techStacks.contains(techStack) }.count
     }
 }

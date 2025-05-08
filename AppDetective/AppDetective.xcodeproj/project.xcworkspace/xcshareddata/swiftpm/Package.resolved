@@ -1,0 +1,15 @@
+{
+  "originHash" : "3e70e97103e4b45e03314c56ace5950bdf3f7264c37566d1d01f7b0fb08051ac",
+  "pins" : [
+    {
+      "identity" : "lsappcategory",
+      "kind" : "remoteSourceControl",
+      "location" : "git@github.com:hewigovens/LSAppCategory.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "08764516bd97b0946d52f121f18e535cc4680bad"
+      }
+    }
+  ],
+  "version" : 3
+}

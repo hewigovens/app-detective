@@ -1,4 +1,5 @@
 import Foundation
+import LSAppCategory
 
 /// Represents information about a detected application.
 struct AppInfo: Identifiable, Hashable {
@@ -6,7 +7,7 @@ struct AppInfo: Identifiable, Hashable {
     let name: String
     let path: String
     let techStacks: TechStack
-    let category: Category
+    let category: AppCategory
 
     // Added for cache
     var iconData: Data?

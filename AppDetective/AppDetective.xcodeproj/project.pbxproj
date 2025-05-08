@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		BB66A98A2DCCDCDE0083A538 /* LSAppCategory in Frameworks */ = {isa = PBXBuildFile; productRef = BB66A9892DCCDCDE0083A538 /* LSAppCategory */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		BBA23E4B2DC0DB6600679B64 /* AppDetective.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AppDetective.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BB66A98A2DCCDCDE0083A538 /* LSAppCategory in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = AppDetective;
 			packageProductDependencies = (
+				BB66A9892DCCDCDE0083A538 /* LSAppCategory */,
 			);
 			productName = AppDetective;
 			productReference = BBA23E4B2DC0DB6600679B64 /* AppDetective.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = BBA23E422DC0DB6600679B64;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				BB66A9882DCCDCDE0083A538 /* XCRemoteSwiftPackageReference "LSAppCategory" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BBA23E4C2DC0DB6600679B64 /* Products */;
 			projectDirPath = "";
@@ -321,6 +330,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		BB66A9882DCCDCDE0083A538 /* XCRemoteSwiftPackageReference "LSAppCategory" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "git@github.com:hewigovens/LSAppCategory.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BB66A9892DCCDCDE0083A538 /* LSAppCategory */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BB66A9882DCCDCDE0083A538 /* XCRemoteSwiftPackageReference "LSAppCategory" */;
+			productName = LSAppCategory;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = BBA23E432DC0DB6600679B64 /* Project object */;
 }

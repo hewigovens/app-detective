@@ -1,4 +1,5 @@
 import SwiftUI
+import LSAppCategory
 
 struct CategoryView: View {
     @ObservedObject var viewModel: CategoryViewModel

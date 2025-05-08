@@ -34,7 +34,7 @@ struct AppListCell: View {
                     .lineLimit(1)
 
                 // Display category
-                Text(appInfo.category.displayName)
+                Text(appInfo.category.description)
                     .font(.caption)
                     .foregroundColor(.secondary)
 

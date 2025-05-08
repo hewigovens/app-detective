@@ -1,4 +1,5 @@
 import Foundation
+import LSAppCategory
 
 class DetectService {
     private let fileManager = FileManager.default
@@ -383,22 +384,22 @@ class DetectService {
         return false
     }
 
-    func extractCategory(from appURL: URL) -> Category {
+    func extractCategory(from appURL: URL) -> AppCategory {
         let infoPlistPath = appURL.appendingPathComponent("Contents/Info.plist")
         let metadataPlistPath = appURL.appendingPathComponent("Wrapper/iTunesMetadata.plist")
         if let infoPlist = readInfoPlist(from: infoPlistPath),
            let categoryType = infoPlist["LSApplicationCategoryType"] as? String?
         {
-            return Category(fromSystemCategory: categoryType)
+            return AppCategory(string: categoryType)
         } else if
             let metadataPlist = readInfoPlist(from: metadataPlistPath),
             let categories = metadataPlist["categories"] as? [String],
             let categoryType = categories.first
         {
-            return Category(fromSystemCategory: categoryType)
+            return AppCategory(string: categoryType)
         }
 
-        return .uncategorized
+        return .other
     }
 
     /// Reads the Info.plist file from the app bundle.

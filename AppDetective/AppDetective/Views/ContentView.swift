@@ -46,7 +46,7 @@ struct ContentView: View {
                             // Add a footer showing the current filter
                             HStack(spacing: 4) {
                                 if let selectedCategory = categoryViewModel.selectedCategory {
-                                    Text("Showing \(categoryViewModel.filteredApps.count) apps in \(selectedCategory.displayName)")
+                                    Text("Showing \(categoryViewModel.filteredApps.count) apps in \(selectedCategory.description)")
                                 } else {
                                     Text("Showing \(categoryViewModel.filteredApps.count) of \(viewModel.appResults.count) apps")
                                 }
