@@ -86,7 +86,6 @@ struct ContentView: View {
                             viewModel.selectNewFolderAndScan()
                         } label: {
                             Image(systemName: "folder.badge.plus")
-                            Text("Select Folder")
                         }
                         .help("Select a new folder to scan for applications")
                         .disabled(viewModel.isLoading)
@@ -95,7 +94,6 @@ struct ContentView: View {
                             viewModel.clearCachesAndRescan()
                         } label: {
                             Image(systemName: "arrow.clockwise")
-                            Text("Rescan")
                         }
                         .help("Clear cache and rescan the selected folder")
                         .disabled(viewModel.isLoading)

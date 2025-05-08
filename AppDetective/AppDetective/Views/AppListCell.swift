@@ -30,17 +30,17 @@ struct AppListCell: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(appInfo.name)
-                    .font(.headline)
+                    .font(.system(size: 14, weight: .medium))
                     .lineLimit(1)
 
                 // Display category
                 Text(appInfo.category.description)
-                    .font(.caption)
+                    .font(.system(size: 12))
                     .foregroundColor(.secondary)
 
                 // Display size if loaded from cache, else placeholder
                 Text(viewModel.getSizeString(for: appInfo.path) ?? "Loading size...")
-                    .font(.caption)
+                    .font(.system(size: 12))
                     .foregroundColor(.secondary)
             }
 
@@ -49,7 +49,7 @@ struct AppListCell: View {
             // Display joined tech stack names
             if !appInfo.techStacks.isEmpty { // Only show if there are tech stacks
                 Text(appInfo.techStacks.displayNames.joined(separator: ", "))
-                    .font(.subheadline)
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundColor(appInfo.techStacks.mainColor) // Use prioritized color
                     .lineLimit(1) // Prevent wrapping if too many stacks
                     .padding(.horizontal, 5)

@@ -11,18 +11,19 @@ struct CategoryButtonView: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 12) {
+            HStack(spacing: 4) {
                 Text(category?.emoji ?? "🌐")
-                    .font(.title2)
+                    .font(.system(size: 14))
 
                 Text(category?.description ?? "All Apps")
-                    .fontWeight(isSelected ? .bold : .regular)
+                    .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
 
                 Spacer()
 
                 Text("\(count)")
+                    .font(.system(size: 11))
                     .foregroundColor(.secondary)
-                    .padding(6)
+                    .padding(5)
                     .background(
                         Capsule()
                             .fill(Color.secondary.opacity(0.2))
@@ -52,21 +53,22 @@ struct TechStackButtonView: View {
                 if let stack = techStack {
                     Circle()
                         .fill(stack.mainColor)
-                        .frame(width: 10, height: 10)
+                        .frame(width: 12, height: 12)
 
                     Text(TechStack.flagNames[stack.rawValue] ?? "Unknown")
-                        .fontWeight(isSelected ? .bold : .regular)
+                        .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
                 } else {
                     Text("All")
-                        .fontWeight(isSelected ? .bold : .regular)
+                        .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
                 }
 
                 Spacer()
 
                 if techStack != nil {
                     Text("\(count)")
+                        .font(.system(size: 11))
                         .foregroundColor(.secondary)
-                        .padding(6)
+                        .padding(5)
                         .background(
                             Circle()
                                 .fill(Color.secondary.opacity(0.2))
@@ -106,7 +108,7 @@ struct CategorySectionView: View {
             }
         } header: {
             Text("Categories")
-                .font(.headline)
+                .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.primary)
         }
     }
@@ -136,7 +138,7 @@ struct TechStackSectionView: View {
             }
         } header: {
             Text("Tech Stacks")
-                .font(.headline)
+                .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.primary)
         }
     }
