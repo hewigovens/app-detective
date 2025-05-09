@@ -97,6 +97,21 @@ struct ContentView: View {
                         }
                         .help("Clear cache and rescan the selected folder")
                         .disabled(viewModel.isLoading)
+                        
+                        Divider()
+                        
+                        Button {
+                            NSWorkspace.shared.open(URL(string: Constants.sponsorLink)!)
+                        } label: {
+                            Image(systemName: "heart.circle")
+                        }
+                        .help("Buy author a Coffe if you find this app useful")
+                        Button {
+                            NSWorkspace.shared.open(URL(string: Constants.githubLink)!)
+                        } label: {
+                            Image(systemName: "curlybraces")
+                        }
+                        .help("Star on GitHub")
                     }
                 }
             }

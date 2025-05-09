@@ -1,4 +1,3 @@
-// AppStorageService.swift
 import Foundation
 
 class AppStorageService {
