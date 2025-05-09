@@ -6,8 +6,7 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/hewigovens/LSAppCategory.git",
       "state" : {
-        "branch" : "main",
-        "revision" : "08764516bd97b0946d52f121f18e535cc4680bad"
+        "revision" : "fe8edb78aaa41206e1a98b9bfbd0b0f26ed625c9"
       }
     }
   ],
