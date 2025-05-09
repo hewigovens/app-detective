@@ -334,7 +334,7 @@
 /* Begin XCRemoteSwiftPackageReference section */
 		BB66A9882DCCDCDE0083A538 /* XCRemoteSwiftPackageReference "LSAppCategory" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "git@github.com:hewigovens/LSAppCategory.git";
+			repositoryURL = "https://github.com/hewigovens/LSAppCategory.git";
 			requirement = {
 				branch = main;
 				kind = branch;
