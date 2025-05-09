@@ -53,12 +53,12 @@ struct TechStack: OptionSet, Codable, Hashable {
     // Prioritized main color
     var mainColor: Color {
         switch self {
-        case .swiftUI: return Color.blue
-        case .appKit: return Color.orange
+        case .swiftUI: return Color.orange
+        case .appKit: return Color.blue
         case .catalyst: return Color.purple
         case .electron: return Color.cyan
         case .cef: return Color(hex: "#3498db") // A specific blue for CEF
-        case .python: return Color.green
+        case .python: return Color(hex: "#336c9d")
         case .qt: return Color(hex: "#4CAF50") // Qt's official green
         case .wxWidgets: return Color(hex: "#7B61D9") // wxWidgets purple
         case .gtk: return Color(hex: "#729FCF") // GTK blue
@@ -72,9 +72,8 @@ struct TechStack: OptionSet, Codable, Hashable {
         case .microsoftEdge: return Color(hex: "#0078D4") // Microsoft's blue
         case .other: return Color.gray
         default:
-            // For combined flags, attempt to find a primary color or default to gray
-            if self.contains(.swiftUI) { return Color.blue }
-            if self.contains(.appKit) { return Color.orange }
+            if self.contains(.swiftUI) { return Color.orange }
+            if self.contains(.appKit) { return Color.blue }
             return Color.gray
         }
     }
@@ -92,7 +91,7 @@ struct TechStack: OptionSet, Codable, Hashable {
     }
 
     var toArray: [TechStack] {
-        Self.flagNames.enumerated().map { (key, _) in
+        Self.flagNames.enumerated().map { key, _ in
             TechStack(rawValue: key)
         }
     }
