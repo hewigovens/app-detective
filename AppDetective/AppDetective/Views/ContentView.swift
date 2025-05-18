@@ -24,6 +24,7 @@ struct ContentView: View {
             // Sidebar with categories and tech stacks
             CategoryView(viewModel: categoryViewModel)
                 .navigationTitle("Filters")
+                .navigationSplitViewColumnWidth(220)
         } detail: {
             ZStack {
                 // Layer 1: Content VStack
