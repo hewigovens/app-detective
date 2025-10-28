@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		BB66A98A2DCCDCDE0083A538 /* LSAppCategory in Frameworks */ = {isa = PBXBuildFile; productRef = BB66A9892DCCDCDE0083A538 /* LSAppCategory */; };
+		BBF2C1AA2F0D6D8700C2A1B0 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = BBF2C1AB2F0D6D8700C2A1B0 /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -51,6 +52,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BB66A98A2DCCDCDE0083A538 /* LSAppCategory in Frameworks */,
+				BBF2C1AA2F0D6D8700C2A1B0 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,6 +121,7 @@
 			name = AppDetective;
 			packageProductDependencies = (
 				BB66A9892DCCDCDE0083A538 /* LSAppCategory */,
+				BBF2C1AB2F0D6D8700C2A1B0 /* Sparkle */,
 			);
 			productName = AppDetective;
 			productReference = BBA23E4B2DC0DB6600679B64 /* AppDetective.app */;
@@ -154,6 +157,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				BB66A9882DCCDCDE0083A538 /* XCRemoteSwiftPackageReference "LSAppCategory" */,
+				BBF2C1AC2F0D6D8700C2A1B0 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BBA23E4C2DC0DB6600679B64 /* Products */;
@@ -472,6 +476,14 @@
 				revision = fe8edb78aaa41206e1a98b9bfbd0b0f26ed625c9;
 			};
 		};
+		BBF2C1AC2F0D6D8700C2A1B0 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -479,6 +491,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = BB66A9882DCCDCDE0083A538 /* XCRemoteSwiftPackageReference "LSAppCategory" */;
 			productName = LSAppCategory;
+		};
+		BBF2C1AB2F0D6D8700C2A1B0 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BBF2C1AC2F0D6D8700C2A1B0 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
