@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Build project
+      working-directory: AppDetective
+      run: xcodebuild -project AppDetective.xcodeproj -scheme AppDetective -configuration Debug build CODE_SIGNING_ALLOWED=NO
+
+    - name: Run tests
+      working-directory: AppDetective
+      run: xcodebuild -project AppDetective.xcodeproj -scheme AppDetective -configuration Debug test CODE_SIGNING_ALLOWED=NO

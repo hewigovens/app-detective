@@ -3,42 +3,36 @@ import SwiftUI
 
 struct AppListCell: View {
     let appInfo: AppInfo
-    @EnvironmentObject var viewModel: ContentViewModel // Inject the ViewModel
+    @EnvironmentObject var viewModel: ContentViewModel
 
     var body: some View {
-        // Get data directly from ViewModel cache within the body calculation
         let cachedIconData = viewModel.getIconData(for: appInfo.path)
-        // Replace the unused variable with _ to avoid the warning
         let _ = viewModel.getSizeString(for: appInfo.path)
 
         HStack(spacing: 12) {
-            // Display icon if loaded from cache, else placeholder
             Group {
-                // Cached data IS the thumbnail data now
                 if let thumbnailData = cachedIconData, let thumbnailImage = NSImage(data: thumbnailData) {
                     Image(nsImage: thumbnailImage)
                         .resizable()
                         .scaledToFit()
                 } else {
-                    Image(systemName: "app.dashed") // Placeholder icon
+                    Image(systemName: "app.dashed")
                         .resizable()
                         .scaledToFit()
                         .foregroundColor(.secondary)
                 }
             }
-            .frame(width: 44, height: 44) // Consistent frame
+            .frame(width: 44, height: 44)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(appInfo.name)
                     .font(.system(size: 14, weight: .medium))
                     .lineLimit(1)
 
-                // Display category
                 Text(appInfo.category.description)
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
 
-                // Display size if loaded from cache, else placeholder
                 Text(viewModel.getSizeString(for: appInfo.path) ?? "Loading size...")
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
@@ -46,8 +40,7 @@ struct AppListCell: View {
 
             Spacer()
 
-            // Display joined tech stack names
-            if !appInfo.techStacks.isEmpty { // Only show if there are tech stacks
+            if !appInfo.techStacks.isEmpty {
                 Text(appInfo.techStacks.displayNames.joined(separator: ", "))
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(appInfo.techStacks.mainColor) // Use prioritized color

@@ -1,10 +1,3 @@
-//
-//  ContentView.swift
-//  AppDetective
-//
-//  Created by hewig on 4/29/25.
-//
-
 import SwiftUI
 
 struct ContentView: View {
@@ -21,13 +14,11 @@ struct ContentView: View {
         let errorMessage = viewModel.errorMessage
 
         NavigationSplitView {
-            // Sidebar with categories and tech stacks
             CategoryView(viewModel: categoryViewModel)
                 .navigationTitle("Filters")
                 .navigationSplitViewColumnWidth(220)
         } detail: {
             ZStack {
-                // Layer 1: Content VStack
                 VStack {
                     if let msg = errorMessage {
                         Text("Error: \(msg)")
@@ -36,15 +27,12 @@ struct ContentView: View {
                     } else {
                         if viewModel.appResults.isEmpty && !isLoading {
                             Text("No apps found or scan not started.")
-                                .frame(maxWidth: .infinity, maxHeight: .infinity) // Center message
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
                         } else if !viewModel.appResults.isEmpty {
-                            // Display filtered apps based on selected category and tech stack
                             List(categoryViewModel.filteredApps) { app in
                                 AppListCell(appInfo: app)
                             }
                             .environmentObject(viewModel)
-
-                            // Add a footer showing the current filter
                             HStack(spacing: 4) {
                                 if let selectedCategory = categoryViewModel.selectedCategory {
                                     Text("Showing \(categoryViewModel.filteredApps.count) apps in \(selectedCategory.description)")
@@ -69,7 +57,6 @@ struct ContentView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                // Layer 2: Loading Overlay
                 if isLoading {
                     ProgressView("Scanning...")
                         .padding(16)
@@ -129,7 +116,6 @@ struct ContentView_Previews: PreviewProvider {
         let dummyURL = URL(fileURLWithPath: "/Applications")
         let dummyViewModel = ContentViewModel(folderURL: dummyURL)
 
-        // Add sample data for the preview
         let sampleApps = [
             AppInfo(name: "Preview", path: "/Applications/Preview.app", techStacks: .swiftUI, category: .utilities),
             AppInfo(name: "Xcode", path: "/Applications/Xcode.app", techStacks: .appKit, category: .developerTools),

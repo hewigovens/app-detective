@@ -10,11 +10,27 @@
 		BB66A98A2DCCDCDE0083A538 /* LSAppCategory in Frameworks */ = {isa = PBXBuildFile; productRef = BB66A9892DCCDCDE0083A538 /* LSAppCategory */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		BB9556F62EB092EA00613BB8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BBA23E432DC0DB6600679B64 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BBA23E4A2DC0DB6600679B64;
+			remoteInfo = AppDetective;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		BB9556F22EB092EA00613BB8 /* AppDetectiveTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AppDetectiveTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BBA23E4B2DC0DB6600679B64 /* AppDetective.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AppDetective.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		BB9556F32EB092EA00613BB8 /* AppDetectiveTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = AppDetectiveTests;
+			sourceTree = "<group>";
+		};
 		BBA23E4D2DC0DB6600679B64 /* AppDetective */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = AppDetective;
@@ -23,6 +39,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		BB9556EF2EB092EA00613BB8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		BBA23E482DC0DB6600679B64 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -38,6 +61,7 @@
 			isa = PBXGroup;
 			children = (
 				BBA23E4D2DC0DB6600679B64 /* AppDetective */,
+				BB9556F32EB092EA00613BB8 /* AppDetectiveTests */,
 				BBA23E4C2DC0DB6600679B64 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -46,6 +70,7 @@
 			isa = PBXGroup;
 			children = (
 				BBA23E4B2DC0DB6600679B64 /* AppDetective.app */,
+				BB9556F22EB092EA00613BB8 /* AppDetectiveTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -53,6 +78,29 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		BB9556F12EB092EA00613BB8 /* AppDetectiveTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BB9556FA2EB092EA00613BB8 /* Build configuration list for PBXNativeTarget "AppDetectiveTests" */;
+			buildPhases = (
+				BB9556EE2EB092EA00613BB8 /* Sources */,
+				BB9556EF2EB092EA00613BB8 /* Frameworks */,
+				BB9556F02EB092EA00613BB8 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BB9556F72EB092EA00613BB8 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				BB9556F32EB092EA00613BB8 /* AppDetectiveTests */,
+			);
+			name = AppDetectiveTests;
+			packageProductDependencies = (
+			);
+			productName = AppDetectiveTests;
+			productReference = BB9556F22EB092EA00613BB8 /* AppDetectiveTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		BBA23E4A2DC0DB6600679B64 /* AppDetective */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = BBA23E5A2DC0DB6700679B64 /* Build configuration list for PBXNativeTarget "AppDetective" */;
@@ -83,9 +131,13 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1620;
-				LastUpgradeCheck = 1620;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
 				TargetAttributes = {
+					BB9556F12EB092EA00613BB8 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = BBA23E4A2DC0DB6600679B64;
+					};
 					BBA23E4A2DC0DB6600679B64 = {
 						CreatedOnToolsVersion = 16.2;
 					};
@@ -109,11 +161,19 @@
 			projectRoot = "";
 			targets = (
 				BBA23E4A2DC0DB6600679B64 /* AppDetective */,
+				BB9556F12EB092EA00613BB8 /* AppDetectiveTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		BB9556F02EB092EA00613BB8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		BBA23E492DC0DB6600679B64 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -124,6 +184,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		BB9556EE2EB092EA00613BB8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		BBA23E472DC0DB6600679B64 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -133,7 +200,57 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		BB9556F72EB092EA00613BB8 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BBA23E4A2DC0DB6600679B64 /* AppDetective */;
+			targetProxy = BB9556F62EB092EA00613BB8 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		BB9556F82EB092EA00613BB8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.hewig.AppDetectiveTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AppDetective.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AppDetective";
+			};
+			name = Debug;
+		};
+		BB9556F92EB092EA00613BB8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.hewig.AppDetectiveTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AppDetective.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AppDetective";
+			};
+			name = Release;
+		};
 		BBA23E582DC0DB6700679B64 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -168,7 +285,9 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = V28VJH6B6S;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -192,6 +311,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -231,7 +351,9 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = V28VJH6B6S;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -248,6 +370,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 			};
 			name = Release;
@@ -261,8 +384,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"AppDetective/Preview Content\"";
-				DEVELOPMENT_TEAM = V28VJH6B6S;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -289,8 +412,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"AppDetective/Preview Content\"";
-				DEVELOPMENT_TEAM = V28VJH6B6S;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -311,6 +434,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		BB9556FA2EB092EA00613BB8 /* Build configuration list for PBXNativeTarget "AppDetectiveTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB9556F82EB092EA00613BB8 /* Debug */,
+				BB9556F92EB092EA00613BB8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		BBA23E462DC0DB6600679B64 /* Build configuration list for PBXProject "AppDetective" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

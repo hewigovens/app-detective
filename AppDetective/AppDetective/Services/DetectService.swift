@@ -86,7 +86,7 @@ class DetectService {
 
     /// Step 1: Get App Url to analyze, iOS App runs on macOS is WrappedBundle
     /// Returns the URL to analyze and whether it's a wrapped bundle.
-    private func getAppUrlToAnalyze(appURL: URL) -> (URL, Bool) {
+    func getAppUrlToAnalyze(appURL: URL) -> (URL, Bool) {
         let wrappedBundleUrl = appURL.appendingPathComponent("WrappedBundle")
         let path = wrappedBundleUrl.path
 
@@ -102,7 +102,7 @@ class DetectService {
     }
 
     /// Step 2: Scans the Frameworks directory for known framework signatures (Electron, CEF, Flutter, .NET, Python, Qt).
-    private func scanFrameworksDirectory(frameworksPath: String) -> TechStack {
+    func scanFrameworksDirectory(frameworksPath: String) -> TechStack {
         var detectedStacks: TechStack = []
 
         guard fileManager.fileExists(atPath: frameworksPath) else {

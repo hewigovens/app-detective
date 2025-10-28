@@ -183,7 +183,6 @@ struct CategoryView_Previews: PreviewProvider {
     static var previews: some View {
         let viewModel = CategoryViewModel()
 
-        // Add sample data
         let sampleApps = [
             AppInfo(name: "Preview", path: "/Applications/Preview.app", techStacks: .swiftUI, category: .utilities),
             AppInfo(name: "Xcode", path: "/Applications/Xcode.app", techStacks: .appKit, category: .developerTools),
