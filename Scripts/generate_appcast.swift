@@ -175,7 +175,7 @@ func ensureBaseAppcast(at url: URL, downloadURL: String) throws {
     if let base = URL(string: downloadURL)?.deletingLastPathComponent().absoluteString {
         baseLink = base.hasSuffix("/") ? base + "appcast.xml" : base + "/appcast.xml"
     } else {
-        baseLink = "https://hewig.dev/appdetecive/appcast.xml"
+        baseLink = "https://hewig.dev/appdetective/appcast.xml"
     }
 
     let base = """

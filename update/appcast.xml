@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   Sparkle appcast for App Detective.
-  Host this file at https://hewig.dev/appdetecive/appcast.xml
+  Host this file at https://hewig.dev/appdetective/appcast.xml
   Update the <enclosure> url, version, and length for each release.
 -->
 <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
   <channel>
     <title>App Detective Updates</title>
-    <link>https://hewig.dev/appdetecive/appcast.xml</link>
+    <link>https://hewig.dev/appdetective/appcast.xml</link>
     <description>Release notes and downloads for App Detective.</description>
     <language>en</language>
     <item>
@@ -24,7 +24,7 @@
       <sparkle:version>1.0.0</sparkle:version>
       <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
       <enclosure
-        url="https://hewig.dev/appdetecive/AppDetective-1.0.0.zip"
+        url="https://hewig.dev/appdetective/AppDetective-1.0.0.zip"
         sparkle:edSignature="TODO_SIGNATURE"
         sparkle:edSignature31="TODO_SIGNATURE_SHA3"
         sparkle:os="macos"
