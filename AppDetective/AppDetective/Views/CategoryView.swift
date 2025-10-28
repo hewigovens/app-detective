@@ -134,7 +134,8 @@ struct TechStackSectionView: View {
 
             Group {
                 createTechStackButtons([.electron, .cef, .flutter, .qt, .reactNative,
-                                        .java, .python, .xamarin, .tauri, .wxWidgets])
+                                        .java, .python, .xamarin, .tauri, .wxWidgets,
+                                        .gpui, .iced, .gtk])
             }
         } header: {
             Text("Tech Stacks")

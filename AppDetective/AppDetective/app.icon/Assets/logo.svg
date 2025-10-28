@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <rect cx="256" cy="256" r="240" fill="#F0F4F8" />
+
+  <!-- App Icon Outline -->
+  <rect x="128" y="112" width="256" height="256" rx="48" stroke="#2563EB" stroke-width="12" />
+
+  <!-- Magnifying Glass -->
+  <circle cx="240" cy="240" r="80" stroke="#2563EB" stroke-width="16" fill="none" />
+  <line x1="292" y1="292" x2="344" y2="344" stroke="#2563EB" stroke-width="16" stroke-linecap="round" />
+
+  <!-- Tech Stack Elements -->
+  <rect x="192" y="224" width="96" height="12" rx="4" fill="#2563EB" />
+  <rect x="192" y="248" width="64" height="12" rx="4" fill="#2563EB" />
+  <rect x="192" y="272" width="80" height="12" rx="4" fill="#2563EB" />
+
+  <!-- Decorative Elements -->
+  <circle cx="176" cy="192" r="8" fill="#2563EB" />
+  <circle cx="336" cy="164" r="8" fill="#2563EB" />
+  <circle cx="336" cy="316" r="8" fill="#2563EB" />
+
+  <!-- Category Indicators -->
+  <rect x="144" y="352" width="72" height="32" rx="16" fill="#34D399" opacity="0.9" />
+  <rect x="224" y="352" width="72" height="32" rx="16" fill="#F97316" opacity="0.9" />
+  <rect x="304" y="352" width="72" height="32" rx="16" fill="#8B5CF6" opacity="0.9" />
+
+  <!-- Abstract Connection Lines -->
+  <path d="M176 192 L144 144" stroke="#2563EB" stroke-width="3" stroke-linecap="round" />
+  <path d="M336 164 L368 128" stroke="#2563EB" stroke-width="3" stroke-linecap="round" />
+  <path d="M336 316 L368 352" stroke="#2563EB" stroke-width="3" stroke-linecap="round" />
+</svg>

@@ -14,9 +14,16 @@ struct ContentView: View {
         let errorMessage = viewModel.errorMessage
 
         NavigationSplitView {
-            CategoryView(viewModel: categoryViewModel)
-                .navigationTitle("Filters")
-                .navigationSplitViewColumnWidth(220)
+            if #available(macOS 15.0, *) {
+                CategoryView(viewModel: categoryViewModel)
+                    .navigationTitle("Filters")
+                    .navigationSplitViewColumnWidth(220)
+                    .containerBackground(.ultraThinMaterial, for: .window)
+            } else {
+                CategoryView(viewModel: categoryViewModel)
+                    .navigationTitle("Filters")
+                    .navigationSplitViewColumnWidth(220)
+            }
         } detail: {
             ZStack {
                 VStack {
@@ -103,7 +110,7 @@ struct ContentView: View {
                     }
                 }
             }
-            .background(.regularMaterial)
+            .background(Color.clear)
             .frame(minWidth: 500, minHeight: 400)
             .animation(.easeInOut(duration: 0.2), value: categoryViewModel.selectedCategory)
             .animation(.easeInOut(duration: 0.2), value: categoryViewModel.selectedTechStack)
