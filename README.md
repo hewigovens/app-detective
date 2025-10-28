@@ -6,6 +6,14 @@ App Detective is a macOS application that analyzes and identifies the UI tech st
 
 ![App Detective](Assets/main.png)
 
+## Release Workflow
+
+- `just archive <version>` builds a Release archive via Xcode.
+- `just export <version>` pulls `AppDetective.app` from the archive into `build/export`.
+- `just zip <version>` creates a Sparkle-ready zip in `build/dist`.
+- `SIGNATURE=... SIGNATURE31=... just generate-appcast <version>` updates `update/appcast.xml` (auto-detects notes in `update/notes/<version>.md`).
+- `just release <version> [notes-file]` runs the full pipeline in sequence.
+
 ## Supported Technology Stacks
 
 App Detective can detect the following technology stacks:

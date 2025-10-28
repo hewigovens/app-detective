@@ -1,5 +1,5 @@
 {
-  "originHash" : "d08b3e8ebe31abff0df07836dc60ae96393c432f7dd8f1edee8ad0dbd39024bc",
+  "originHash" : "171f018203831d2f82b92d054dc7853105518ccc2623b9d1b322f07bf51b2677",
   "pins" : [
     {
       "identity" : "lsappcategory",
@@ -7,6 +7,15 @@
       "location" : "https://github.com/hewigovens/LSAppCategory.git",
       "state" : {
         "revision" : "fe8edb78aaa41206e1a98b9bfbd0b0f26ed625c9"
+      }
+    },
+    {
+      "identity" : "sparkle",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sparkle-project/Sparkle",
+      "state" : {
+        "revision" : "9a1d2a19d3595fcf8d9c447173f9a1687b3dcadb",
+        "version" : "2.8.0"
       }
     }
   ],
