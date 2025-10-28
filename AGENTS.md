@@ -2,7 +2,7 @@
 
 ## CI/CD
 - **GitHub Actions**: CI workflow runs on push/PR to main branch
-- **Platforms**: macOS latest
+- **Platforms**: macOS 26
 - **Steps**: Checkout, build Debug, run unit tests, validate app bundle
 
 ## Build Commands

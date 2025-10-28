@@ -307,6 +307,7 @@ class DetectService {
     }
 
     /// Step 5: Performs strings analysis on the executable for certain patterns (Tauri, wxWidgets, gpui, iced).
+    /// Can detect multiple frameworks in the same binary.
     private func checkStringsInExecutable(executableURL: URL) -> TechStack {
         print("[DetectService] Step 5: Analyzing executable with strings command: \(executableURL.path)")
 
@@ -315,32 +316,34 @@ class DetectService {
             return []
         }
 
+        var detectedStacks: TechStack = []
+
         // Java
         if stringsOutput.contains("java/lang") {
-            return [.java]
+            detectedStacks.insert(.java)
+        }
+
+        // GPUI: Presence of "gpui::" or "/gpui/" (Zed editor uses GPUI)
+        if stringsOutput.contains("gpui::") || stringsOutput.contains("/gpui/") {
+            detectedStacks.insert(.gpui)
         }
 
         // Tauri: Presence of "tauri"
         if stringsOutput.contains("tauri") { // Case-sensitive as per typical binary content
-            return [.tauri]
+            detectedStacks.insert(.tauri)
         }
 
         // wxWidgets: Presence of "wx_main" (secondary check)
         if stringsOutput.contains("wx_main") { // Case-sensitive for symbol-like strings
-            return [.wxWidgets]
-        }
-
-        // GPUI: Presence of "gpui" (as per DetectionRules.md)
-        if stringsOutput.contains("/gpui/") {
-            return [.gpui]
+            detectedStacks.insert(.wxWidgets)
         }
 
         // Iced: Presence of "iced_wgpu" (as per DetectionRules.md)
         if stringsOutput.contains("iced_wgpu") {
-            return [.iced]
+            detectedStacks.insert(.iced)
         }
 
-        return []
+        return detectedStacks
     }
 
     /// Step 6: Resolves conflicts between detected stacks and applies final inferences.
