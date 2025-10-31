@@ -39,3 +39,15 @@ release version:
 	just archive {{version}}
 	just export {{version}}
 	just zip {{version}}
+	just update-cask {{version}}
+
+# Update the Homebrew cask with the new version and SHA.
+update-cask version:
+	set -euxo pipefail; \
+	zip_path="{{DIST_DIR}}/AppDetective-{{version}}.zip"; \
+	if [ ! -f "$zip_path" ]; then echo "Expected archive at $zip_path. Run 'just zip {{version}}' first." >&2; exit 1; fi; \
+	sha256=$(shasum -a 256 "$zip_path" | awk '{print $1}'); \
+	cask_path="../homebrew-tap/Casks/app-detective.rb"; \
+	tmp_file=$(mktemp); \
+	awk -v version="{{version}}" -v sha="$sha256" '{ if ($0 ~ /version "/) sub(/"[^"]+"/, "\"" version "\""); if ($0 ~ /sha256 "/) sub(/"[^"]+"/, "\"" sha "\""); print }' "$cask_path" > "$tmp_file"; \
+	mv "$tmp_file" "$cask_path"
