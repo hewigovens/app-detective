@@ -3,8 +3,6 @@ import SwiftUI
 struct ContentView: View {
     @ObservedObject var viewModel: ContentViewModel
     @ObservedObject private var categoryViewModel: CategoryViewModel
-    @EnvironmentObject private var updateService: UpdateService
-    @State private var isShowingUpdateError: Bool = false
 
     init(viewModel: ContentViewModel) {
         self.viewModel = viewModel
@@ -94,23 +92,9 @@ struct ContentView: View {
                         }
                         .help("Clear cache and rescan the selected folder")
                         .disabled(viewModel.isLoading)
-                        
-                        Button {
-                            updateService.checkForUpdates()
-                        } label: {
-                            if updateService.isCheckingForUpdates {
-                                ProgressView()
-                                    .controlSize(.small)
-                                    .frame(width: 16, height: 16)
-                            } else {
-                                Image(systemName: "arrow.down.circle")
-                            }
-                        }
-                        .help(updateService.isCheckingForUpdates ? "Checking for updates..." : "Check for application updates")
-                        .disabled(updateService.isCheckingForUpdates)
 
                         Divider()
-                        
+
                         Button {
                             NSWorkspace.shared.open(URL(string: Constants.sponsorLink)!)
                         } label: {
@@ -130,14 +114,6 @@ struct ContentView: View {
             .frame(minWidth: 500, minHeight: 400)
             .animation(.easeInOut(duration: 0.2), value: categoryViewModel.selectedCategory)
             .animation(.easeInOut(duration: 0.2), value: categoryViewModel.selectedTechStack)
-        }
-        .onChange(of: updateService.lastUpdateError) { _, newError in
-            isShowingUpdateError = newError != nil
-        }
-        .alert("Update Failed", isPresented: $isShowingUpdateError, presenting: updateService.lastUpdateError) { _ in
-            Button("OK", role: .cancel) { }
-        } message: { error in
-            Text(error)
         }
     }
 }
@@ -159,6 +135,5 @@ struct ContentView_Previews: PreviewProvider {
         dummyViewModel.categoryViewModel.updateCategories(with: sampleApps)
 
         return ContentView(viewModel: dummyViewModel)
-            .environmentObject(UpdateService(preview: true))
     }
 }

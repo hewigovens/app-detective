@@ -4,7 +4,6 @@ import SwiftUI
 struct AppDetectiveApp: App {
     @AppStorage("selectedFolderBookmark") private var selectedFolderBookmark: Data?
     @StateObject private var contentViewModel = ContentViewModel()
-    @StateObject private var updateService = UpdateService()
     @State private var isResolvingBookmark: Bool = true
 
     var body: some Scene {
@@ -35,7 +34,6 @@ struct AppDetectiveApp: App {
             }
             .onAppear {
                 print("[AppDetectiveApp] onAppear, attempting to resolve bookmark...")
-                updateService.startIfNeeded()
                 resolveBookmark()
             }
             .onChange(of: selectedFolderBookmark) { _, _ in
@@ -61,7 +59,6 @@ struct AppDetectiveApp: App {
                 }
             }
         }
-        .environmentObject(updateService)
     }
 
     // Function to resolve the bookmark data into a URL and update the ViewModel
