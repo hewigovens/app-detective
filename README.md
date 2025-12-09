@@ -6,6 +6,15 @@ App Detective is a macOS application that analyzes and identifies the UI tech st
 
 ![App Detective](Assets/main.png)
 
+## Installation
+
+### Homebrew
+
+```bash
+brew tap hewigovens/tap
+brew install --cask app-detective
+```
+
 ## Release Workflow
 
 - `just archive <version>` builds a Release archive via Xcode.
