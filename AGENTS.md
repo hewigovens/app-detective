@@ -5,10 +5,15 @@
 - **Platforms**: macOS 26
 - **Steps**: Checkout, build Debug, run unit tests, validate app bundle
 
+## Git Workflow
+- **Branching**: Always create a new branch for each task or feature before starting work.
+- **Commits**: Always propose a draft commit message and ask for user confirmation before committing.
+- **Pushing**: Never push changes to the remote repository without explicit user request.
+
 ## Build Commands
-- **Build**: `xcodebuild -project AppDetective/AppDetective.xcodeproj -scheme AppDetective build`
-- **Test**: `xcodebuild -project AppDetective/AppDetective.xcodeproj -scheme AppDetective test`
-- **Clean**: `xcodebuild -project AppDetective/AppDetective.xcodeproj -scheme AppDetective clean`
+- **Build**: `xcodebuild -project AppDetective/AppDetective.xcodeproj -scheme AppDetective build | xcbeautify`
+- **Test**: `xcodebuild -project AppDetective/AppDetective.xcodeproj -scheme AppDetective test | xcbeautify`
+- **Clean**: `xcodebuild -project AppDetective/AppDetective.xcodeproj -scheme AppDetective clean | xcbeautify`
 
 ## Code Style Guidelines
 
