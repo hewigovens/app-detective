@@ -59,6 +59,31 @@ struct AppDetectiveApp: App {
                 }
             }
         }
+        .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button("About App Detective") {
+                    AppDetectiveApp.showAboutWindow()
+                }
+            }
+        }
+    }
+
+    private static var aboutWindowController: NSWindowController?
+
+    static func showAboutWindow() {
+        if aboutWindowController == nil {
+            let window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 350, height: 300),
+                styleMask: [.titled, .closable, .miniaturizable],
+                backing: .buffered, defer: false)
+            window.center()
+            window.title = "About"
+            window.contentView = NSHostingView(rootView: AboutView())
+            aboutWindowController = NSWindowController(window: window)
+        }
+        
+        aboutWindowController?.showWindow(nil)
+        aboutWindowController?.window?.makeKeyAndOrderFront(nil)
     }
 
     // Function to resolve the bookmark data into a URL and update the ViewModel
