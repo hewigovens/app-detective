@@ -12,8 +12,9 @@ struct CategoryButtonView: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 4) {
-                Text(category?.emoji ?? "🌐")
-                    .font(.system(size: 14))
+                Image(systemName: category?.sfSymbol ?? "square.grid.2x2")
+                    .font(.system(size: 12))
+                    .frame(width: 16)
 
                 Text(category?.description ?? "All Apps")
                     .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
