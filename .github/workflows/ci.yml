@@ -17,9 +17,6 @@ jobs:
     - name: Setup Just
       uses: extractions/setup-just@v2
 
-    - name: Install dependencies
-      run: brew install xcbeautify
-
     - name: Build project
       run: just build
 
