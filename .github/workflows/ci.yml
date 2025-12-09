@@ -14,10 +14,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Setup Just
+      uses: extractions/setup-just@v2
+
+    - name: Install dependencies
+      run: brew install xcbeautify
+
     - name: Build project
-      working-directory: AppDetective
-      run: xcodebuild -project AppDetective.xcodeproj -scheme AppDetective -configuration Debug build CODE_SIGNING_ALLOWED=NO
+      run: just build
 
     - name: Run tests
-      working-directory: AppDetective
-      run: xcodebuild -project AppDetective.xcodeproj -scheme AppDetective -configuration Debug test CODE_SIGNING_ALLOWED=NO
+      run: just test
