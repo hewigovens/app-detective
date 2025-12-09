@@ -12,15 +12,15 @@ DIST_DIR := "build/dist"
 
 # Build the project (Debug) using xcbeautify
 build:
-	set -o pipefail && xcodebuild -project {{PROJECT}} -scheme {{SCHEME}} build | xcbeautify
+	set -o pipefail && xcodebuild -project {{PROJECT}} -scheme {{SCHEME}} build CODE_SIGNING_ALLOWED=NO | xcbeautify
 
 # Run tests using xcbeautify
 test:
-	set -o pipefail && xcodebuild -project {{PROJECT}} -scheme {{SCHEME}} test | xcbeautify
+	set -o pipefail && xcodebuild -project {{PROJECT}} -scheme {{SCHEME}} test CODE_SIGNING_ALLOWED=NO | xcbeautify
 
 # Clean build artifacts
 clean:
-	set -o pipefail && xcodebuild -project {{PROJECT}} -scheme {{SCHEME}} clean | xcbeautify
+	set -o pipefail && xcodebuild -project {{PROJECT}} -scheme {{SCHEME}} clean CODE_SIGNING_ALLOWED=NO | xcbeautify
 
 # Archive the app for distribution.
 archive version:
