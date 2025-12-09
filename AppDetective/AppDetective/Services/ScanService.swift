@@ -26,30 +26,41 @@ struct ScanService {
         }
 
         var appURLs: [URL] = []
-        let fileManager = FileManager.default
+        try enumerateAndFindApps(in: folderURL, foundApps: &appURLs)
 
-        do {
-            // Enumerate the directory contents, skipping subdirectories for now (level 1)
-            let contents = try fileManager.contentsOfDirectory(at: folderURL,
-                                                               includingPropertiesForKeys: [.isDirectoryKey, .isApplicationKey],
-                                                               options: [.skipsHiddenFiles, .skipsSubdirectoryDescendants]) // Only top level
-
-            for itemURL in contents {
-                // Check if it's an application bundle (.app extension)
-                if itemURL.pathExtension.lowercased() == "app" {
-                    // Simple check: verify it's actually a directory (bundles are directories)
-                    var itemIsDir: ObjCBool = false
-                    if fileManager.fileExists(atPath: itemURL.path, isDirectory: &itemIsDir), itemIsDir.boolValue {
-                        appURLs.append(itemURL)
-                        print("Found app: \(itemURL.lastPathComponent)")
-                    }
-                }
+        // Special case: If scanning /Applications, also scan /System/Applications
+        // since macOS Catalina+ stores system apps there
+        if folderURL.path == "/Applications" {
+            let systemAppsURL = URL(fileURLWithPath: "/System/Applications")
+            var systemIsDir: ObjCBool = false
+            if FileManager.default.fileExists(atPath: systemAppsURL.path, isDirectory: &systemIsDir), systemIsDir.boolValue {
+                try enumerateAndFindApps(in: systemAppsURL, foundApps: &appURLs)
             }
-        } catch {
-            print("Error enumerating directory \(folderURL.path): \(error)")
-            throw ScanError.directoryEnumerationFailed(error)
         }
 
         return appURLs
+    }
+
+    private func enumerateAndFindApps(in directoryURL: URL, foundApps: inout [URL]) throws {
+        let fileManager = FileManager.default
+        do {
+            let contents = try fileManager.contentsOfDirectory(at: directoryURL, includingPropertiesForKeys: [.isDirectoryKey], options: .skipsHiddenFiles)
+
+            for itemURL in contents {
+                var isDir: ObjCBool = false
+                guard fileManager.fileExists(atPath: itemURL.path, isDirectory: &isDir), isDir.boolValue else {
+                    continue
+                }
+
+                // Check if it's a .app bundle
+                if itemURL.pathExtension.lowercased() == "app" {
+                    foundApps.append(itemURL)
+                } else {
+                    try enumerateAndFindApps(in: itemURL, foundApps: &foundApps)
+                }
+            }
+        } catch {
+            throw ScanError.directoryEnumerationFailed(error)
+        }
     }
 }
