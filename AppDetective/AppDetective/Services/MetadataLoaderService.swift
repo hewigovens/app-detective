@@ -133,7 +133,7 @@ class MetadataLoaderService {
     }
 
     private func getTotalBundleSize(atPath path: String) -> Int64? {
-        let url = URL(fileURLWithPath: path)
+        let url = URL(fileURLWithPath: path).resolvingSymlinksInPath()
         do {
             let resourceKeys: Set<URLResourceKey> = [
                 .totalFileSizeKey, .totalFileAllocatedSizeKey,
@@ -153,7 +153,7 @@ class MetadataLoaderService {
     }
 
     private func calculateDirectorySize(atPath path: String) -> Int64? {
-        let url = URL(fileURLWithPath: path)
+        let url = URL(fileURLWithPath: path).resolvingSymlinksInPath()
         guard let enumerator = FileManager.default.enumerator(
             at: url, includingPropertiesForKeys: [.fileSizeKey],
             options: [],

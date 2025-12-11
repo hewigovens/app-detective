@@ -44,9 +44,14 @@ struct ScanService {
     private func enumerateAndFindApps(in directoryURL: URL, foundApps: inout [URL]) throws {
         let fileManager = FileManager.default
         do {
-            let contents = try fileManager.contentsOfDirectory(at: directoryURL, includingPropertiesForKeys: [.isDirectoryKey], options: .skipsHiddenFiles)
+            let contents = try fileManager.contentsOfDirectory(at: directoryURL, includingPropertiesForKeys: [.isDirectoryKey], options: [])
 
             for itemURL in contents {
+                // Skip actual hidden files (starting with a dot)
+                if itemURL.lastPathComponent.hasPrefix(".") {
+                    continue
+                }
+
                 var isDir: ObjCBool = false
                 guard fileManager.fileExists(atPath: itemURL.path, isDirectory: &isDir), isDir.boolValue else {
                     continue
