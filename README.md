@@ -1,6 +1,7 @@
 # App Detective
 
 [![CI](https://github.com/hewigovens/app-detective/actions/workflows/ci.yml/badge.svg)](https://github.com/hewigovens/app-detective/actions/workflows/ci.yml)
+![Release](https://img.shields.io/github/v/release/hewigovens/app-detective)
 
 App Detective is a macOS application that analyzes and identifies the UI tech stacks used by macOS applications. It helps developers and users understand the frameworks and technologies behind their installed applications.
 
