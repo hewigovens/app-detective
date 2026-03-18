@@ -16,16 +16,12 @@ struct AppDetectiveApp: App {
                         if contentViewModel.folderURL != nil {
                             ContentView(viewModel: contentViewModel)
                                 .task {
-                                    print("[AppDetectiveApp] ContentView appeared, triggering scan via .task...")
                                     await contentViewModel.scanApplications()
                                 }
                         } else {
                             OnboardingView { bookmarkData in
                                 selectedFolderBookmark = bookmarkData
-                                print("Bookmark data saved.")
                                 resolveBookmark()
-                                // We also need to ensure isResolvingBookmark becomes false if user selects a folder here
-                                // but resolveBookmark() already handles setting isResolvingBookmark = false.
                                 resolveBookmark()
                             }
                         }
@@ -33,11 +29,9 @@ struct AppDetectiveApp: App {
                 }
             }
             .onAppear {
-                print("[AppDetectiveApp] onAppear, attempting to resolve bookmark...")
                 resolveBookmark()
             }
             .onChange(of: selectedFolderBookmark) { _, _ in
-                print("[AppDetectiveApp] selectedFolderBookmark changed, resolving...")
                 resolveBookmark()
             }
             .onChange(of: contentViewModel.folderURL) { _, newURL in
@@ -45,15 +39,13 @@ struct AppDetectiveApp: App {
                     do {
                         let newBookmarkData = try urlToSave.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
                         if newBookmarkData != selectedFolderBookmark {
-                            print("[AppDetectiveApp] contentViewModel.folderURL changed to \(urlToSave.path). Saving new bookmark.")
                             selectedFolderBookmark = newBookmarkData
                         }
                     } catch {
-                        print("[AppDetectiveApp] Error creating bookmark data from contentViewModel.folderURL: \(error.localizedDescription)")
+                        print("Error creating bookmark data: \(error.localizedDescription)")
                     }
                 } else {
                     if selectedFolderBookmark != nil {
-                        print("[AppDetectiveApp] contentViewModel.folderURL is nil. Clearing persisted bookmark.")
                         selectedFolderBookmark = nil
                     }
                 }
@@ -61,9 +53,18 @@ struct AppDetectiveApp: App {
         }
         .commands {
             CommandGroup(replacing: .appInfo) {
-                Button("About App Detective") {
+                Button {
                     AppDetectiveApp.showAboutWindow()
+                } label: {
+                    Label("About App Detective", systemImage: "info.circle")
                 }
+            }
+            CommandGroup(replacing: .newItem) {
+                Button {
+                } label: {
+                    Label("New Window", systemImage: "plus.rectangle")
+                }
+                .keyboardShortcut("n", modifiers: .command)
             }
         }
     }
@@ -81,19 +82,15 @@ struct AppDetectiveApp: App {
             window.contentView = NSHostingView(rootView: AboutView())
             aboutWindowController = NSWindowController(window: window)
         }
-        
+
         aboutWindowController?.showWindow(nil)
         aboutWindowController?.window?.makeKeyAndOrderFront(nil)
     }
 
-    // Function to resolve the bookmark data into a URL and update the ViewModel
     private func resolveBookmark() {
         guard let bookmarkData = selectedFolderBookmark else {
-            print("No bookmark data found. Clearing ViewModel URL.")
-            // Ensure the view model's URL is nil if no bookmark exists
             if contentViewModel.folderURL != nil {
                 contentViewModel.folderURL = nil
-                // Optionally clear other VM state if needed when folder is lost
                 contentViewModel.appResults = []
                 contentViewModel.errorMessage = nil
                 contentViewModel.navigationTitle = "Select Folder"
@@ -107,17 +104,12 @@ struct AppDetectiveApp: App {
             let url = try URL(resolvingBookmarkData: bookmarkData, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
 
             if isStale {
-                print("Bookmark is stale, attempting to refresh...")
                 let freshBookmarkData = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
                 selectedFolderBookmark = freshBookmarkData
-                print("Refreshed and saved new bookmark data.")
             }
 
             if contentViewModel.folderURL != url {
-                print("Bookmark resolved successfully: \(url.path). Updating ViewModel URL.")
                 contentViewModel.folderURL = url
-            } else {
-                print("Bookmark resolved successfully, but URL hasn't changed.")
             }
 
         } catch {

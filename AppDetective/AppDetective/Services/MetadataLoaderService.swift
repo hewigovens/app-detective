@@ -18,40 +18,26 @@ class MetadataLoaderService {
     private var activeGroup: DispatchGroup?
 
     func enqueuePaths(_ paths: [String]) {
-        print("[MetadataLoader] Enqueuing \(paths.count) paths.")
         loadQueue.append(contentsOf: paths)
         processQueue()
     }
 
     private func processQueue() {
         guard activeGroup == nil, !loadQueue.isEmpty else {
-            if activeGroup != nil {
-                print("[MetadataLoader] processQueue called, but batch already running (activeGroup is not nil).")
-            }
-            if loadQueue.isEmpty {
-                print("[MetadataLoader] processQueue called, but queue is empty.")
-            }
             if loadQueue.isEmpty && activeGroup == nil {
-                print("[MetadataLoader] processQueue: Queue empty and no active group. Ensuring onAllMetadataLoaded is called if necessary.")
                 onAllMetadataLoaded?()
             }
             return
         }
 
-        print("[MetadataLoader] Starting new concurrent batch for up to \(loadQueue.count) items...")
-
         let group = DispatchGroup()
         activeGroup = group
-        print("[MSvc] Batch Started. Group: \(group)")
 
-        var operationsScheduled = 0
         while let path = getNextPath() {
-            operationsScheduled += 1
             group.enter()
             processingQueue.addOperation { [weak self] in
                 autoreleasepool {
                     guard let self = self else {
-                        print("[MSvc] Op: self is nil for path \(path). Leaving group.")
                         group.leave()
                         return
                     }
@@ -60,29 +46,17 @@ class MetadataLoaderService {
                 group.leave()
             }
         }
-        print("[MSvc] Scheduled \(operationsScheduled) ops for batch.")
 
         group.notify(queue: DispatchQueue.main) { [weak self] in
-            guard let self = self else {
-                print("[MSvc] Notify: self is nil.")
-                return
-            }
-            print("[MSvc] Notify: Group \(group) completed.")
+            guard let self = self else { return }
 
-            if self.activeGroup !== group {
-                print("[MSvc] Notify: Stale notification from group \(group). Active: \(String(describing: self.activeGroup)). Ignoring.")
-                return
-            }
+            if self.activeGroup !== group { return }
 
             self.activeGroup = nil
 
             if self.loadQueue.isEmpty {
-                print("[MSvc] Notify: Queue empty. Calling onAllMetadataLoaded.")
                 self.onAllMetadataLoaded?()
             } else {
-                print(
-                    "[MSvc] Notify: Queue has \(self.loadQueue.count) items. Next batch."
-                )
                 self.processQueue()
             }
         }
@@ -116,6 +90,7 @@ class MetadataLoaderService {
             }
         }
     }
+
     private func createThumbnailData(from image: NSImage, size: CGFloat = 64.0)
         -> Data?
     {
@@ -157,12 +132,11 @@ class MetadataLoaderService {
         guard let enumerator = FileManager.default.enumerator(
             at: url, includingPropertiesForKeys: [.fileSizeKey],
             options: [],
-            errorHandler: { url, error -> Bool in
-                print("[MetadataLoader] Enumerator error at \(url): \(error)")
+            errorHandler: { _, error -> Bool in
+                print("[MetadataLoader] Enumerator error: \(error)")
                 return true
             })
         else {
-            print("[MetadataLoader] Failed to create enumerator for \(path)")
             return nil
         }
 
@@ -172,7 +146,7 @@ class MetadataLoaderService {
                 let resourceValues = try fileURL.resourceValues(forKeys: [.fileSizeKey])
                 totalSize += Int64(resourceValues.fileSize ?? 0)
             } catch {
-                print("[MetadataLoader] Error getting size for file \(fileURL.path): \(error)")
+                print("[MetadataLoader] Error getting size for \(fileURL.path): \(error)")
             }
         }
         return totalSize

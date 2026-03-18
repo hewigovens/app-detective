@@ -1,32 +1,30 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background Circle -->
-  <rect cx="256" cy="256" r="240" fill="#F0F4F8" />
+  <!-- App-store style rounded square -->
+  <rect x="56" y="56" width="400" height="400" rx="88" fill="white" opacity="0.95"/>
 
-  <!-- App Icon Outline -->
-  <rect x="128" y="112" width="256" height="256" rx="48" stroke="#2563EB" stroke-width="12" />
+  <!-- Inner grid of mini app icons (3x3) to suggest "apps" -->
+  <rect x="120" y="110" width="72" height="72" rx="16" fill="#3B82F6" opacity="0.7"/>
+  <rect x="208" y="110" width="72" height="72" rx="16" fill="#10B981" opacity="0.7"/>
+  <rect x="296" y="110" width="72" height="72" rx="16" fill="#F59E0B" opacity="0.7"/>
 
-  <!-- Magnifying Glass -->
-  <circle cx="240" cy="240" r="80" stroke="#2563EB" stroke-width="16" fill="none" />
-  <line x1="292" y1="292" x2="344" y2="344" stroke="#2563EB" stroke-width="16" stroke-linecap="round" />
+  <rect x="120" y="198" width="72" height="72" rx="16" fill="#8B5CF6" opacity="0.7"/>
+  <rect x="208" y="198" width="72" height="72" rx="16" fill="#EC4899" opacity="0.7"/>
+  <rect x="296" y="198" width="72" height="72" rx="16" fill="#06B6D4" opacity="0.7"/>
 
-  <!-- Tech Stack Elements -->
-  <rect x="192" y="224" width="96" height="12" rx="4" fill="#2563EB" />
-  <rect x="192" y="248" width="64" height="12" rx="4" fill="#2563EB" />
-  <rect x="192" y="272" width="80" height="12" rx="4" fill="#2563EB" />
+  <rect x="120" y="286" width="72" height="72" rx="16" fill="#F97316" opacity="0.7"/>
+  <rect x="208" y="286" width="72" height="72" rx="16" fill="#6366F1" opacity="0.7"/>
+  <rect x="296" y="286" width="72" height="72" rx="16" fill="#14B8A6" opacity="0.7"/>
 
-  <!-- Decorative Elements -->
-  <circle cx="176" cy="192" r="8" fill="#2563EB" />
-  <circle cx="336" cy="164" r="8" fill="#2563EB" />
-  <circle cx="336" cy="316" r="8" fill="#2563EB" />
-
-  <!-- Category Indicators -->
-  <rect x="144" y="352" width="72" height="32" rx="16" fill="#34D399" opacity="0.9" />
-  <rect x="224" y="352" width="72" height="32" rx="16" fill="#F97316" opacity="0.9" />
-  <rect x="304" y="352" width="72" height="32" rx="16" fill="#8B5CF6" opacity="0.9" />
-
-  <!-- Abstract Connection Lines -->
-  <path d="M176 192 L144 144" stroke="#2563EB" stroke-width="3" stroke-linecap="round" />
-  <path d="M336 164 L368 128" stroke="#2563EB" stroke-width="3" stroke-linecap="round" />
-  <path d="M336 316 L368 352" stroke="#2563EB" stroke-width="3" stroke-linecap="round" />
+  <!-- Magnifying glass overlay (bottom-right) -->
+  <!-- Glass shadow -->
+  <circle cx="340" cy="340" r="100" fill="black" opacity="0.08"/>
+  <!-- Glass body -->
+  <circle cx="330" cy="330" r="88" fill="white" stroke="#1D4ED8" stroke-width="14"/>
+  <!-- Glass inner highlight -->
+  <circle cx="330" cy="330" r="68" fill="#EFF6FF" opacity="0.6"/>
+  <!-- Glass shine -->
+  <circle cx="308" cy="308" r="24" fill="white" opacity="0.5"/>
+  <!-- Handle -->
+  <line x1="392" y1="392" x2="448" y2="448" stroke="#1D4ED8" stroke-width="20" stroke-linecap="round"/>
 </svg>

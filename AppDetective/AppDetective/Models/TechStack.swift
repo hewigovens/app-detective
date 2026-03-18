@@ -11,7 +11,7 @@ struct TechStack: OptionSet, Codable, Hashable {
     static let python = TechStack(rawValue: 1 << 4)
     static let qt = TechStack(rawValue: 1 << 5)
     static let java = TechStack(rawValue: 1 << 6)
-    static let xamarin = TechStack(rawValue: 1 << 7) // .NET MAUI falls here too
+    static let xamarin = TechStack(rawValue: 1 << 7) // includes .NET MAUI
     static let flutter = TechStack(rawValue: 1 << 8)
     static let reactNative = TechStack(rawValue: 1 << 9)
     static let tauri = TechStack(rawValue: 1 << 10)
@@ -50,26 +50,25 @@ struct TechStack: OptionSet, Codable, Hashable {
         Self.other.rawValue: "Other",
     ]
 
-    // Prioritized main color
     var mainColor: Color {
         switch self {
         case .swiftUI: return Color.orange
         case .appKit: return Color.blue
         case .catalyst: return Color.purple
         case .electron: return Color.cyan
-        case .cef: return Color(hex: "#3498db") // A specific blue for CEF
+        case .cef: return Color(hex: "#3498db")
         case .python: return Color(hex: "#336c9d")
-        case .qt: return Color(hex: "#4CAF50") // Qt's official green
-        case .wxWidgets: return Color(hex: "#7B61D9") // wxWidgets purple
-        case .gtk: return Color(hex: "#729FCF") // GTK blue
+        case .qt: return Color(hex: "#4CAF50")
+        case .wxWidgets: return Color(hex: "#7B61D9")
+        case .gtk: return Color(hex: "#729FCF")
         case .java: return Color.red
-        case .xamarin: return Color(hex: "#3498DB") // Xamarin blue
+        case .xamarin: return Color(hex: "#3498DB")
         case .flutter: return Color.teal
-        case .reactNative: return Color(hex: "#61DAFB") // React's blue
-        case .tauri: return Color(hex: "#FFC131") // Tauri's yellow
-        case .gpui: return Color(hex: "#FF6B6B") // A reddish color for GPUI
-        case .iced: return Color(hex: "#A0D2DB") // A light blue for Iced
-        case .microsoftEdge: return Color(hex: "#0078D4") // Microsoft's blue
+        case .reactNative: return Color(hex: "#61DAFB")
+        case .tauri: return Color(hex: "#FFC131")
+        case .gpui: return Color(hex: "#FF6B6B")
+        case .iced: return Color(hex: "#A0D2DB")
+        case .microsoftEdge: return Color(hex: "#0078D4")
         case .other: return Color.gray
         default:
             if self.contains(.swiftUI) { return Color.orange }
@@ -78,7 +77,6 @@ struct TechStack: OptionSet, Codable, Hashable {
         }
     }
 
-    // Computed property to get names of contained stacks
     var displayNames: [String] {
         var names: [String] = []
         for (rawKey, value) in Self.flagNames {

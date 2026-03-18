@@ -2,11 +2,8 @@ import AppKit
 import SwiftUI
 
 struct OnboardingView: View {
-    // State variable to store the bookmark data
     @State private var selectedFolderBookmark: Data? = nil
-    // Store the last selected folder name for display
     @State private var selectedFolderName: String? = nil
-    // Callback closure to notify when permission is granted (passes bookmark data)
     var onPermissionGranted: (Data) -> Void
 
     var body: some View {
@@ -46,51 +43,34 @@ struct OnboardingView: View {
         .frame(minWidth: 400, minHeight: 300)
     }
 
-    // Function to open NSOpenPanel
     private func selectFolder() {
         let panel = NSOpenPanel()
         panel.message = "Please select the folder containing your applications."
         panel.prompt = "Select Folder"
-        panel.allowedContentTypes = [.folder] // Allow only folders
+        panel.allowedContentTypes = [.folder]
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
         panel.canCreateDirectories = false
-
-        // Set the initial directory (best effort)
         panel.directoryURL = URL(fileURLWithPath: "/Applications", isDirectory: true)
 
         if panel.runModal() == .OK {
             if let url = panel.url {
-                print("Selected folder URL: \(url.path)")
                 do {
-                    // Create security-scoped bookmark data
                     let bookmarkData = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
-                    print("Bookmark data created.")
                     selectedFolderBookmark = bookmarkData
                     selectedFolderName = url.lastPathComponent
-                    // Call the callback with the bookmark data
                     onPermissionGranted(bookmarkData)
                 } catch {
-                    // Handle error creating bookmark
                     print("Error creating bookmark data: \(error.localizedDescription)")
-                    // Optionally show an error to the user
                 }
-            } else {
-                print("No folder URL received from panel.")
             }
-        } else {
-            print("User cancelled the panel.")
         }
     }
 }
 
-// Preview provider for OnboardingView
 struct OnboardingView_Previews: PreviewProvider {
     static var previews: some View {
-        // Provide a dummy action for the preview
-        OnboardingView { bookmarkData in
-            print("Preview: Permission granted with bookmark data (length: \(bookmarkData.count))")
-        }
+        OnboardingView { _ in }
     }
 }

@@ -1,6 +1,6 @@
 {
   "fill" : {
-    "automatic-gradient" : "extended-srgb:0.00000,0.53333,1.00000,1.00000"
+    "automatic-gradient" : "extended-srgb:0.11373,0.33333,0.93333,1.00000"
   },
   "groups" : [
     {
@@ -12,23 +12,23 @@
           "hidden" : false,
           "image-name" : "logo.svg",
           "name" : "logo",
-          "opacity" : 0.9,
+          "opacity" : 1.0,
           "position" : {
-            "scale" : 2.4,
+            "scale" : 2.2,
             "translation-in-points" : [
               0,
-              20
+              10
             ]
           }
         }
       ],
       "shadow" : {
         "kind" : "neutral",
-        "opacity" : 0.5
+        "opacity" : 0.4
       },
       "translucency" : {
         "enabled" : true,
-        "value" : 0.5
+        "value" : 0.3
       }
     }
   ],

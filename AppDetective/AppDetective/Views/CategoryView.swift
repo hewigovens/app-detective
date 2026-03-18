@@ -180,18 +180,17 @@ struct CategoryView: View {
     }
 }
 
-// Preview provider for CategoryView
 struct CategoryView_Previews: PreviewProvider {
     static var previews: some View {
         let viewModel = CategoryViewModel()
 
         let sampleApps = [
-            AppInfo(name: "Preview", path: "/Applications/Preview.app", techStacks: .swiftUI, category: .utilities),
-            AppInfo(name: "Xcode", path: "/Applications/Xcode.app", techStacks: .appKit, category: .developerTools),
-            AppInfo(name: "Safari", path: "/Applications/Safari.app", techStacks: .appKit, category: .productivity),
-            AppInfo(name: "Music", path: "/Applications/Music.app", techStacks: .catalyst, category: .music),
-            AppInfo(name: "Notes", path: "/Applications/Notes.app", techStacks: .catalyst, category: .productivity),
-            AppInfo(name: "Terminal", path: "/Applications/Terminal.app", techStacks: .appKit, category: .developerTools)
+            AppInfo(name: "Preview", path: "/Applications/Preview.app", bundleId: "com.apple.Preview", techStacks: .swiftUI, category: .utilities),
+            AppInfo(name: "Xcode", path: "/Applications/Xcode.app", bundleId: "com.apple.dt.Xcode", techStacks: .appKit, category: .developerTools),
+            AppInfo(name: "Safari", path: "/Applications/Safari.app", bundleId: "com.apple.Safari", techStacks: .appKit, category: .productivity),
+            AppInfo(name: "Music", path: "/Applications/Music.app", bundleId: "com.apple.Music", techStacks: .catalyst, category: .music),
+            AppInfo(name: "Notes", path: "/Applications/Notes.app", bundleId: "com.apple.Notes", techStacks: .catalyst, category: .productivity),
+            AppInfo(name: "Terminal", path: "/Applications/Terminal.app", bundleId: "com.apple.Terminal", techStacks: .appKit, category: .developerTools)
         ]
 
         viewModel.updateCategories(with: sampleApps)

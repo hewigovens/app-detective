@@ -43,11 +43,11 @@ struct AppListCell: View {
             if !appInfo.techStacks.isEmpty {
                 Text(appInfo.techStacks.displayNames.joined(separator: ", "))
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(appInfo.techStacks.mainColor) // Use prioritized color
-                    .lineLimit(1) // Prevent wrapping if too many stacks
+                    .foregroundColor(appInfo.techStacks.mainColor)
+                    .lineLimit(1)
                     .padding(.horizontal, 5)
                     .padding(.vertical, 2)
-                    .background(appInfo.techStacks.mainColor.opacity(0.15)) // Subtle background using the color
+                    .background(appInfo.techStacks.mainColor.opacity(0.15))
                     .cornerRadius(4)
             }
         }
@@ -70,14 +70,16 @@ struct AppListCell_Previews: PreviewProvider {
                 appInfo: AppInfo(
                     name: "ExampleApp very long name to test truncation.app",
                     path: "/Applications/Calculator.app",
+                    bundleId: "com.apple.calculator",
                     techStacks: .electron,
                     category: .utilities
                 )
-            ) // Use a real app path for preview icon/size
+            )
             AppListCell(
                 appInfo: AppInfo(
                     name: "Another App.app",
                     path: "/Applications/Safari.app",
+                    bundleId: "com.apple.Safari",
                     techStacks: .appKit,
                     category: .reference
                 )
@@ -86,6 +88,7 @@ struct AppListCell_Previews: PreviewProvider {
                 appInfo: AppInfo(
                     name: "MyPythonThing.app",
                     path: "/System/Applications/Messages.app",
+                    bundleId: "com.example.python",
                     techStacks: .python,
                     category: .socialNetworking
                 )
@@ -94,12 +97,13 @@ struct AppListCell_Previews: PreviewProvider {
                 appInfo: AppInfo(
                     name: "UnknownApp.app",
                     path: "/System/Applications/Mail.app",
+                    bundleId: nil,
                     techStacks: [],
                     category: .productivity
                 )
             )
         }
-        .frame(width: 350) // Increase preview width slightly
-        .environmentObject(ContentViewModel()) // Provide the environment object for preview
+        .frame(width: 350)
+        .environmentObject(ContentViewModel())
     }
 }

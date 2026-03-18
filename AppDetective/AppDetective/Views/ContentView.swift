@@ -52,6 +52,10 @@ struct ContentView: View {
                                         "with \(TechStack.flagNames[selectedTechStack.rawValue] ?? "Unknown")"
                                     )
                                 }
+
+                                if !categoryViewModel.searchText.isEmpty {
+                                    Text("matching \"\(categoryViewModel.searchText)\"")
+                                }
                             }
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -75,6 +79,11 @@ struct ContentView: View {
             }
             .navigationTitle(viewModel.navigationTitle)
             .toolbar {
+                ToolbarItem(placement: .automatic) {
+                    TextField("Filter by name or bundle ID", text: $categoryViewModel.searchText)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 200)
+                }
                 ToolbarItem(placement: .primaryAction) {
                     HStack {
                         Button {
@@ -100,13 +109,7 @@ struct ContentView: View {
                         } label: {
                             Image(systemName: "heart.circle")
                         }
-                        .help("Buy author a Coffe if you find this app useful")
-                        Button {
-                            NSWorkspace.shared.open(URL(string: Constants.githubLink)!)
-                        } label: {
-                            Image(systemName: "curlybraces")
-                        }
-                        .help("Star on GitHub")
+                        .help("Buy author a Coffee if you find this app useful")
                     }
                 }
             }
@@ -124,11 +127,11 @@ struct ContentView_Previews: PreviewProvider {
         let dummyViewModel = ContentViewModel(folderURL: dummyURL)
 
         let sampleApps = [
-            AppInfo(name: "Preview", path: "/Applications/Preview.app", techStacks: .swiftUI, category: .utilities),
-            AppInfo(name: "Xcode", path: "/Applications/Xcode.app", techStacks: .appKit, category: .developerTools),
-            AppInfo(name: "Safari", path: "/Applications/Safari.app", techStacks: .appKit, category: .productivity),
-            AppInfo(name: "Music", path: "/Applications/Music.app", techStacks: .catalyst, category: .music),
-            AppInfo(name: "Notes", path: "/Applications/Notes.app", techStacks: .catalyst, category: .productivity)
+            AppInfo(name: "Preview", path: "/Applications/Preview.app", bundleId: "com.apple.Preview", techStacks: .swiftUI, category: .utilities),
+            AppInfo(name: "Xcode", path: "/Applications/Xcode.app", bundleId: "com.apple.dt.Xcode", techStacks: .appKit, category: .developerTools),
+            AppInfo(name: "Safari", path: "/Applications/Safari.app", bundleId: "com.apple.Safari", techStacks: .appKit, category: .productivity),
+            AppInfo(name: "Music", path: "/Applications/Music.app", bundleId: "com.apple.Music", techStacks: .catalyst, category: .music),
+            AppInfo(name: "Notes", path: "/Applications/Notes.app", bundleId: "com.apple.Notes", techStacks: .catalyst, category: .productivity)
         ]
 
         dummyViewModel.appResults = sampleApps
