@@ -1,0 +1,77 @@
+name: AppDetective
+
+options:
+    createIntermediateGroups: true
+    defaultConfig: Release
+
+packages:
+    LSAppCategory:
+        url: https://github.com/hewigovens/LSAppCategory.git
+        revision: fe8edb78aaa41206e1a98b9bfbd0b0f26ed625c9
+
+settings:
+    base:
+        CURRENT_PROJECT_VERSION: 5
+        DEAD_CODE_STRIPPING: YES
+        DEVELOPMENT_TEAM: V28VJH6B6S
+        ENABLE_USER_SCRIPT_SANDBOXING: YES
+        MARKETING_VERSION: 1.3.0
+        STRING_CATALOG_GENERATE_SYMBOLS: YES
+
+targets:
+    AppDetective:
+        type: application
+        platform: macOS
+        deploymentTarget: "14.6"
+        sources:
+            - path: AppDetective
+        dependencies:
+            - package: LSAppCategory
+        settings:
+            base:
+                ASSETCATALOG_COMPILER_APPICON_NAME: app
+                CODE_SIGN_ENTITLEMENTS: AppDetective/AppDetective.entitlements
+                DEAD_CODE_STRIPPING: YES
+                DEVELOPMENT_ASSET_PATHS: '"AppDetective/Preview Content"'
+                ENABLE_HARDENED_RUNTIME: YES
+                INFOPLIST_KEY_CFBundleDisplayName: AppDetective
+                GENERATE_INFOPLIST_FILE: YES
+                INFOPLIST_KEY_LSHasLocalizedDisplayName: YES
+                INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
+                INFOPLIST_KEY_NSHumanReadableCopyright: ""
+                PRODUCT_BUNDLE_IDENTIFIER: dev.hewig.AppDetective
+    AppDetectiveTests:
+        type: bundle.unit-test
+        platform: macOS
+        deploymentTarget: "26.0"
+        sources:
+            - path: AppDetectiveTests
+        dependencies:
+            - target: AppDetective
+        settings:
+            base:
+                BUNDLE_LOADER: "$(TEST_HOST)"
+                DEAD_CODE_STRIPPING: YES
+                GENERATE_INFOPLIST_FILE: YES
+                PRODUCT_BUNDLE_IDENTIFIER: dev.hewig.AppDetectiveTests
+                TEST_HOST: "$(BUILT_PRODUCTS_DIR)/AppDetective.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AppDetective"
+
+schemes:
+    AppDetective:
+        build:
+            targets:
+                AppDetective: all
+                AppDetectiveTests:
+                    - test
+        run:
+            config: Debug
+        test:
+            config: Debug
+            targets:
+                - AppDetectiveTests
+        analyze:
+            config: Debug
+        archive:
+            config: Release
+        profile:
+            config: Release
