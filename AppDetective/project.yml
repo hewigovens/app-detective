@@ -3,7 +3,6 @@ name: AppDetective
 options:
     createIntermediateGroups: true
     defaultConfig: Release
-    minimumXcodeGenVersion: 2.45.3
 
 packages:
     LSAppCategory:
