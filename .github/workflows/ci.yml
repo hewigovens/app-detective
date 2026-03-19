@@ -17,6 +17,9 @@ jobs:
     - name: Setup Just
       uses: extractions/setup-just@v2
 
+    - name: Setup XcodeGen
+      run: brew install xcodegen
+
     - name: Build project
       run: just build
 

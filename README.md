@@ -18,6 +18,8 @@ brew install --cask app-detective
 
 ## Release Workflow
 
+- `just generate` regenerates `AppDetective/AppDetective.xcodeproj` from `AppDetective/project.yml`.
+- `just run` builds a Debug app to local DerivedData and launches it from the CLI.
 - `just archive <version>` builds a Release archive via Xcode.
 - `just export <version>` pulls `AppDetective.app` from the archive into `build/export`.
 - `just zip <version>` creates a zip in `build/dist`.

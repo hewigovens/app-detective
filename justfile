@@ -4,28 +4,54 @@ set export
 default:
 	@just --list
 
+PROJECT_SPEC := "AppDetective/project.yml"
+PROJECT_DIR := "AppDetective"
 PROJECT := "AppDetective/AppDetective.xcodeproj"
 SCHEME := "AppDetective"
+APP_BUNDLE := "AppDetective.app"
+RUN_DERIVED_DATA := "build/DerivedData"
 ARCHIVE_DIR := "build/archive"
 EXPORT_DIR := "build/export"
 DIST_DIR := "build/dist"
 
+# Generate the Xcode project from XcodeGen spec.
+generate:
+	set -o pipefail && xcodegen generate --spec {{PROJECT_SPEC}} --project {{PROJECT_DIR}}
+
 # Build the project (Debug) using xcbeautify
 build:
+	just generate
 	set -o pipefail && xcodebuild -project {{PROJECT}} -scheme {{SCHEME}} build CODE_SIGNING_ALLOWED=NO | xcbeautify
 
 # Run tests using xcbeautify
 test:
+	just generate
 	set -o pipefail && xcodebuild -project {{PROJECT}} -scheme {{SCHEME}} test CODE_SIGNING_ALLOWED=NO | xcbeautify
 
 # Clean build artifacts
 clean:
+	just generate
 	set -o pipefail && xcodebuild -project {{PROJECT}} -scheme {{SCHEME}} clean CODE_SIGNING_ALLOWED=NO | xcbeautify
+
+# Build and launch the macOS app from the CLI.
+run:
+	#!/usr/bin/env bash
+	set -euxo pipefail
+	just generate
+	rm -rf {{RUN_DERIVED_DATA}}
+	xcodebuild \
+	  -project {{PROJECT}} \
+	  -scheme {{SCHEME}} \
+	  -configuration Debug \
+	  -derivedDataPath {{RUN_DERIVED_DATA}} \
+	  build CODE_SIGNING_ALLOWED=NO | xcbeautify
+	open "{{RUN_DERIVED_DATA}}/Build/Products/Debug/{{APP_BUNDLE}}"
 
 # Archive the app for distribution.
 archive version:
 	#!/usr/bin/env bash
 	set -euxo pipefail
+	just generate
 	mkdir -p {{ARCHIVE_DIR}}
 	xcodebuild \
 	  -project {{PROJECT}} \
@@ -51,7 +77,7 @@ zip version:
 	#!/usr/bin/env bash
 	set -euxo pipefail
 	mkdir -p {{DIST_DIR}}
-	ditto -c -k --sequesterRsrc --keepParent "{{EXPORT_DIR}}/AppDetective-{{version}}/AppDetective.app" "{{DIST_DIR}}/AppDetective-{{version}}.zip"
+	ditto -c -k --sequesterRsrc --keepParent "{{EXPORT_DIR}}/AppDetective-{{version}}/{{APP_BUNDLE}}" "{{DIST_DIR}}/AppDetective-{{version}}.zip"
 
 # Create a GitHub release if it doesn't exist.
 create-release version:
@@ -68,7 +94,7 @@ create-release version:
 notarize version:
 	#!/usr/bin/env bash
 	set -euxo pipefail
-	app_path="{{EXPORT_DIR}}/AppDetective-{{version}}/AppDetective.app"
+	app_path="{{EXPORT_DIR}}/AppDetective-{{version}}/{{APP_BUNDLE}}"
 	if [ ! -d "$app_path" ]; then
 		echo "App bundle not found at $app_path" >&2
 		exit 1
