@@ -3,11 +3,11 @@
 [![CI](https://github.com/hewigovens/app-detective/actions/workflows/ci.yml/badge.svg)](https://github.com/hewigovens/app-detective/actions/workflows/ci.yml)
 ![Release](https://img.shields.io/github/v/release/hewigovens/app-detective)
 
-App Detective is a macOS application that analyzes and identifies the UI tech stacks used by macOS applications. It helps developers and users understand the frameworks and technologies behind their installed applications.
+App Detective analyzes and identifies the UI tech stacks used by macOS applications.
 
 ![App Detective](Assets/main.png)
 
-## Installation
+## Install
 
 ### Homebrew
 
@@ -16,18 +16,7 @@ brew tap hewigovens/tap
 brew install --cask app-detective
 ```
 
-## Release Workflow
-
-- `just generate` regenerates `AppDetective/AppDetective.xcodeproj` from `AppDetective/project.yml`.
-- `just run` builds a Debug app to local DerivedData and launches it from the CLI.
-- `just archive <version>` builds a Release archive via Xcode.
-- `just export <version>` pulls `AppDetective.app` from the archive into `build/export`.
-- `just zip <version>` creates a zip in `build/dist`.
-- `just release <version>` runs the full pipeline in sequence.
-
 ## Supported Technology Stacks
-
-App Detective can detect the following technology stacks:
 
 ### Native Apple Frameworks
 - SwiftUI
@@ -47,9 +36,9 @@ App Detective can detect the following technology stacks:
 - GTK
 - wxWidgets
 
-## How It Works
+## Contributing
 
-The core detection logic is in the `DetectService.swift` file.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
