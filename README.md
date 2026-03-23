@@ -53,4 +53,4 @@ The core detection logic is in the `DetectService.swift` file.
 
 ## License
 
-MIT
+Apache-2.0 with additional App Store restriction. See [LICENSE](LICENSE).
