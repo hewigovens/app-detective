@@ -8,6 +8,7 @@ PROJECT_SPEC := "AppDetective/project.yml"
 PROJECT_DIR := "AppDetective"
 PROJECT := "AppDetective/AppDetective.xcodeproj"
 SCHEME := "AppDetective"
+CLI_SCHEME := "appdetective-cli"
 APP_BUNDLE := "AppDetective.app"
 RUN_DERIVED_DATA := "build/DerivedData"
 ARCHIVE_DIR := "build/archive"
@@ -32,6 +33,24 @@ test:
 clean:
 	just generate
 	set -o pipefail && xcodebuild -project {{PROJECT}} -scheme {{SCHEME}} clean CODE_SIGNING_ALLOWED=NO | xcbeautify
+
+# Build the CLI (`appdetective`) into build/DerivedData.
+build-cli:
+	just generate
+	set -o pipefail && xcodebuild \
+	  -project {{PROJECT}} \
+	  -scheme {{CLI_SCHEME}} \
+	  -configuration Debug \
+	  -derivedDataPath {{RUN_DERIVED_DATA}} \
+	  build CODE_SIGNING_ALLOWED=NO | xcbeautify
+	@echo "Built: {{RUN_DERIVED_DATA}}/Build/Products/Debug/appdetective"
+
+# Run the CLI against a single .app bundle: `just detect /Applications/Safari.app`.
+detect app_path:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	just build-cli
+	"{{RUN_DERIVED_DATA}}/Build/Products/Debug/appdetective" "{{app_path}}"
 
 # Build and launch the macOS app from the CLI.
 run:
@@ -122,6 +141,28 @@ upload-release version:
 	echo "Uploading $zip_path to release {{version}}"
 	gh release upload {{version}} "$zip_path" --clobber
 
+# Generate Sparkle ED25519 signature and update the appcast.
+update-appcast version:
+	#!/usr/bin/env bash
+	set -euxo pipefail
+	zip_path="{{DIST_DIR}}/AppDetective-{{version}}.zip"
+	if [ ! -f "$zip_path" ]; then
+		echo "Zip file not found at $zip_path" >&2
+		exit 1
+	fi
+	build_number=$(grep 'CURRENT_PROJECT_VERSION' {{PROJECT_SPEC}} | head -1 | awk '{print $2}')
+	sparkle_bin=$(find ~/Library/Developer/Xcode/DerivedData -name "sign_update" -type f 2>/dev/null | head -1)
+	sig=""
+	if [ -n "$sparkle_bin" ]; then
+		sig=$("$sparkle_bin" "$zip_path" 2>/dev/null | grep -o 'sparkle:edSignature="[^"]*"' | cut -d'"' -f2 || true)
+	fi
+	if [ -z "$sig" ]; then
+		echo "ERROR: Could not generate Sparkle signature. sign_update not found or failed." >&2
+		echo "Run 'just generate && just build' first to get Sparkle tools in DerivedData." >&2
+		exit 1
+	fi
+	python3 scripts/update-appcast.py "{{version}}" "$build_number" "AppDetective" "$zip_path" "docs/appcast.xml" "$sig"
+
 # Convenience recipe to run the full release pipeline.
 release version:
 	just create-release {{version}}
@@ -129,6 +170,7 @@ release version:
 	just export {{version}}
 	just notarize {{version}}
 	just zip {{version}}
+	just update-appcast {{version}}
 	just upload-release {{version}}
 	just update-cask {{version}}
 

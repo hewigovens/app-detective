@@ -4,6 +4,7 @@ import SwiftUI
 struct AppDetectiveApp: App {
     @AppStorage("selectedFolderBookmark") private var selectedFolderBookmark: Data?
     @StateObject private var contentViewModel = ContentViewModel()
+    @StateObject private var updater = SparkleUpdater()
     @State private var isResolvingBookmark: Bool = true
 
     var body: some Scene {
@@ -54,10 +55,19 @@ struct AppDetectiveApp: App {
         .commands {
             CommandGroup(replacing: .appInfo) {
                 Button {
-                    AppDetectiveApp.showAboutWindow()
+                    AppDetectiveApp.showAboutWindow(updater: updater)
                 } label: {
                     Label("About App Detective", systemImage: "info.circle")
                 }
+                Button("Check for Updates…") {
+                    updater.checkForUpdates()
+                }
+                .disabled(!updater.canCheckForUpdates)
+                Divider()
+                Button("Install Command Line Tool…") {
+                    AppDetectiveApp.installCLI()
+                }
+                .disabled(CLIInstallerService.bundledBinaryURL() == nil)
             }
             CommandGroup(replacing: .newItem) {
                 Button {
@@ -69,9 +79,71 @@ struct AppDetectiveApp: App {
         }
     }
 
+    static func installCLI() {
+        let alert = NSAlert()
+        let wasInstalled = CLIInstallerService.isInstalled()
+        if wasInstalled {
+            alert.messageText = "Command Line Tool Already Installed"
+            alert.informativeText = "`appdetective` is already available at \(CLIInstallerService.installPath). Reinstall to update the symlink, or remove it."
+            alert.addButton(withTitle: "Reinstall")
+            alert.addButton(withTitle: "Remove")
+            alert.addButton(withTitle: "Cancel")
+        } else {
+            alert.messageText = "Install Command Line Tool"
+            alert.informativeText = "This will create a symlink at \(CLIInstallerService.installPath) so you can run `appdetective <path-to-.app>` from your terminal."
+            alert.addButton(withTitle: "Install")
+            alert.addButton(withTitle: "Cancel")
+        }
+
+        switch (wasInstalled, alert.runModal()) {
+        case (true, .alertFirstButtonReturn), (false, .alertFirstButtonReturn):
+            performInstall()
+        case (true, .alertSecondButtonReturn):
+            performUninstall()
+        default:
+            return
+        }
+    }
+
+    private static func performInstall() {
+        do {
+            try CLIInstallerService.install()
+            let alert = NSAlert()
+            alert.messageText = "Command Line Tool Installed"
+            var message = "`appdetective` is now available at \(CLIInstallerService.installPath)."
+            if !CLIInstallerService.isOnPath() {
+                message += "\n\n~/.local/bin is not in your PATH. Add this to your shell config to enable the command:\n\n    export PATH=\"$HOME/.local/bin:$PATH\""
+            }
+            alert.informativeText = message
+            alert.runModal()
+        } catch {
+            showErrorAlert(title: "Installation Failed", message: error.localizedDescription)
+        }
+    }
+
+    private static func performUninstall() {
+        do {
+            try CLIInstallerService.uninstall()
+            let alert = NSAlert()
+            alert.messageText = "Command Line Tool Removed"
+            alert.informativeText = "Removed \(CLIInstallerService.installPath)."
+            alert.runModal()
+        } catch {
+            showErrorAlert(title: "Removal Failed", message: error.localizedDescription)
+        }
+    }
+
+    private static func showErrorAlert(title: String, message: String) {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = title
+        alert.informativeText = message
+        alert.runModal()
+    }
+
     private static var aboutWindowController: NSWindowController?
 
-    static func showAboutWindow() {
+    static func showAboutWindow(updater: SparkleUpdater) {
         if aboutWindowController == nil {
             let window = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 350, height: 300),
@@ -79,7 +151,7 @@ struct AppDetectiveApp: App {
                 backing: .buffered, defer: false)
             window.center()
             window.title = "About"
-            window.contentView = NSHostingView(rootView: AboutView())
+            window.contentView = NSHostingView(rootView: AboutView(updater: updater))
             aboutWindowController = NSWindowController(window: window)
         }
 

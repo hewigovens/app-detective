@@ -1,17 +1,19 @@
 import Foundation
 import LSAppCategory
 
-class DetectService {
+public final class DetectService {
     private let fileManager = FileManager.default
 
     private let electronFrameworkNames = ["Electron Framework.framework"]
     private let microsoftEdgeFrameworkNames = ["Microsoft Edge Framework.framework"]
     private let cefFrameworkNames = ["Chromium Embedded Framework.framework"]
 
+    public init() {}
+
     // MARK: - Public API
 
     /// Orchestrates the 6-step analysis of an app bundle to detect its tech stack.
-    func detectStack(for appURL: URL) async -> TechStack {
+    public func detectStack(for appURL: URL) async -> TechStack {
         var detectedStacks: TechStack = []
 
         let (appToAnalyzeURL, iOSAppOnMac) = getAppUrlToAnalyze(appURL: appURL)
@@ -70,10 +72,31 @@ class DetectService {
         return finalResolvedStacks
     }
 
+    public func extractCategory(from appURL: URL) -> AppCategory {
+        let (resolvedURL, _) = getAppUrlToAnalyze(appURL: appURL)
+        let contentsInfoPlist = resolvedURL.appendingPathComponent("Contents/Info.plist")
+        let rootInfoPlist = resolvedURL.appendingPathComponent("Info.plist")
+        let metadataPlistPath = appURL.appendingPathComponent("Wrapper/iTunesMetadata.plist")
+
+        if let infoPlist = readInfoPlist(from: contentsInfoPlist) ?? readInfoPlist(from: rootInfoPlist),
+           let categoryType = infoPlist["LSApplicationCategoryType"] as? String?
+        {
+            return AppCategory(string: categoryType)
+        } else if
+            let metadataPlist = readInfoPlist(from: metadataPlistPath),
+            let categories = metadataPlist["categories"] as? [String],
+            let categoryType = categories.first
+        {
+            return AppCategory(string: categoryType)
+        }
+
+        return .other
+    }
+
     // MARK: - Detection Steps
 
     /// Step 1: Resolves the actual app URL, handling iOS-on-Mac wrapped bundles.
-    func getAppUrlToAnalyze(appURL: URL) -> (URL, Bool) {
+    public func getAppUrlToAnalyze(appURL: URL) -> (URL, Bool) {
         let wrappedBundleUrl = appURL.appendingPathComponent("WrappedBundle")
         let path = wrappedBundleUrl.path
 
@@ -86,7 +109,7 @@ class DetectService {
     }
 
     /// Step 2: Scans the Frameworks directory for known framework signatures.
-    func scanFrameworksDirectory(frameworksPath: String) -> TechStack {
+    public func scanFrameworksDirectory(frameworksPath: String) -> TechStack {
         var detectedStacks: TechStack = []
 
         guard fileManager.fileExists(atPath: frameworksPath) else {
@@ -178,30 +201,6 @@ class DetectService {
             print("[DetectService] Error running otool: \(error)")
         }
         return detectedStacks
-    }
-
-    private func runOtool(for executableURL: URL) -> [String] {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/otool")
-        process.arguments = ["-L", executableURL.path]
-
-        let pipe = Pipe()
-        process.standardOutput = pipe
-
-        do {
-            try process.run()
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            process.waitUntilExit()
-
-            if let output = String(data: data, encoding: .utf8) {
-                return output.components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-            } else {
-                return []
-            }
-        } catch {
-            print("[DetectService] Failed to run otool: \(error.localizedDescription)")
-            return []
-        }
     }
 
     private func runStrings(executableURL: URL, timeout: TimeInterval = 10.0) -> String? {
@@ -297,24 +296,6 @@ class DetectService {
             print("[DetectService] Error reading directory \(path): \(error.localizedDescription)")
         }
         return false
-    }
-
-    func extractCategory(from appURL: URL) -> AppCategory {
-        let infoPlistPath = appURL.appendingPathComponent("Contents/Info.plist")
-        let metadataPlistPath = appURL.appendingPathComponent("Wrapper/iTunesMetadata.plist")
-        if let infoPlist = readInfoPlist(from: infoPlistPath),
-           let categoryType = infoPlist["LSApplicationCategoryType"] as? String?
-        {
-            return AppCategory(string: categoryType)
-        } else if
-            let metadataPlist = readInfoPlist(from: metadataPlistPath),
-            let categories = metadataPlist["categories"] as? [String],
-            let categoryType = categories.first
-        {
-            return AppCategory(string: categoryType)
-        }
-
-        return .other
     }
 
     private func readInfoPlist(from infoPlist: URL) -> [String: Any]? {
