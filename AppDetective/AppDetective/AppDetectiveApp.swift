@@ -59,13 +59,17 @@ struct AppDetectiveApp: App {
                 } label: {
                     Label("About App Detective", systemImage: "info.circle")
                 }
-                Button("Check for Updates…") {
+                Button {
                     updater.checkForUpdates()
+                } label: {
+                    Label("Check for Updates…", systemImage: "arrow.down.circle")
                 }
                 .disabled(!updater.canCheckForUpdates)
                 Divider()
-                Button("Install Command Line Tool…") {
+                Button {
                     AppDetectiveApp.installCLI()
+                } label: {
+                    Label("Install Command Line Tool…", systemImage: "terminal")
                 }
                 .disabled(CLIInstallerService.bundledBinaryURL() == nil)
             }
