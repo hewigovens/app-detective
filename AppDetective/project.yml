@@ -75,6 +75,11 @@ targets:
                 CODE_SIGN_STYLE: Automatic
                 CODE_SIGN_IDENTITY: "-"
                 ENABLE_HARDENED_RUNTIME: NO
+                # Don't archive the standalone tool — it's embedded inside AppDetective.app/Contents/Resources.
+                # Without this, xcodebuild archive emits Products/usr/local/bin/appdetective and Xcode's
+                # distribution method manager rejects developer-id export on the mixed archive.
+                SKIP_INSTALL: YES
+                INSTALL_PATH: ""
     AppDetectiveTests:
         type: bundle.unit-test
         platform: macOS
