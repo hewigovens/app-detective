@@ -109,10 +109,11 @@ create-release version:
 		gh release create {{version}} --draft --title "{{version}}" --notes "Release {{version}}"
 	fi
 
-# Notarize the exported app bundle.
+# Notarize the exported app bundle (NOTARY_PROFILE env overrides keychain profile, default: notarytool).
 notarize version:
 	#!/usr/bin/env bash
 	set -euxo pipefail
+	notary_profile="${NOTARY_PROFILE:-notarytool}"
 	app_path="{{EXPORT_DIR}}/AppDetective-{{version}}/{{APP_BUNDLE}}"
 	if [ ! -d "$app_path" ]; then
 		echo "App bundle not found at $app_path" >&2
@@ -122,8 +123,8 @@ notarize version:
 	temp_zip=$(mktemp -d)/AppDetective.zip
 	echo "Creating temporary zip for notarization..."
 	ditto -c -k --sequesterRsrc --keepParent "$app_path" "$temp_zip"
-	echo "Submitting app for notarization..."
-	xcrun notarytool submit "$temp_zip" --keychain-profile "notarytool" --wait
+	echo "Submitting app for notarization with profile ${notary_profile}..."
+	xcrun notarytool submit "$temp_zip" --keychain-profile "$notary_profile" --wait
 	echo "Stapling notarization ticket to app..."
 	xcrun stapler staple "$app_path"
 	# Clean up temp zip
