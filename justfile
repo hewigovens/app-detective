@@ -98,14 +98,18 @@ zip version:
 	mkdir -p {{DIST_DIR}}
 	ditto -c -k --sequesterRsrc --keepParent "{{EXPORT_DIR}}/AppDetective-{{version}}/{{APP_BUNDLE}}" "{{DIST_DIR}}/AppDetective-{{version}}.zip"
 
-# Create a GitHub release if it doesn't exist.
+# Create a GitHub draft release. Uses releases/<version>.md if present, else fallback notes.
 create-release version:
 	#!/usr/bin/env bash
 	set -euo pipefail
+	notes_path="releases/{{version}}.md"
 	if gh release view {{version}} &>/dev/null; then
 		echo "Release {{version}} already exists"
+	elif [ -f "$notes_path" ]; then
+		echo "Creating release {{version}} from $notes_path"
+		gh release create {{version}} --draft --title "{{version}}" --notes-file "$notes_path"
 	else
-		echo "Creating release {{version}}"
+		echo "Creating release {{version}} (no $notes_path — using fallback notes)"
 		gh release create {{version}} --draft --title "{{version}}" --notes "Release {{version}}"
 	fi
 
