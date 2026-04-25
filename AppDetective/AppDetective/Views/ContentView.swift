@@ -1,3 +1,4 @@
+import DetectiveCore
 import SwiftUI
 
 struct ContentView: View {

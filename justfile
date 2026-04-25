@@ -8,6 +8,7 @@ PROJECT_SPEC := "AppDetective/project.yml"
 PROJECT_DIR := "AppDetective"
 PROJECT := "AppDetective/AppDetective.xcodeproj"
 SCHEME := "AppDetective"
+CLI_SCHEME := "appdetective-cli"
 APP_BUNDLE := "AppDetective.app"
 RUN_DERIVED_DATA := "build/DerivedData"
 ARCHIVE_DIR := "build/archive"
@@ -32,6 +33,24 @@ test:
 clean:
 	just generate
 	set -o pipefail && xcodebuild -project {{PROJECT}} -scheme {{SCHEME}} clean CODE_SIGNING_ALLOWED=NO | xcbeautify
+
+# Build the CLI (`appdetective`) into build/DerivedData.
+build-cli:
+	just generate
+	set -o pipefail && xcodebuild \
+	  -project {{PROJECT}} \
+	  -scheme {{CLI_SCHEME}} \
+	  -configuration Debug \
+	  -derivedDataPath {{RUN_DERIVED_DATA}} \
+	  build CODE_SIGNING_ALLOWED=NO | xcbeautify
+	@echo "Built: {{RUN_DERIVED_DATA}}/Build/Products/Debug/appdetective"
+
+# Run the CLI against a single .app bundle: `just detect /Applications/Safari.app`.
+detect app_path:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	just build-cli
+	"{{RUN_DERIVED_DATA}}/Build/Products/Debug/appdetective" "{{app_path}}"
 
 # Build and launch the macOS app from the CLI.
 run:
@@ -79,21 +98,26 @@ zip version:
 	mkdir -p {{DIST_DIR}}
 	ditto -c -k --sequesterRsrc --keepParent "{{EXPORT_DIR}}/AppDetective-{{version}}/{{APP_BUNDLE}}" "{{DIST_DIR}}/AppDetective-{{version}}.zip"
 
-# Create a GitHub release if it doesn't exist.
+# Create a GitHub draft release. Uses releases/<version>.md if present, else fallback notes.
 create-release version:
 	#!/usr/bin/env bash
 	set -euo pipefail
+	notes_path="releases/{{version}}.md"
 	if gh release view {{version}} &>/dev/null; then
 		echo "Release {{version}} already exists"
+	elif [ -f "$notes_path" ]; then
+		echo "Creating release {{version}} from $notes_path"
+		gh release create {{version}} --draft --title "{{version}}" --notes-file "$notes_path"
 	else
-		echo "Creating release {{version}}"
+		echo "Creating release {{version}} (no $notes_path — using fallback notes)"
 		gh release create {{version}} --draft --title "{{version}}" --notes "Release {{version}}"
 	fi
 
-# Notarize the exported app bundle.
+# Notarize the exported app bundle (NOTARY_PROFILE env overrides keychain profile, default: notarytool).
 notarize version:
 	#!/usr/bin/env bash
 	set -euxo pipefail
+	notary_profile="${NOTARY_PROFILE:-notarytool}"
 	app_path="{{EXPORT_DIR}}/AppDetective-{{version}}/{{APP_BUNDLE}}"
 	if [ ! -d "$app_path" ]; then
 		echo "App bundle not found at $app_path" >&2
@@ -103,8 +127,8 @@ notarize version:
 	temp_zip=$(mktemp -d)/AppDetective.zip
 	echo "Creating temporary zip for notarization..."
 	ditto -c -k --sequesterRsrc --keepParent "$app_path" "$temp_zip"
-	echo "Submitting app for notarization..."
-	xcrun notarytool submit "$temp_zip" --keychain-profile "notarytool" --wait
+	echo "Submitting app for notarization with profile ${notary_profile}..."
+	xcrun notarytool submit "$temp_zip" --keychain-profile "$notary_profile" --wait
 	echo "Stapling notarization ticket to app..."
 	xcrun stapler staple "$app_path"
 	# Clean up temp zip
@@ -122,6 +146,61 @@ upload-release version:
 	echo "Uploading $zip_path to release {{version}}"
 	gh release upload {{version}} "$zip_path" --clobber
 
+# Generate Sparkle ED25519 signature and update the appcast.
+update-appcast version:
+	#!/usr/bin/env bash
+	set -euxo pipefail
+	zip_path="{{DIST_DIR}}/AppDetective-{{version}}.zip"
+	if [ ! -f "$zip_path" ]; then
+		echo "Zip file not found at $zip_path" >&2
+		exit 1
+	fi
+	build_number=$(grep 'CURRENT_PROJECT_VERSION' {{PROJECT_SPEC}} | head -1 | awk '{print $2}')
+	sparkle_bin="${SPARKLE_SIGN_UPDATE:-}"
+	if [ -z "$sparkle_bin" ]; then
+		sparkle_bin=$(find ~/Library/Developer/Xcode/DerivedData -name "sign_update" -type f 2>/dev/null | head -1)
+	fi
+	if [ -z "$sparkle_bin" ] || [ ! -x "$sparkle_bin" ]; then
+		echo "Could not locate Sparkle sign_update. Set SPARKLE_SIGN_UPDATE or run 'just generate && just build' first." >&2
+		exit 1
+	fi
+	sign_output=$("$sparkle_bin" "$zip_path" 2>&1) || {
+		echo "Error: Sparkle sign_update failed: $sign_output" >&2
+		exit 1
+	}
+	sig=$(printf '%s' "$sign_output" | grep -o 'sparkle:edSignature="[^"]*"' | cut -d'"' -f2 || true)
+	if [ -z "$sig" ]; then
+		echo "Error: no Sparkle edSignature in sign_update output: $sign_output" >&2
+		exit 1
+	fi
+	python3 scripts/update-appcast.py "{{version}}" "$build_number" "AppDetective" "$zip_path" "docs/appcast.xml" "$sig"
+
+# Build a Release .app locally with ad-hoc signing and produce a zip + sha256.
+# No notarization, no network calls — sanity-check a release candidate.
+release-dry-run version:
+	#!/usr/bin/env bash
+	set -euxo pipefail
+	just generate
+	rm -rf {{RUN_DERIVED_DATA}}
+	xcodebuild \
+	  -project {{PROJECT}} \
+	  -scheme {{SCHEME}} \
+	  -configuration Release \
+	  -derivedDataPath {{RUN_DERIVED_DATA}} \
+	  CODE_SIGNING_ALLOWED=NO \
+	  build | xcbeautify
+	app_path="{{RUN_DERIVED_DATA}}/Build/Products/Release/{{APP_BUNDLE}}"
+	codesign --force --deep --sign - "$app_path"
+	codesign --verify --deep --strict --verbose=2 "$app_path"
+	# Verify the bundled CLI is present and runnable.
+	"$app_path/Contents/Resources/appdetective" --help >/dev/null
+	mkdir -p {{DIST_DIR}}
+	zip_path="{{DIST_DIR}}/AppDetective-{{version}}-dryrun.zip"
+	rm -f "$zip_path" "$zip_path.sha256"
+	ditto -c -k --sequesterRsrc --keepParent "$app_path" "$zip_path"
+	shasum -a 256 "$zip_path" | tee "$zip_path.sha256"
+	echo "Dry-run artifact: $zip_path"
+
 # Convenience recipe to run the full release pipeline.
 release version:
 	just create-release {{version}}
@@ -129,6 +208,7 @@ release version:
 	just export {{version}}
 	just notarize {{version}}
 	just zip {{version}}
+	just update-appcast {{version}}
 	just upload-release {{version}}
 	just update-cask {{version}}
 

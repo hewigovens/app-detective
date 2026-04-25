@@ -1,7 +1,6 @@
-import Testing
+import DetectiveCore
 import Foundation
-
-@testable import AppDetective
+import Testing
 
 struct DetectServiceTests {
 

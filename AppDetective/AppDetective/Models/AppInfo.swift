@@ -1,3 +1,4 @@
+import DetectiveCore
 import Foundation
 import LSAppCategory
 

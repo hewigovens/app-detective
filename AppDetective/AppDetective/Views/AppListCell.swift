@@ -1,4 +1,5 @@
 import AppKit
+import DetectiveCore
 import SwiftUI
 
 struct AppListCell: View {
