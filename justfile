@@ -151,14 +151,21 @@ update-appcast version:
 		exit 1
 	fi
 	build_number=$(grep 'CURRENT_PROJECT_VERSION' {{PROJECT_SPEC}} | head -1 | awk '{print $2}')
-	sparkle_bin=$(find ~/Library/Developer/Xcode/DerivedData -name "sign_update" -type f 2>/dev/null | head -1)
-	sig=""
-	if [ -n "$sparkle_bin" ]; then
-		sig=$("$sparkle_bin" "$zip_path" 2>/dev/null | grep -o 'sparkle:edSignature="[^"]*"' | cut -d'"' -f2 || true)
+	sparkle_bin="${SPARKLE_SIGN_UPDATE:-}"
+	if [ -z "$sparkle_bin" ]; then
+		sparkle_bin=$(find ~/Library/Developer/Xcode/DerivedData -name "sign_update" -type f 2>/dev/null | head -1)
 	fi
+	if [ -z "$sparkle_bin" ] || [ ! -x "$sparkle_bin" ]; then
+		echo "Could not locate Sparkle sign_update. Set SPARKLE_SIGN_UPDATE or run 'just generate && just build' first." >&2
+		exit 1
+	fi
+	sign_output=$("$sparkle_bin" "$zip_path" 2>&1) || {
+		echo "Error: Sparkle sign_update failed: $sign_output" >&2
+		exit 1
+	}
+	sig=$(printf '%s' "$sign_output" | grep -o 'sparkle:edSignature="[^"]*"' | cut -d'"' -f2 || true)
 	if [ -z "$sig" ]; then
-		echo "ERROR: Could not generate Sparkle signature. sign_update not found or failed." >&2
-		echo "Run 'just generate && just build' first to get Sparkle tools in DerivedData." >&2
+		echo "Error: no Sparkle edSignature in sign_update output: $sign_output" >&2
 		exit 1
 	fi
 	python3 scripts/update-appcast.py "{{version}}" "$build_number" "AppDetective" "$zip_path" "docs/appcast.xml" "$sig"
