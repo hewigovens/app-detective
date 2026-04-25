@@ -7,27 +7,19 @@ struct OnboardingView: View {
     var onPermissionGranted: (Data) -> Void
 
     var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "magnifyingglass.circle.fill")
+        VStack(spacing: 16) {
+            Image(nsImage: NSImage(named: NSImage.applicationIconName) ?? NSImage())
                 .resizable()
                 .scaledToFit()
-                .frame(width: 100, height: 100)
-                .foregroundColor(.accentColor)
+                .frame(width: 96, height: 96)
 
-            Text("Welcome to \(Constants.AppName)!")
+            Text("Welcome to \(Constants.AppName)")
                 .font(.largeTitle)
 
-            Text("To get started, \(Constants.AppName) needs permission to scan a folder containing your applications. This allows the app to analyze the tech stack used by each application.")
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-
-            Text("By default, we suggest scanning the main /Applications folder, but you can choose any folder.")
-                .font(.callout)
+            Text("Pick a folder to scan for apps.")
                 .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
 
-            Button("Select Applications Folder") {
+            Button("Choose Folder") {
                 selectFolder()
             }
             .buttonStyle(.borderedProminent)
@@ -38,6 +30,14 @@ struct OnboardingView: View {
                     .font(.caption)
                     .foregroundColor(.green)
             }
+
+            Spacer().frame(height: 4)
+
+            Text("Tip: install the `appdetective` CLI from the **\(Constants.AppName)** menu to inspect a single app from your terminal.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
         }
         .padding()
         .frame(minWidth: 400, minHeight: 300)
