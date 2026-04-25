@@ -163,6 +163,32 @@ update-appcast version:
 	fi
 	python3 scripts/update-appcast.py "{{version}}" "$build_number" "AppDetective" "$zip_path" "docs/appcast.xml" "$sig"
 
+# Build a Release .app locally with ad-hoc signing and produce a zip + sha256.
+# No notarization, no network calls — sanity-check a release candidate.
+release-dry-run version:
+	#!/usr/bin/env bash
+	set -euxo pipefail
+	just generate
+	rm -rf {{RUN_DERIVED_DATA}}
+	xcodebuild \
+	  -project {{PROJECT}} \
+	  -scheme {{SCHEME}} \
+	  -configuration Release \
+	  -derivedDataPath {{RUN_DERIVED_DATA}} \
+	  CODE_SIGNING_ALLOWED=NO \
+	  build | xcbeautify
+	app_path="{{RUN_DERIVED_DATA}}/Build/Products/Release/{{APP_BUNDLE}}"
+	codesign --force --deep --sign - "$app_path"
+	codesign --verify --deep --strict --verbose=2 "$app_path"
+	# Verify the bundled CLI is present and runnable.
+	"$app_path/Contents/Resources/appdetective" --help >/dev/null
+	mkdir -p {{DIST_DIR}}
+	zip_path="{{DIST_DIR}}/AppDetective-{{version}}-dryrun.zip"
+	rm -f "$zip_path" "$zip_path.sha256"
+	ditto -c -k --sequesterRsrc --keepParent "$app_path" "$zip_path"
+	shasum -a 256 "$zip_path" | tee "$zip_path.sha256"
+	echo "Dry-run artifact: $zip_path"
+
 # Convenience recipe to run the full release pipeline.
 release version:
 	just create-release {{version}}
