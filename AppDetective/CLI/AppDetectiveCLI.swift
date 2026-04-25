@@ -4,18 +4,6 @@ import LSAppCategory
 
 @main
 struct AppDetectiveCLI {
-    struct Output: Encodable {
-        let name: String
-        let path: String
-        let bundleId: String?
-        let version: String?
-        let build: String?
-        let sizeBytes: Int64?
-        let sizeHuman: String?
-        let category: String
-        let stacks: [String]
-    }
-
     static func main() async {
         var positional: [String] = []
         var jsonOutput = false
@@ -45,11 +33,11 @@ struct AppDetectiveCLI {
 
         var isDir: ObjCBool = false
         guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue else {
-            emitError("not a directory: \(url.path)", json: jsonOutput)
+            CLIPrinter.error("not a directory: \(url.path)", json: jsonOutput)
             exit(2)
         }
         guard url.pathExtension.lowercased() == "app" else {
-            emitError("expected a .app bundle, got: \(url.lastPathComponent)", json: jsonOutput)
+            CLIPrinter.error("expected a .app bundle, got: \(url.lastPathComponent)", json: jsonOutput)
             exit(2)
         }
 
@@ -58,73 +46,25 @@ struct AppDetectiveCLI {
         let category = service.extractCategory(from: url)
 
         let bundle = Bundle(url: url)
-        let bundleId = bundle?.bundleIdentifier
-        let version = bundle?.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
-        let build = bundle?.object(forInfoDictionaryKey: "CFBundleVersion") as? String
-        let sizeBytes = bundleSize(at: url)
-        let sizeHuman = sizeBytes.map(format(bytes:))
+        let sizeBytes = BundleMetrics.size(at: url)
 
-        let output = Output(
+        let output = CLIOutput(
             name: url.lastPathComponent,
             path: url.path,
-            bundleId: bundleId,
-            version: version,
-            build: build,
+            bundleId: bundle?.bundleIdentifier,
+            version: bundle?.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
+            build: bundle?.object(forInfoDictionaryKey: "CFBundleVersion") as? String,
             sizeBytes: sizeBytes,
-            sizeHuman: sizeHuman,
+            sizeHuman: sizeBytes.map(BundleMetrics.format(bytes:)),
             category: category.description,
             stacks: stacks.displayNames
         )
 
         if jsonOutput {
-            printJSON(output)
+            CLIPrinter.json(output)
         } else {
-            printText(output)
+            CLIPrinter.text(output)
         }
-    }
-
-    static func printText(_ o: Output) {
-        let versionLine: String
-        switch (o.version, o.build) {
-        case let (v?, b?): versionLine = "\(v) (\(b))"
-        case let (v?, nil): versionLine = v
-        case let (nil, b?): versionLine = "(\(b))"
-        default: versionLine = "—"
-        }
-        let stackLine = o.stacks.isEmpty ? "unknown" : o.stacks.joined(separator: ", ")
-        print("App:        \(o.name)")
-        print("Path:       \(o.path)")
-        print("Bundle ID:  \(o.bundleId ?? "—")")
-        print("Version:    \(versionLine)")
-        print("Size:       \(o.sizeHuman ?? "—")")
-        print("Category:   \(o.category)")
-        print("Stacks:     \(stackLine)")
-    }
-
-    static func printJSON(_ o: Output) {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-        do {
-            let data = try encoder.encode(o)
-            try FileHandle.standardOutput.write(contentsOf: data)
-            try FileHandle.standardOutput.write(contentsOf: Data("\n".utf8))
-        } catch {
-            emitError("failed to encode JSON: \(error.localizedDescription)", json: true)
-            exit(3)
-        }
-    }
-
-    static func emitError(_ message: String, json: Bool) {
-        if json {
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-            if let data = try? encoder.encode(["error": message]) {
-                try? FileHandle.standardError.write(contentsOf: data)
-                try? FileHandle.standardError.write(contentsOf: Data("\n".utf8))
-                return
-            }
-        }
-        try? FileHandle.standardError.write(contentsOf: Data("error: \(message)\n".utf8))
     }
 
     static func printUsage() {
@@ -136,35 +76,5 @@ struct AppDetectiveCLI {
         print("Options:")
         print("  --json        Emit machine-readable JSON instead of text.")
         print("  -h, --help    Show this help.")
-    }
-
-    /// Total on-disk size of an app bundle in bytes.
-    static func bundleSize(at url: URL) -> Int64? {
-        let keys: Set<URLResourceKey> = [.totalFileSizeKey, .totalFileAllocatedSizeKey]
-        if let values = try? url.resourceValues(forKeys: keys) {
-            if let total = values.totalFileSize { return Int64(total) }
-            if let allocated = values.totalFileAllocatedSize { return Int64(allocated) }
-        }
-        guard let enumerator = FileManager.default.enumerator(
-            at: url,
-            includingPropertiesForKeys: [.fileSizeKey],
-            options: []
-        ) else {
-            return nil
-        }
-        var total: Int64 = 0
-        for case let fileURL as URL in enumerator {
-            if let size = try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize {
-                total += Int64(size)
-            }
-        }
-        return total
-    }
-
-    static func format(bytes: Int64) -> String {
-        let formatter = ByteCountFormatter()
-        formatter.allowedUnits = [.useKB, .useMB, .useGB]
-        formatter.countStyle = .file
-        return formatter.string(fromByteCount: bytes)
     }
 }
