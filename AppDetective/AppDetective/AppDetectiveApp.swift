@@ -1,17 +1,27 @@
+import Foundation
 import SwiftUI
 
 @main
 struct AppDetectiveApp: App {
     @AppStorage("selectedFolderBookmark") private var selectedFolderBookmark: Data?
-    @StateObject private var contentViewModel = ContentViewModel()
+    @StateObject private var contentViewModel: ContentViewModel
     @StateObject private var updater = SparkleUpdater()
-    @State private var isResolvingBookmark: Bool = true
+    @State private var isResolvingBookmark: Bool
+    private let startupFolderURL: URL?
+
+    init() {
+        let startupFolderURL = LaunchArguments.startupFolderURL
+        self.startupFolderURL = startupFolderURL
+        _contentViewModel = StateObject(wrappedValue: ContentViewModel(folderURL: startupFolderURL))
+        _isResolvingBookmark = State(initialValue: startupFolderURL == nil)
+    }
 
     var body: some Scene {
         WindowGroup {
             Group {
                 if isResolvingBookmark {
-                    Spacer()
+                    ProgressView()
+                        .frame(minWidth: 500, minHeight: 400)
                 } else {
                     Group {
                         if contentViewModel.folderURL != nil {
@@ -30,12 +40,15 @@ struct AppDetectiveApp: App {
                 }
             }
             .onAppear {
+                guard startupFolderURL == nil else { return }
                 resolveBookmark()
             }
             .onChange(of: selectedFolderBookmark) { _, _ in
+                guard startupFolderURL == nil else { return }
                 resolveBookmark()
             }
             .onChange(of: contentViewModel.folderURL) { _, newURL in
+                guard startupFolderURL == nil else { return }
                 if let urlToSave = newURL {
                     do {
                         let newBookmarkData = try urlToSave.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
@@ -67,7 +80,9 @@ struct AppDetectiveApp: App {
                 .disabled(!updater.canCheckForUpdates)
                 Divider()
                 Button {
-                    AppDetectiveApp.installCLI()
+                    Task {
+                        await AppDetectiveApp.installCLI()
+                    }
                 } label: {
                     Label("Install Command Line Tool…", systemImage: "terminal")
                 }
@@ -83,12 +98,18 @@ struct AppDetectiveApp: App {
         }
     }
 
-    static func installCLI() {
+    @MainActor
+    static func installCLI() async {
+        let isOnPath = await CLIInstallerService.isOnPath()
         let alert = NSAlert()
         let wasInstalled = CLIInstallerService.isInstalled()
         if wasInstalled {
             alert.messageText = "Command Line Tool Already Installed"
-            alert.informativeText = "`appdetective` is already available at \(CLIInstallerService.installPath). Reinstall to update the symlink, or remove it."
+            alert.informativeText = if isOnPath {
+                "`appdetective` is already available at \(CLIInstallerService.installPath). Reinstall to update the symlink, or remove it."
+            } else {
+                "`appdetective` is linked at \(CLIInstallerService.installPath), but the directory is not in your PATH.\n\n\(CLIInstallerService.pathHint)"
+            }
             alert.addButton(withTitle: "Reinstall")
             alert.addButton(withTitle: "Remove")
             alert.addButton(withTitle: "Cancel")
@@ -101,7 +122,7 @@ struct AppDetectiveApp: App {
 
         switch (wasInstalled, alert.runModal()) {
         case (true, .alertFirstButtonReturn), (false, .alertFirstButtonReturn):
-            performInstall()
+            performInstall(isOnPath: isOnPath)
         case (true, .alertSecondButtonReturn):
             performUninstall()
         default:
@@ -109,14 +130,15 @@ struct AppDetectiveApp: App {
         }
     }
 
-    private static func performInstall() {
+    @MainActor
+    private static func performInstall(isOnPath: Bool) {
         do {
             try CLIInstallerService.install()
             let alert = NSAlert()
             alert.messageText = "Command Line Tool Installed"
-            var message = "`appdetective` is now available at \(CLIInstallerService.installPath)."
-            if !CLIInstallerService.isOnPath() {
-                message += "\n\n~/.local/bin is not in your PATH. Add this to your shell config to enable the command:\n\n    export PATH=\"$HOME/.local/bin:$PATH\""
+            var message = "`appdetective` is linked at \(CLIInstallerService.installPath)."
+            if !isOnPath {
+                message += "\n\nThe directory is not in your PATH.\n\n\(CLIInstallerService.pathHint)"
             }
             alert.informativeText = message
             alert.runModal()
@@ -125,6 +147,7 @@ struct AppDetectiveApp: App {
         }
     }
 
+    @MainActor
     private static func performUninstall() {
         do {
             try CLIInstallerService.uninstall()
@@ -137,6 +160,7 @@ struct AppDetectiveApp: App {
         }
     }
 
+    @MainActor
     private static func showErrorAlert(title: String, message: String) {
         let alert = NSAlert()
         alert.alertStyle = .warning
@@ -169,6 +193,7 @@ struct AppDetectiveApp: App {
                 contentViewModel.folderURL = nil
                 contentViewModel.appResults = []
                 contentViewModel.errorMessage = nil
+                contentViewModel.warningMessage = nil
                 contentViewModel.navigationTitle = "Select Folder"
             }
             isResolvingBookmark = false
@@ -193,6 +218,7 @@ struct AppDetectiveApp: App {
             selectedFolderBookmark = nil
             contentViewModel.folderURL = nil
             contentViewModel.errorMessage = "Error resolving bookmark."
+            contentViewModel.warningMessage = nil
             contentViewModel.navigationTitle = "Error"
         }
         isResolvingBookmark = false

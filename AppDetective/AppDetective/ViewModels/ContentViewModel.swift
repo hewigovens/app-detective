@@ -9,6 +9,7 @@ class ContentViewModel: ObservableObject {
     @Published var totalAppsToScan: Int = 0
     @Published var appResults: [AppInfo] = []
     @Published var errorMessage: String? = nil
+    @Published var warningMessage: String? = nil
     @Published var navigationTitle: String = Constants.AppName
     @Published var folderURL: URL? = nil
     @Published var metadataLoadProgress: Double = 0.0
@@ -96,6 +97,7 @@ class ContentViewModel: ObservableObject {
         sizeCache.removeAll()
         appResults.removeAll()
         errorMessage = nil
+        warningMessage = nil
         scanProgress = 0.0
         metadataLoadProgress = 0.0
         totalMetadataItems = 0
@@ -131,6 +133,7 @@ class ContentViewModel: ObservableObject {
     func scanApplications() async {
         guard let currentFolderURL = folderURL else {
             errorMessage = "No folder selected."
+            warningMessage = nil
             navigationTitle = "No Folder"
             appResults = []
             isLoading = false
@@ -139,6 +142,7 @@ class ContentViewModel: ObservableObject {
 
         appResults = []
         errorMessage = nil
+        warningMessage = nil
         isLoading = true
         scanProgress = 0.0
         totalAppsToScan = 0
@@ -147,21 +151,25 @@ class ContentViewModel: ObservableObject {
         var detectedApps: [AppInfo] = []
 
         do {
-            guard currentFolderURL.startAccessingSecurityScopedResource() else {
-                errorMessage = "Could not access the selected folder. Please reselect."
-                isLoading = false
-                scanProgress = 0.0
-                totalAppsToScan = 0
-                navigationTitle = "Error Accessing Folder"
-                return
+            let isSecurityScoped = currentFolderURL.startAccessingSecurityScopedResource()
+            defer {
+                if isSecurityScoped {
+                    currentFolderURL.stopAccessingSecurityScopedResource()
+                }
             }
 
-            defer { currentFolderURL.stopAccessingSecurityScopedResource() }
-
-            let allAppURLs = try scanService.scan(folderURL: currentFolderURL)
+            let scanResult = try scanService.scanWithDiagnostics(folderURL: currentFolderURL)
+            let allAppURLs = scanResult.appURLs
+            if scanResult.hasSkippedDirectories {
+                warningMessage = "Some folders could not be scanned due to permissions."
+            }
             totalAppsToScan = allAppURLs.count
             guard totalAppsToScan > 0 else {
-                errorMessage = "No applications found in the selected folder."
+                errorMessage = if scanResult.hasSkippedDirectories {
+                    "No applications found in the selected folder. Some folders could not be scanned due to permissions."
+                } else {
+                    "No applications found in the selected folder."
+                }
                 isLoading = false
                 navigationTitle = "No Apps Found"
                 return
@@ -199,10 +207,12 @@ class ContentViewModel: ObservableObject {
 
         } catch let error as ScanService.ScanError {
             errorMessage = error.localizedDescription
+            warningMessage = nil
             navigationTitle = "Scan Error"
             isLoading = false
         } catch {
             errorMessage = "An unexpected error occurred: \(error.localizedDescription)"
+            warningMessage = nil
             navigationTitle = "Unexpected Error"
             isLoading = false
         }

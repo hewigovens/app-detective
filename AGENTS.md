@@ -1,14 +1,15 @@
 # AppDetective Agent Guidelines
 
 ## CI/CD
-- **GitHub Actions**: CI workflow runs on push/PR to main branch
+- **GitHub Actions**: CI workflow runs on branch pushes and PRs to main
 - **Platforms**: macOS 26
-- **Steps**: Checkout, build Debug, run unit tests, validate app bundle
+- **Steps**: Checkout, build Debug, run unit/UI tests, validate app bundle
 
-## Git Workflow
-- **Branching**: Always create a new branch for each task or feature before starting work.
-- **Commits**: Always propose a draft commit message and ask for user confirmation before committing.
-- **Pushing**: Never push changes to the remote repository without explicit user request.
+## Jujutsu Workflow
+- **Tooling**: Use Jujutsu (`jj`) for local version control. The Git checkout may appear as detached `HEAD`; this is expected.
+- **Task Changes**: Always start from a fresh `jj` change for each task or feature before editing. Use a bookmark when a named branch is needed for sharing or pushing.
+- **Descriptions**: Always propose a draft change description/commit message and ask for user confirmation before finalizing it.
+- **Pushing**: Never push bookmarks or changes to the remote repository without explicit user request.
 
 ## Build Commands
 - **Build**: `xcodebuild -project AppDetective/AppDetective.xcodeproj -scheme AppDetective build | xcbeautify`

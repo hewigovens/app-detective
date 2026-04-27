@@ -13,6 +13,7 @@ struct ContentView: View {
     var body: some View {
         let isLoading = viewModel.isLoading
         let errorMessage = viewModel.errorMessage
+        let warningMessage = viewModel.warningMessage
 
         NavigationSplitView {
             if #available(macOS 15.0, *) {
@@ -32,7 +33,19 @@ struct ContentView: View {
                         Text("Error: \(msg)")
                             .foregroundColor(.red)
                             .padding()
+                            .accessibilityIdentifier("scan-error-message")
                     } else {
+                        if let warningMessage {
+                            Text(warningMessage)
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(Color.orange.opacity(0.12))
+                                .accessibilityIdentifier("scan-warning-message")
+                        }
+
                         if viewModel.appResults.isEmpty && !isLoading {
                             Text("No apps found or scan not started.")
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)

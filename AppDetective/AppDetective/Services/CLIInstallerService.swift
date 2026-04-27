@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 enum CLIInstallerError: LocalizedError {
     case bundledBinaryMissing
@@ -14,8 +15,21 @@ enum CLIInstallerError: LocalizedError {
     }
 }
 
+private actor CLIPathStatusCache {
+    private var cachedValue: Bool?
+
+    func value() -> Bool? {
+        cachedValue
+    }
+
+    func setValue(_ value: Bool) {
+        cachedValue = value
+    }
+}
+
 struct CLIInstallerService {
     static let toolName = "appdetective"
+    private static let pathStatusCache = CLIPathStatusCache()
 
     static var installDirectory: URL {
         FileManager.default.homeDirectoryForCurrentUser
@@ -28,6 +42,22 @@ struct CLIInstallerService {
     }
 
     static var installPath: String { installURL.path }
+
+    static var pathHint: String {
+        let shell = loginShell
+        if shell.hasSuffix("fish") {
+            return "fish_add_path \(installDirectory.path)"
+        }
+
+        let rcFile = if shell.hasSuffix("zsh") {
+            "~/.zshrc"
+        } else if shell.hasSuffix("bash") {
+            "~/.bash_profile"
+        } else {
+            "~/.profile"
+        }
+        return "Add to \(rcFile):\nexport PATH=\"\(installDirectory.path):$PATH\""
+    }
 
     /// Returns the path to the CLI binary shipped inside the app bundle, if present.
     static func bundledBinaryURL() -> URL? {
@@ -47,8 +77,60 @@ struct CLIInstallerService {
     }
 
     /// Returns true if `~/.local/bin` is already in the user's `PATH`.
-    static func isOnPath() -> Bool {
-        let path = ProcessInfo.processInfo.environment["PATH"] ?? ""
+    static func isOnPath() async -> Bool {
+        if let cachedValue = await pathStatusCache.value() {
+            return cachedValue
+        }
+
+        let path = await loginShellPATH() ?? ProcessInfo.processInfo.environment["PATH"] ?? ""
+        let isOnPath = pathContainsInstallDirectory(path)
+        await pathStatusCache.setValue(isOnPath)
+        return isOnPath
+    }
+
+    static func loginShellPATH() async -> String? {
+        await Task.detached(priority: .userInitiated) {
+            loginShellPATHSync()
+        }.value
+    }
+
+    private static func loginShellPATHSync() -> String? {
+        let shell = loginShell
+        let isFish = shell.hasSuffix("fish")
+        let command = isFish ? "string join : -- $PATH" : "printf %s \"$PATH\""
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: shell)
+        process.arguments = ["-l", "-c", command]
+
+        let outputPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = FileHandle(forWritingAtPath: "/dev/null")
+
+        do {
+            try process.run()
+            let data = outputPipe.fileHandleForReading.readDataToEndOfFile()
+            process.waitUntilExit()
+            guard process.terminationStatus == 0 else { return nil }
+
+            return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        } catch {
+            return nil
+        }
+    }
+
+    private static var loginShell: String {
+        if let passwordEntry = getpwuid(getuid()),
+           let shell = passwordEntry.pointee.pw_shell,
+           let shellString = String(validatingUTF8: shell),
+           !shellString.isEmpty
+        {
+            return shellString
+        }
+
+        return ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
+    }
+
+    private static func pathContainsInstallDirectory(_ path: String) -> Bool {
         let resolved = (installDirectory.path as NSString).standardizingPath
         return path.split(separator: ":").contains { ($0 as NSString).standardizingPath == resolved }
     }
