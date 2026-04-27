@@ -16,11 +16,11 @@ packages:
 
 settings:
     base:
-        CURRENT_PROJECT_VERSION: 6
+        CURRENT_PROJECT_VERSION: 7
         DEAD_CODE_STRIPPING: YES
         DEVELOPMENT_TEAM: V28VJH6B6S
         ENABLE_USER_SCRIPT_SANDBOXING: YES
-        MARKETING_VERSION: 1.4.0
+        MARKETING_VERSION: 1.4.1
         STRING_CATALOG_GENERATE_SYMBOLS: YES
 
 targets:
@@ -96,6 +96,20 @@ targets:
                 GENERATE_INFOPLIST_FILE: YES
                 PRODUCT_BUNDLE_IDENTIFIER: dev.hewig.AppDetectiveTests
                 TEST_HOST: "$(BUILT_PRODUCTS_DIR)/AppDetective.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AppDetective"
+    AppDetectiveUITests:
+        type: bundle.ui-testing
+        platform: macOS
+        deploymentTarget: "14.6"
+        sources:
+            - path: AppDetectiveUITests
+        dependencies:
+            - target: AppDetective
+        settings:
+            base:
+                DEAD_CODE_STRIPPING: YES
+                GENERATE_INFOPLIST_FILE: YES
+                PRODUCT_BUNDLE_IDENTIFIER: dev.hewig.AppDetectiveUITests
+                TEST_TARGET_NAME: AppDetective
 
 schemes:
     appdetective-cli:
@@ -116,6 +130,7 @@ schemes:
             config: Debug
             targets:
                 - AppDetectiveTests
+                - AppDetectiveUITests
         analyze:
             config: Debug
         archive:

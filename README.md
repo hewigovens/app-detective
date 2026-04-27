@@ -22,6 +22,12 @@ App Detective ships with `appdetective`, a CLI for analyzing a single `.app` bun
 
 Install it from inside the app: **App Detective → Install Command Line Tool…** symlinks `appdetective` into `~/.local/bin/`. If `~/.local/bin` isn't on your `PATH`, the install dialog tells you the line to add.
 
+You can also start the app directly on a folder:
+
+```bash
+open -a "App Detective" --args --scan-folder /Applications
+```
+
 ```bash
 $ appdetective /Applications/Visual\ Studio\ Code.app
 App:        Visual Studio Code.app
