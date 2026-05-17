@@ -95,8 +95,9 @@ export version:
 zip version:
 	#!/usr/bin/env bash
 	set -euxo pipefail
-	mkdir -p {{DIST_DIR}}
-	ditto -c -k --sequesterRsrc --keepParent "{{EXPORT_DIR}}/AppDetective-{{version}}/{{APP_BUNDLE}}" "{{DIST_DIR}}/AppDetective-{{version}}.zip"
+	zip_path="{{DIST_DIR}}/AppDetective-{{version}}.zip"
+	bash scripts/package-release-zip.sh "{{EXPORT_DIR}}/AppDetective-{{version}}/{{APP_BUNDLE}}" "$zip_path"
+	bash scripts/verify-release-archive.sh "$zip_path" notarized
 
 # Create a GitHub draft release. Uses releases/<version>.md if present, else fallback notes.
 create-release version:
@@ -124,15 +125,16 @@ notarize version:
 		exit 1
 	fi
 	# Create a temporary zip for notarization
-	temp_zip=$(mktemp -d)/AppDetective.zip
+	temp_dir="$(mktemp -d)"
+	trap 'rm -rf "$temp_dir"' EXIT
+	temp_zip="$temp_dir/AppDetective.zip"
 	echo "Creating temporary zip for notarization..."
-	ditto -c -k --sequesterRsrc --keepParent "$app_path" "$temp_zip"
+	bash scripts/package-release-zip.sh "$app_path" "$temp_zip"
 	echo "Submitting app for notarization with profile ${notary_profile}..."
 	xcrun notarytool submit "$temp_zip" --keychain-profile "$notary_profile" --wait
 	echo "Stapling notarization ticket to app..."
 	xcrun stapler staple "$app_path"
-	# Clean up temp zip
-	rm -f "$temp_zip"
+	xcrun stapler validate "$app_path"
 
 # Upload the zip to the GitHub release.
 upload-release version:
@@ -197,7 +199,8 @@ release-dry-run version:
 	mkdir -p {{DIST_DIR}}
 	zip_path="{{DIST_DIR}}/AppDetective-{{version}}-dryrun.zip"
 	rm -f "$zip_path" "$zip_path.sha256"
-	ditto -c -k --sequesterRsrc --keepParent "$app_path" "$zip_path"
+	bash scripts/package-release-zip.sh "$app_path" "$zip_path"
+	bash scripts/verify-release-archive.sh "$zip_path" signed
 	shasum -a 256 "$zip_path" | tee "$zip_path.sha256"
 	echo "Dry-run artifact: $zip_path"
 

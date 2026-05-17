@@ -12,6 +12,10 @@
 - **GitHub Actions**: `.github/workflows/ci.yml` runs `just build` and `just test` on branch pushes and PRs to main
 - **Platform**: the `xcode-27` runner (macOS 27 with Xcode 27, a GitHub preview image; there is no `macos-27` label yet); the app and CLI deploy to macOS 14.6
 
+## Release Packaging
+- Package release apps with `scripts/package-release-zip.sh`, which uses `ditto --norsrc` so AppleDouble metadata is not written into signed app bundles.
+- Verify final notarized archives with `scripts/verify-release-archive.sh <zip> notarized`; it extracts the archive and runs `codesign`, `stapler validate`, and `spctl -av` on the extracted app.
+
 ## Jujutsu Workflow
 - **Tooling**: Use Jujutsu (`jj`) for local version control. The Git checkout may appear as detached `HEAD`; this is expected.
 - **Task Changes**: Always start from a fresh `jj` change for each task or feature before editing. Use a bookmark when a named branch is needed for sharing or pushing.
