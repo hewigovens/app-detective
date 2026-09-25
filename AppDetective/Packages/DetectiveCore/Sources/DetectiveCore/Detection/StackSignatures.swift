@@ -1,8 +1,6 @@
 import Foundation
 
 extension StackSignature {
-    /// Built-in signatures for every detectable stack. To support a new stack, add it to
-    /// `TechStack` and append its signature here.
     public static let catalog: [StackSignature] = [
         // MARK: Native
 
@@ -34,7 +32,7 @@ extension StackSignature {
             .strong(.framework(.exact("Microsoft Edge Framework.framework"))),
         ]),
         StackSignature(.tauri, [
-            // Injected into the webview by the Tauri runtime (v2 and v1 respectively).
+            // Injected into the webview by Tauri v2 / v1.
             .strong(.embeddedString("__TAURI_INTERNALS__")),
             .strong(.embeddedString("__TAURI_IPC__")),
             .weak(.embeddedString("tauri://localhost")),
@@ -89,7 +87,7 @@ extension StackSignature {
             .strong(.plugIn(.regex(#"\.(jdk|jre)$"#))),
             .strong(.file("Contents/runtime/Contents/Home")),
             .strong(.file("Contents/Java")),
-            // Any JNI-using binary contains these class paths.
+            // Also present in any binary that uses JNI.
             .weak(.embeddedString("java/lang/")),
         ]),
         StackSignature(.python, [

@@ -1,33 +1,19 @@
 import Foundation
 import LSAppCategory
 
-/// Detects the UI technology stack and category of application bundles.
 public final class DetectService: Sendable {
     private let signatures: [StackSignature]
 
-    /// - Parameter signatures: Rules to evaluate; defaults to the built-in catalog.
     public init(signatures: [StackSignature] = StackSignature.catalog) {
         self.signatures = signatures
     }
 
-    // MARK: - Public API
-
-    /// Analyzes an app bundle and returns the tech stacks it is built with.
-    /// - Parameter appURL: URL of the `.app` bundle.
-    /// - Returns: The detected stacks, or `.other` if the bundle can't be analyzed.
     public func detectStack(for appURL: URL) async -> TechStack {
         detect(appURL).stacks
     }
 
-    /// Analyzes an app bundle and returns the detected stacks with the evidence for each.
-    ///
-    /// Rules that inspect the bundle's files and linked libraries run first. Embedded-string
-    /// rules scan the whole executable, so they run only when nothing else was identified.
-    /// Standard macOS bundles and iOS apps wrapped for Apple silicon Macs are both supported.
-    /// - Parameter appURL: URL of the `.app` bundle.
     public func detect(_ appURL: URL) -> Detection {
-        // Bundle resolves the executable the same way LaunchServices does, including bundles
-        // without CFBundleExecutable (named after the bundle) and iOS `WrappedBundle` layouts.
+        // Bundle applies LaunchServices' executable fallbacks (no CFBundleExecutable, WrappedBundle).
         guard let bundle = Bundle(url: appURL) else {
             return Detection(stacks: .other, possibleStacks: [], matches: [])
         }
@@ -48,10 +34,6 @@ public final class DetectService: Sendable {
         return Detection(stacks: stacks, possibleStacks: possible.subtracting(stacks), matches: matches)
     }
 
-    /// Reads the app category from `LSApplicationCategoryType`, falling back to the
-    /// App Store metadata that accompanies iOS apps installed on the Mac.
-    /// - Parameter appURL: URL of the `.app` bundle.
-    /// - Returns: The app category, or `.other` if none is declared.
     public func extractCategory(from appURL: URL) -> AppCategory {
         if let categoryType = Bundle(url: appURL)?.object(forInfoDictionaryKey: "LSApplicationCategoryType") as? String {
             return AppCategory(string: categoryType)
@@ -75,8 +57,6 @@ public final class DetectService: Sendable {
         return .other
     }
 
-    // MARK: - Evaluation
-
     private func evaluate(_ inspector: BundleInspector, embeddedStrings: Bool) -> [Match] {
         signatures.flatMap { signature in
             signature.rules
@@ -94,8 +74,7 @@ public final class DetectService: Sendable {
         return TechStack(scores.filter { $0.value >= Confidence.reportingThreshold }.keys)
     }
 
-    /// Every Mac UI stack sits on AppKit, so AppKit is reported only when nothing more specific
-    /// was found — including when nothing was found at all.
+    // Every Mac UI stack sits on AppKit, so report it only when nothing more specific was found.
     private static func resolve(_ stacks: TechStack) -> TechStack {
         let specific = stacks.subtracting(.appKit)
         return specific.isEmpty ? .appKit : specific

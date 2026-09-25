@@ -15,5 +15,5 @@ struct AppInfo: Identifiable, Hashable, Sendable {
     var id: String { path }
 }
 
-// AppCategory is a plain String-backed enum; LSAppCategory just doesn't declare it Sendable.
+// A String-backed enum that LSAppCategory doesn't mark Sendable.
 extension AppCategory: @retroactive @unchecked Sendable {}

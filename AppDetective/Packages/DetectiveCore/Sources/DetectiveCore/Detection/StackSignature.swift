@@ -1,7 +1,5 @@
 import Foundation
 
-/// Everything that identifies one tech stack: a list of rules, each naming a piece of evidence
-/// and how much it can be trusted on its own.
 public struct StackSignature: Sendable {
     public let stack: TechStack
     public let rules: [Rule]
@@ -12,19 +10,11 @@ public struct StackSignature: Sendable {
     }
 }
 
-/// How much a single piece of evidence says about a stack.
-public enum Confidence: Int, Sendable, Comparable, Codable {
-    /// Circumstantial on its own, e.g. a string that could appear in unrelated binaries.
+public enum Confidence: Int, Sendable {
     case weak = 1
-    /// Identifies the stack by itself, e.g. its runtime framework is bundled or linked.
     case strong = 2
 
-    /// Total confidence at which a stack is reported: one strong rule or two weak ones.
     static let reportingThreshold = 2
-
-    public static func < (lhs: Confidence, rhs: Confidence) -> Bool {
-        lhs.rawValue < rhs.rawValue
-    }
 }
 
 public struct Rule: Sendable {
@@ -40,21 +30,13 @@ public struct Rule: Sendable {
     }
 }
 
-/// Where a rule looks inside an app bundle.
 public enum Evidence: Sendable, CustomStringConvertible {
-    /// An item in the bundle's Frameworks directory.
     case framework(Pattern)
-    /// An item at the top level of the bundle's Resources directory.
     case resource(Pattern)
-    /// An item in the bundle's PlugIns directory.
     case plugIn(Pattern)
-    /// A file or directory at this path relative to the bundle root, e.g. `Contents/MonoBundle`.
-    case file(String)
-    /// The install name of a library linked by the main executable (`otool -L`).
+    case file(String) // Relative to the bundle root, e.g. "Contents/MonoBundle".
     case linkedLibrary(Pattern)
-    /// A printable string inside the main executable (`strings`). Expensive, so these rules
-    /// only run when no other rule identified a stack.
-    case embeddedString(String)
+    case embeddedString(String) // Runs `strings`, so only evaluated when nothing else matched.
 
     public var description: String {
         switch self {
@@ -73,13 +55,11 @@ public enum Evidence: Sendable, CustomStringConvertible {
     }
 }
 
-/// Matches a file name or library install name.
 public enum Pattern: Sendable, CustomStringConvertible {
     case exact(String)
     case prefix(String)
     case suffix(String)
     case contains(String)
-    /// An `NSRegularExpression` pattern, for names that need more than the simpler cases.
     case regex(String)
 
     public func matches(_ value: String) -> Bool {

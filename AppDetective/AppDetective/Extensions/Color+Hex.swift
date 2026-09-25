@@ -14,7 +14,7 @@ extension Color {
         case 8: // ARGB (32-bit)
             (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
         default:
-            (a, r, g, b) = (255, 0, 0, 0) // Default to black if invalid
+            (a, r, g, b) = (255, 0, 0, 0)
         }
 
         self.init(

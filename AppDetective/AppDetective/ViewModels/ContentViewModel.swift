@@ -4,9 +4,7 @@ import SwiftUI
 
 @MainActor
 final class ContentViewModel: ObservableObject {
-    /// Upper bound on concurrent per-app work, which blocks on `otool`/`strings` and disk I/O.
     private static let concurrencyLimit = 8
-    /// Number of loaded icons to accumulate before publishing, so the list isn't redrawn per icon.
     private static let publishBatchSize = 8
 
     @Published var isLoading = false
@@ -31,9 +29,6 @@ final class ContentViewModel: ObservableObject {
         self.metadataCache = diskCacheService.load()
     }
 
-    // MARK: - Actions
-
-    /// Clears results and messages, e.g. when the saved folder is forgotten.
     func reset(title: String = "Select Folder", errorMessage: String? = nil) {
         appResults = []
         self.errorMessage = errorMessage
@@ -62,8 +57,6 @@ final class ContentViewModel: ObservableObject {
             await scanApplications()
         }
     }
-
-    // MARK: - Scanning
 
     func scanApplications() async {
         guard let folderURL else {
@@ -149,8 +142,6 @@ final class ContentViewModel: ObservableObject {
         }
     }
 
-    /// Runs `transform` over `inputs` with bounded concurrency, handing each result to `receive`
-    /// on the main actor as soon as it's ready.
     private func forEachConcurrently<Input: Sendable, Output: Sendable>(
         _ inputs: [Input],
         transform: @escaping @Sendable (Input) async -> Output,

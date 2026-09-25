@@ -203,7 +203,6 @@ struct AppDetectiveApp: App {
             if contentViewModel.folderURL != url {
                 contentViewModel.folderURL = url
             }
-
         } catch {
             Logger.app.error("Failed to resolve bookmark: \(error.localizedDescription)")
             selectedFolderBookmark = nil

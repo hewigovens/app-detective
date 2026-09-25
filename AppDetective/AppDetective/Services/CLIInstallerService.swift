@@ -59,12 +59,10 @@ struct CLIInstallerService {
         return "Add to \(rcFile):\nexport PATH=\"\(installDirectory.path):$PATH\""
     }
 
-    /// Returns the path to the CLI binary shipped inside the app bundle, if present.
     static func bundledBinaryURL() -> URL? {
         Bundle.main.url(forResource: toolName, withExtension: nil)
     }
 
-    /// Returns true if `installPath` is a symlink pointing at the currently running app's bundled CLI.
     static func isInstalled() -> Bool {
         guard let bundled = bundledBinaryURL() else { return false }
         let fm = FileManager.default
@@ -76,7 +74,6 @@ struct CLIInstallerService {
         return false
     }
 
-    /// Returns true if `~/.local/bin` is already in the user's `PATH`.
     static func isOnPath() async -> Bool {
         if let cachedValue = await pathStatusCache.value() {
             return cachedValue
@@ -135,8 +132,6 @@ struct CLIInstallerService {
         return path.split(separator: ":").contains { ($0 as NSString).standardizingPath == resolved }
     }
 
-    /// Creates a symlink at `~/.local/bin/appdetective` pointing at the bundled CLI.
-    /// Refuses to replace an existing non-symlink file at the install path to avoid clobbering user data.
     static func install() throws {
         guard let bundled = bundledBinaryURL() else {
             throw CLIInstallerError.bundledBinaryMissing
@@ -175,8 +170,6 @@ struct CLIInstallerService {
         }
     }
 
-    /// Removes the symlink at `~/.local/bin/appdetective` if it exists.
-    /// Refuses to remove a non-symlink at the install path.
     static func uninstall() throws {
         let fm = FileManager.default
         guard let existingType = itemType(at: installPath) else { return }
@@ -194,7 +187,6 @@ struct CLIInstallerService {
         }
     }
 
-    /// Returns the file type at `path` without following symlinks, or `nil` if nothing is there.
     private static func itemType(at path: String) -> FileAttributeType? {
         guard let attrs = try? FileManager.default.attributesOfItem(atPath: path) else {
             return nil

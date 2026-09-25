@@ -70,8 +70,8 @@ Use the `justfile` recipes; they regenerate the Xcode project first.
 - Leverage SwiftUI's declarative syntax and modifiers
 
 ### Documentation & Comments
-- Use /// for public API documentation, with parameter and return descriptions where they aren't obvious
-- Use // only to explain *why* (constraints, workarounds, non-obvious behavior); don't restate what the code does
+- Keep comments rare: names and types should carry the meaning. No doc comments that restate a declaration's name or signature, and no `// MARK:` in small files
+- Use a one-line // only to explain *why* (constraints, workarounds, non-obvious behavior); never restate what the code does
 - Don't leave commented-out code, placeholder actions, or unused types behind
 
 ### Logging

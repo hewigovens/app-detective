@@ -3,8 +3,6 @@ import Foundation
 import LSAppCategory
 import SwiftUI
 
-/// Sidebar filters and the app list they produce. Derived values are recomputed once per change
-/// rather than on every view evaluation.
 @MainActor
 final class CategoryViewModel: ObservableObject {
     @Published var apps: [AppInfo] = [] {
@@ -23,7 +21,6 @@ final class CategoryViewModel: ObservableObject {
     @Published private(set) var filteredApps: [AppInfo] = []
     @Published private(set) var sortedCategories: [AppCategory] = []
     @Published private(set) var categoryCounts: [AppCategory: Int] = [:]
-    /// App counts per stack within the selected category.
     @Published private(set) var stackCounts: [TechStack: Int] = [:]
 
     func resetFilters() {

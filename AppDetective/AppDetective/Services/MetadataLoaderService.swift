@@ -2,12 +2,10 @@ import AppKit
 import DetectiveCore
 import Foundation
 
-/// Reads an app's icon and on-disk size, reusing cached values while the app is unchanged.
 enum MetadataLoaderService {
-    /// Icon edge length in pixels; rows draw icons at 44pt, so this stays sharp on Retina displays.
+    // Rows draw icons at 44pt; 128px stays sharp on Retina.
     private static let iconPixelSize: CGFloat = 128
 
-    /// Returns `cached` if the app hasn't changed since it was cached, otherwise loads fresh metadata.
     static func metadata(forAppAt path: String, cached: CachedMetadata?) -> CachedMetadata {
         let url = URL(fileURLWithPath: path)
         let fingerprint = fingerprint(of: url)
@@ -21,7 +19,6 @@ enum MetadataLoaderService {
         )
     }
 
-    /// Modification date of the bundle's Info.plist, which changes whenever the app is updated.
     private static func fingerprint(of appURL: URL) -> Date? {
         let candidates = ["Contents/Info.plist", "WrappedBundle/Info.plist", "Info.plist"]
             .map { appURL.appendingPathComponent($0) } + [appURL]
@@ -50,7 +47,7 @@ enum MetadataLoaderService {
             return nil
         }
 
-        // Graphics state is per thread, so drawing here is safe off the main thread.
+        // Graphics state is per thread, so this is safe off the main thread.
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
         NSWorkspace.shared.icon(forFile: path)

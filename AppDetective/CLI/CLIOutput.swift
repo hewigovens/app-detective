@@ -1,7 +1,6 @@
 import DetectiveCore
 import Foundation
 
-/// Machine-readable shape of a single-app analysis result.
 struct CLIOutput: Encodable {
     let name: String
     let path: String

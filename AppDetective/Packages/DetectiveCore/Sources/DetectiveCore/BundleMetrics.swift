@@ -1,8 +1,6 @@
 import Foundation
 
 public enum BundleMetrics {
-    /// Total on-disk size of an item at `url` in bytes.
-    /// Falls back to a recursive enumerator if `URLResourceKey` lookups fail.
     public static func size(at url: URL) -> Int64? {
         let resolved = url.resolvingSymlinksInPath()
         let keys: Set<URLResourceKey> = [.totalFileSizeKey, .totalFileAllocatedSizeKey]
@@ -26,7 +24,6 @@ public enum BundleMetrics {
         return total
     }
 
-    /// Human-readable size string in KB/MB/GB (file count style), e.g. "635.6 MB".
     public static func format(bytes: Int64) -> String {
         let formatter = ByteCountFormatter()
         formatter.allowedUnits = [.useKB, .useMB, .useGB]

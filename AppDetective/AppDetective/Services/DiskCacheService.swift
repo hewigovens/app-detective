@@ -1,18 +1,15 @@
 import Foundation
 import OSLog
 
-/// Icon and size of an app, stamped with the bundle version it was read from.
 struct CachedMetadata: Codable, Sendable {
-    /// Modification date of the bundle's Info.plist; a mismatch means the app was updated.
-    let fingerprint: Date?
+    let fingerprint: Date? // Info.plist modification date; changes when the app is updated.
     let iconData: Data?
     let size: String?
 }
 
-/// Persists app metadata between launches in the user's Caches directory.
 struct DiskCacheService {
     private static let cacheFileName = "metadataCache.plist"
-    /// Files written by earlier versions to Application Support.
+    // Written to Application Support by earlier versions.
     private static let legacyFileNames = ["iconCache.plist", "sizeCache.plist"]
 
     private let bundleID = Bundle.main.bundleIdentifier ?? Constants.BundleId
@@ -44,7 +41,6 @@ struct DiskCacheService {
         }
     }
 
-    /// Saves the cache, dropping entries for apps that no longer exist.
     func save(_ cache: [String: CachedMetadata]) {
         guard let fileURL = cacheFileURL else { return }
         let liveEntries = cache.filter { FileManager.default.fileExists(atPath: $0.key) }

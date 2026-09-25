@@ -4,10 +4,7 @@ import LSAppCategory
 import Testing
 
 struct DetectServiceTests {
-
     let detectService = DetectService()
-
-    // MARK: - Framework Detection Tests
 
     @Test("Detects Electron framework")
     func detectsElectron() async throws {
@@ -78,8 +75,6 @@ struct DetectServiceTests {
         #expect(await detectService.detectStack(for: otherApp.url) == .appKit)
     }
 
-    // MARK: - Confidence Tests
-
     @Test("A single weak rule is reported as possible, not detected")
     func weakEvidenceIsOnlyPossible() throws {
         let app = try FakeApp(frameworks: ["MyPythonHelpers.framework"])
@@ -112,8 +107,6 @@ struct DetectServiceTests {
         #expect(detection.matches.first?.item == "Contents/Toolkit")
     }
 
-    // MARK: - Bundle Layout Tests
-
     @Test("Falls back to AppKit for a plain native executable")
     func fallsBackToAppKit() async throws {
         let app = try FakeApp()
@@ -124,7 +117,7 @@ struct DetectServiceTests {
 
     @Test("Finds executable when Info.plist omits CFBundleExecutable")
     func findsExecutableWithoutBundleExecutableKey() async throws {
-        // Matches Muse.app, whose executable is only discoverable by the bundle name.
+        // Like Muse.app, whose executable is found only by the bundle name.
         let app = try FakeApp(declaresExecutable: false)
         defer { app.remove() }
 
@@ -139,8 +132,6 @@ struct DetectServiceTests {
 
         #expect(await detectService.detectStack(for: directory) == .other)
     }
-
-    // MARK: - Category Tests
 
     @Test("Reads category from Info.plist")
     func readsCategoryFromInfoPlist() throws {
@@ -170,9 +161,6 @@ struct DetectServiceTests {
     }
 }
 
-// MARK: - Helpers
-
-/// A minimal macOS app bundle in a temporary directory.
 private struct FakeApp {
     let url: URL
 
@@ -190,7 +178,7 @@ private struct FakeApp {
         let contentsURL = url.appendingPathComponent("Contents")
         let macOSURL = contentsURL.appendingPathComponent("MacOS")
         try fileManager.createDirectory(at: macOSURL, withIntermediateDirectories: true)
-        // Any Mach-O that links only libSystem stands in for a native executable.
+        // A Mach-O that links only libSystem.
         try fileManager.copyItem(atPath: "/usr/bin/true", toPath: macOSURL.appendingPathComponent(name).path)
 
         var info: [String: Any] = ["CFBundleIdentifier": "test.\(name)", "CFBundlePackageType": "APPL"]
@@ -202,7 +190,7 @@ private struct FakeApp {
         }
         try writePlist(info, to: contentsURL.appendingPathComponent("Info.plist"))
 
-        // Rules only check that items exist, so every item can be a directory.
+        // Rules only check existence, so directories suffice.
         let items = frameworks.map { "Frameworks/\($0)" } + resources.map { "Resources/\($0)" } + contents
         for item in items {
             try fileManager.createDirectory(at: contentsURL.appendingPathComponent(item), withIntermediateDirectories: true)

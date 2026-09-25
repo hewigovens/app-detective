@@ -1,12 +1,6 @@
 import Foundation
 
 enum ProcessRunner {
-    /// Runs a command-line tool and captures its standard output.
-    /// - Parameters:
-    ///   - toolPath: Absolute path of the tool to launch.
-    ///   - arguments: Arguments passed to the tool.
-    ///   - timeout: Seconds to wait before the tool is terminated.
-    /// - Returns: The tool's standard output, or `nil` if it failed to launch or timed out.
     static func output(of toolPath: String, arguments: [String], timeout: TimeInterval = 10) -> String? {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: toolPath)
@@ -21,7 +15,7 @@ enum ProcessRunner {
             return nil
         }
 
-        // Drain the pipe concurrently so a full pipe buffer can never stall the child process.
+        // Drain concurrently so a full pipe buffer can't stall the child.
         let collector = OutputCollector()
         let finished = DispatchSemaphore(value: 0)
         DispatchQueue.global(qos: .utility).async {
@@ -39,7 +33,6 @@ enum ProcessRunner {
     }
 }
 
-/// Holds data written by the reader thread; the semaphore orders the write before the read.
 private final class OutputCollector: @unchecked Sendable {
     var data = Data()
 }

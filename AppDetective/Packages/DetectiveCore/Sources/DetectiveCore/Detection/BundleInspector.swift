@@ -1,7 +1,5 @@
 import Foundation
 
-/// Collects evidence from one app bundle. Each source is read at most once, and only when a
-/// rule asks for it, so `otool` and `strings` run only if needed.
 final class BundleInspector {
     let bundle: Bundle
 
@@ -17,7 +15,6 @@ final class BundleInspector {
     private lazy var resources = Self.itemNames(in: bundle.resourceURL)
     private lazy var plugIns = Self.itemNames(in: bundle.builtInPlugInsURL)
 
-    /// Install names of linked libraries, e.g. `@rpath/Electron Framework.framework/Electron Framework`.
     private lazy var linkedLibraries: [String] = {
         guard
             let executableURL,
@@ -25,8 +22,7 @@ final class BundleInspector {
         else {
             return []
         }
-        // Library lines are tab-indented and end with version info; the other lines name the
-        // binary itself or its architectures, and matching those would flag apps by their own names.
+        // Untabbed lines name the binary itself, which would match apps by their own names.
         return output
             .split(separator: "\n")
             .filter { $0.hasPrefix("\t") }
@@ -41,7 +37,6 @@ final class BundleInspector {
         return ProcessRunner.output(of: "/usr/bin/strings", arguments: [executableURL.path]) ?? ""
     }()
 
-    /// Returns the item that satisfies `evidence`, or `nil` if the bundle doesn't contain it.
     func match(_ evidence: Evidence) -> String? {
         switch evidence {
         case let .framework(pattern):

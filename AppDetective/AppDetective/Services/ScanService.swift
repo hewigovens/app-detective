@@ -24,10 +24,6 @@ struct ScanService {
         }
     }
 
-    /// Scans the given folder URL for .app bundles and reports child folders that could not be read.
-    /// - Parameter folderURL: The URL of the folder to scan. Assumes security scope access has already been started.
-    /// - Returns: A scan result containing found app URLs and skipped child directories.
-    /// - Throws: A ScanError if the selected root folder cannot be scanned.
     func scanWithDiagnostics(folderURL: URL) throws -> ScanResult {
         var isDir: ObjCBool = false
         guard FileManager.default.fileExists(atPath: folderURL.path, isDirectory: &isDir), isDir.boolValue else {

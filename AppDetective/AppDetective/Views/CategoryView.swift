@@ -41,7 +41,7 @@ struct CategoryView: View {
         .listStyle(.sidebar)
     }
 
-    /// The category and stack filters combine, so one row stays selected in each section.
+    // Category and stack filters combine, so each section keeps its own selected row.
     private var selection: Binding<Set<SidebarItem>> {
         Binding {
             selectedItems
