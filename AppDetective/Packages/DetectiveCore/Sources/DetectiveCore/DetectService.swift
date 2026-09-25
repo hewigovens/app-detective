@@ -1,330 +1,161 @@
 import Foundation
 import LSAppCategory
 
-public final class DetectService {
-    private let fileManager = FileManager.default
-
-    private let electronFrameworkNames = ["Electron Framework.framework"]
-    private let microsoftEdgeFrameworkNames = ["Microsoft Edge Framework.framework"]
-    private let cefFrameworkNames = ["Chromium Embedded Framework.framework"]
-
+/// Detects the UI technology stack and category of application bundles.
+public final class DetectService: Sendable {
     public init() {}
 
     // MARK: - Public API
 
-    /// Orchestrates the 6-step analysis of an app bundle to detect its tech stack.
+    /// Analyzes an app bundle and returns the tech stacks it is built with.
+    ///
+    /// Checks run cheapest first: bundled frameworks, bundled resources, linked libraries
+    /// (`otool -L`), and finally a `strings` scan of the executable when nothing else matched.
+    /// Standard macOS bundles and iOS apps wrapped for Apple silicon Macs are both supported.
+    /// - Parameter appURL: URL of the `.app` bundle.
+    /// - Returns: The detected stacks, or `.other` if the bundle can't be analyzed.
     public func detectStack(for appURL: URL) async -> TechStack {
-        var detectedStacks: TechStack = []
-
-        let (appToAnalyzeURL, iOSAppOnMac) = getAppUrlToAnalyze(appURL: appURL)
-
-        let contentsUrl = if iOSAppOnMac {
-            appToAnalyzeURL
-        } else {
-            appToAnalyzeURL.appendingPathComponent("Contents")
-        }
-        let executableDir = if iOSAppOnMac {
-            contentsUrl
-        } else {
-            contentsUrl.appendingPathComponent("MacOS")
-        }
-        let infoPlistUrl = contentsUrl.appendingPathComponent("Info.plist")
-        let frameworksPath = contentsUrl.appendingPathComponent("/Frameworks")
-        let resourcesPath = contentsUrl.appendingPathComponent("/Resources")
-
-        guard
-            let infoPlist = readInfoPlist(from: infoPlistUrl),
-            let executableName = infoPlist["CFBundleExecutable"] as? String,
-            let executableURL = findExecutable(
-                in: executableDir.path,
-                named: executableName
-            )
-        else {
+        // Bundle resolves the executable the same way LaunchServices does, including bundles
+        // without CFBundleExecutable (named after the bundle) and iOS `WrappedBundle` layouts.
+        guard let bundle = Bundle(url: appURL) else {
             return .other
         }
 
-        // Step 2: Framework directory analysis
-        let frameworkStacks = scanFrameworksDirectory(frameworksPath: frameworksPath.path)
-        detectedStacks.formUnion(frameworkStacks)
+        var stacks = Self.frameworkStacks(in: bundle.privateFrameworksURL)
+        stacks.formUnion(Self.resourceStacks(in: bundle.resourceURL))
 
-        // Step 3: Resource analysis
-        let resourceStacks = scanResourcesDirectory(resourcesPath: resourcesPath.path, currentStacks: detectedStacks)
-        detectedStacks.formUnion(resourceStacks)
-
-        // Step 4: Binary analysis (otool)
-        let otoolStacks = checkExecutableLibrariesWithOtool(executableURL: executableURL)
-        detectedStacks.formUnion(otoolStacks)
-
-        // Step 5: Strings fallback (only if nothing detected yet)
-        if detectedStacks.isEmpty {
-            let stringAnalysisStacks = checkStringsInExecutable(executableURL: executableURL)
-            detectedStacks.formUnion(stringAnalysisStacks)
+        if let executableURL = bundle.executableURL {
+            stacks.formUnion(Self.linkedLibraryStacks(of: executableURL))
+            if stacks.isEmpty {
+                stacks.formUnion(Self.embeddedStringStacks(of: executableURL))
+            }
+        } else if stacks.isEmpty {
+            return .other
         }
 
-        // Step 6: Conflict resolution and final inference
-        let finalResolvedStacks = resolveConflictsAndFallback(
-            currentStacks: detectedStacks,
-            appURL: appToAnalyzeURL,
-            resourcesPath: resourcesPath.path,
-            infoPlist: infoPlist
-        )
-
-        return finalResolvedStacks
+        return Self.resolve(stacks)
     }
 
+    /// Reads the app category from `LSApplicationCategoryType`, falling back to the
+    /// App Store metadata that accompanies iOS apps installed on the Mac.
+    /// - Parameter appURL: URL of the `.app` bundle.
+    /// - Returns: The app category, or `.other` if none is declared.
     public func extractCategory(from appURL: URL) -> AppCategory {
-        let (resolvedURL, _) = getAppUrlToAnalyze(appURL: appURL)
-        let contentsInfoPlist = resolvedURL.appendingPathComponent("Contents/Info.plist")
-        let rootInfoPlist = resolvedURL.appendingPathComponent("Info.plist")
-        let metadataPlistPath = appURL.appendingPathComponent("Wrapper/iTunesMetadata.plist")
+        if let categoryType = Bundle(url: appURL)?.object(forInfoDictionaryKey: "LSApplicationCategoryType") as? String {
+            return AppCategory(string: categoryType)
+        }
 
-        if let infoPlist = readInfoPlist(from: contentsInfoPlist) ?? readInfoPlist(from: rootInfoPlist),
-           let categoryType = infoPlist["LSApplicationCategoryType"] as? String?
-        {
-            return AppCategory(string: categoryType)
-        } else if
-            let metadataPlist = readInfoPlist(from: metadataPlistPath),
-            let categories = metadataPlist["categories"] as? [String],
-            let categoryType = categories.first
-        {
-            return AppCategory(string: categoryType)
+        var metadataURLs = [appURL.appendingPathComponent("Wrapper/iTunesMetadata.plist")]
+        let parentURL = appURL.deletingLastPathComponent()
+        if parentURL.lastPathComponent == "Wrapper" {
+            metadataURLs.append(parentURL.appendingPathComponent("iTunesMetadata.plist"))
+        }
+
+        for metadataURL in metadataURLs {
+            if
+                let metadata = NSDictionary(contentsOf: metadataURL),
+                let categoryType = (metadata["categories"] as? [String])?.first
+            {
+                return AppCategory(string: categoryType)
+            }
         }
 
         return .other
     }
 
+    // MARK: - Signatures
+
+    private typealias NameSignature = (stack: TechStack, matches: @Sendable (String) -> Bool)
+    private typealias TextSignature = (stack: TechStack, markers: [String])
+
+    /// Matched against item names in the bundle's Frameworks directory.
+    private static let frameworkSignatures: [NameSignature] = [
+        (.electron, { $0 == "Electron Framework.framework" }),
+        (.microsoftEdge, { $0 == "Microsoft Edge Framework.framework" }),
+        (.cef, { $0 == "Chromium Embedded Framework.framework" }),
+        (.flutter, { $0.contains("Flutter") }),
+        (.xamarin, { $0.contains("Xamarin") || $0.contains("Microsoft.Maui") || $0.contains("MonoBundle") }),
+        (.python, { $0.hasSuffix(".framework") && $0.lowercased().contains("python") }),
+        (.qt, { $0.hasPrefix("Qt") && $0.hasSuffix(".framework") }),
+    ]
+
+    /// Matched against the install names of libraries the executable links.
+    private static let linkedLibrarySignatures: [TextSignature] = [
+        (.swiftUI, ["SwiftUI"]),
+        (.catalyst, ["/System/iOSSupport/System/Library/Frameworks/UIKit.framework"]),
+        (.appKit, ["/System/Library/Frameworks/Cocoa.framework", "/usr/lib/swift/libswiftAppKit.dylib"]),
+        (.electron, ["Electron", "libnode"]),
+        (.cef, ["Chromium Embedded Framework", "libcef"]),
+        (.python, ["Python", "libpython"]),
+        (.qt, ["QtCore", "QtGui"]),
+        (.wxWidgets, ["wxWidgets", "libwx_"]),
+        (.java, ["libjvm", "JavaVM", "JavaNativeFoundation"]),
+        (.xamarin, ["libmono", "libcoreclr", "Microsoft.Maui"]),
+        (.flutter, ["Flutter"]),
+        (.reactNative, ["React Native", "libjsi", "libhermes"]),
+        (.gtk, ["libgtk", "libgdk"]),
+    ]
+
+    /// Matched against printable strings in the executable, for stacks that are statically linked.
+    private static let embeddedStringSignatures: [TextSignature] = [
+        (.java, ["java/lang"]),
+        (.gpui, ["gpui::", "/gpui/"]),
+        (.tauri, ["tauri"]),
+        (.wxWidgets, ["wx_main"]),
+        (.iced, ["iced_wgpu"]),
+    ]
+
     // MARK: - Detection Steps
 
-    /// Step 1: Resolves the actual app URL, handling iOS-on-Mac wrapped bundles.
-    public func getAppUrlToAnalyze(appURL: URL) -> (URL, Bool) {
-        let wrappedBundleUrl = appURL.appendingPathComponent("WrappedBundle")
-        let path = wrappedBundleUrl.path
-
-        guard fileManager.fileExists(atPath: path) else {
-            return (appURL, false)
+    private static func frameworkStacks(in frameworksURL: URL?) -> TechStack {
+        let names = frameworksURL.flatMap { try? FileManager.default.contentsOfDirectory(atPath: $0.path) } ?? []
+        var stacks: TechStack = []
+        for signature in frameworkSignatures where names.contains(where: signature.matches) {
+            stacks.insert(signature.stack)
         }
-
-        let fullResolved = URL(fileURLWithPath: path).resolvingSymlinksInPath()
-        return (fullResolved, true)
+        return stacks
     }
 
-    /// Step 2: Scans the Frameworks directory for known framework signatures.
-    public func scanFrameworksDirectory(frameworksPath: String) -> TechStack {
-        var detectedStacks: TechStack = []
-
-        guard fileManager.fileExists(atPath: frameworksPath) else {
-            return detectedStacks
-        }
-
-        let electronIndicators = ["Electron Framework.framework"]
-        let microsoftEdgeIndicators = ["Microsoft Edge Framework.framework"]
-        let cefIndicators = ["Chromium Embedded Framework.framework"]
-        let flutterSpecificFrameworks = ["FlutterMacOS.framework"]
-
-        do {
-            let frameworkItems = try fileManager.contentsOfDirectory(atPath: frameworksPath)
-
-            for item in frameworkItems {
-                if electronIndicators.contains(item) { detectedStacks.insert(.electron) }
-                if microsoftEdgeIndicators.contains(item) { detectedStacks.insert(.microsoftEdge) }
-                if cefIndicators.contains(item) { detectedStacks.insert(.cef) }
-                if flutterSpecificFrameworks.contains(item) || item.contains("Flutter") { detectedStacks.insert(.flutter) }
-                if item.contains("Xamarin") || item.contains("Microsoft.Maui") || item.contains("MonoBundle") { detectedStacks.insert(.xamarin) }
-                if item == "Python.framework" || (item.lowercased().contains("python") && item.hasSuffix(".framework")) { detectedStacks.insert(.python) }
-                if item.starts(with: "Qt") && item.hasSuffix(".framework") { detectedStacks.insert(.qt) }
-            }
-        } catch {
-            print("[DetectService] Error reading Frameworks directory: \(error.localizedDescription)")
-        }
-
-        return detectedStacks
+    private static func resourceStacks(in resourcesURL: URL?) -> TechStack {
+        let names = resourcesURL.flatMap { try? FileManager.default.contentsOfDirectory(atPath: $0.path) } ?? []
+        let hasJSBundle = names.contains { $0 == "index.bundle" || $0.lowercased().hasSuffix(".jsbundle") }
+        return hasJSBundle ? .reactNative : []
     }
 
-    /// Step 3: Selective resource analysis (React Native bundles, etc.).
-    private func scanResourcesDirectory(resourcesPath: String, currentStacks: TechStack) -> TechStack {
-        var detectedStacks: TechStack = []
-
-        guard fileManager.fileExists(atPath: resourcesPath) else {
-            return detectedStacks
-        }
-
-        if !currentStacks.contains(.reactNative) {
-            if fileManager.fileExists(atPath: resourcesPath.appending("/main.jsbundle")) ||
-                fileManager.fileExists(atPath: resourcesPath.appending("/index.bundle")) ||
-                directoryContains(path: resourcesPath, extensions: ["jsbundle"])
-            {
-                detectedStacks.insert(.reactNative)
-            }
-        }
-
-        return detectedStacks
-    }
-
-    /// Step 4: Binary analysis via otool -L.
-    private func checkExecutableLibrariesWithOtool(executableURL: URL) -> TechStack {
-        var detectedStacks: TechStack = []
-        let pipe = Pipe()
-        let errorPipe = Pipe()
-        let process = Process()
-        process.launchPath = "/usr/bin/otool"
-        process.arguments = ["-L", executableURL.path]
-        process.standardOutput = pipe
-        process.standardError = errorPipe
-
-        do {
-            try process.run()
-            process.waitUntilExit()
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-
-            if let output = String(data: data, encoding: .utf8) {
-                // Native frameworks
-                if output.contains("SwiftUI") { detectedStacks.insert(.swiftUI) }
-                if output.contains("/System/iOSSupport/System/Library/Frameworks/UIKit.framework") { detectedStacks.insert(.catalyst) }
-                if output.contains("/System/Library/Frameworks/Cocoa.framework") ||
-                    output.contains("/usr/lib/swift/libswiftAppKit.dylib") {
-                    detectedStacks.insert(.appKit)
-                }
-
-                // Cross-platform frameworks
-                if output.contains("Electron") || output.contains("Chromium") || output.contains("libnode") { detectedStacks.insert(.electron) }
-                if cefFrameworkNames.contains(where: output.contains) || output.contains("libcef") { detectedStacks.insert(.cef) }
-                if output.contains("Python") || output.contains("libpython") { detectedStacks.insert(.python) }
-                if output.contains("QtCore") || output.contains("QtGui") { detectedStacks.insert(.qt) }
-                if output.contains("wxWidgets") || output.contains("libwx_") { detectedStacks.insert(.wxWidgets) }
-                if output.contains("libjvm") || output.contains("JavaVM") || output.contains("JavaNativeFoundation") { detectedStacks.insert(.java) }
-                if output.contains("libmono") || output.contains("libcoreclr") || output.contains("Microsoft.Maui") { detectedStacks.insert(.xamarin) }
-                if output.contains("Flutter") { detectedStacks.insert(.flutter) }
-                if output.contains("React Native") || output.contains("libjsi") || output.contains("libhermes") { detectedStacks.insert(.reactNative) }
-                if output.contains("libgtk") || output.contains("libgdk") { detectedStacks.insert(.gtk) }
-            }
-        } catch {
-            print("[DetectService] Error running otool: \(error)")
-        }
-        return detectedStacks
-    }
-
-    private func runStrings(executableURL: URL, timeout: TimeInterval = 10.0) -> String? {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/strings")
-        process.arguments = [executableURL.path]
-
-        let pipe = Pipe()
-        process.standardOutput = pipe
-
-        var outputData = Data()
-        let handle = pipe.fileHandleForReading
-        handle.readabilityHandler = { fh in
-            let chunk = fh.availableData
-            if chunk.isEmpty {
-                fh.readabilityHandler = nil
-            } else {
-                outputData.append(chunk)
-            }
-        }
-
-        let group = DispatchGroup()
-        group.enter()
-        process.terminationHandler = { _ in group.leave() }
-
-        do {
-            try process.run()
-        } catch {
-            print("[DetectService] Failed to launch strings: \(error)")
-            return nil
-        }
-
-        let result = group.wait(timeout: .now() + timeout)
-        if result == .timedOut {
-            process.terminate()
-            return nil
-        }
-
-        return String(data: outputData, encoding: .utf8)
-    }
-
-    /// Step 5: Strings analysis for patterns not detectable by otool (Tauri, wxWidgets, GPUI, Iced).
-    private func checkStringsInExecutable(executableURL: URL) -> TechStack {
-        guard let stringsOutput = runStrings(executableURL: executableURL, timeout: 10) else {
+    private static func linkedLibraryStacks(of executableURL: URL) -> TechStack {
+        guard let output = ProcessRunner.output(of: "/usr/bin/otool", arguments: ["-L", executableURL.path]) else {
             return []
         }
-
-        var detectedStacks: TechStack = []
-
-        if stringsOutput.contains("java/lang") { detectedStacks.insert(.java) }
-        if stringsOutput.contains("gpui::") || stringsOutput.contains("/gpui/") { detectedStacks.insert(.gpui) }
-        if stringsOutput.contains("tauri") { detectedStacks.insert(.tauri) }
-        if stringsOutput.contains("wx_main") { detectedStacks.insert(.wxWidgets) }
-        if stringsOutput.contains("iced_wgpu") { detectedStacks.insert(.iced) }
-
-        return detectedStacks
+        // Library lines are tab-indented; other lines name the binary itself or its architectures,
+        // and matching those would flag apps by their own names (e.g. "Python Launcher").
+        let libraries = output
+            .split(separator: "\n")
+            .filter { $0.hasPrefix("\t") }
+            .joined(separator: "\n")
+        return match(libraries, against: linkedLibrarySignatures)
     }
 
-    /// Step 6: Resolves conflicts between detected stacks and applies fallback logic.
-    private func resolveConflictsAndFallback(currentStacks: TechStack, appURL: URL, resourcesPath: String, infoPlist: [String: Any]?) -> TechStack {
-        var resolvedStacks = currentStacks
-
-        if directoryContains(path: resourcesPath, extensions: ["nib", "storyboardc"]) {
-            resolvedStacks.insert(.appKit)
+    private static func embeddedStringStacks(of executableURL: URL) -> TechStack {
+        guard let output = ProcessRunner.output(of: "/usr/bin/strings", arguments: [executableURL.path]) else {
+            return []
         }
+        return match(output, against: embeddedStringSignatures)
+    }
 
-        // Remove AppKit if more than 2 major stacks detected (likely a false positive)
-        if resolvedStacks.toArray.count > 2 {
-            resolvedStacks.remove(.appKit)
-        }
-
-        if resolvedStacks.isEmpty {
-            resolvedStacks.insert(.appKit)
-        }
-
-        return resolvedStacks
+    /// Every Mac UI stack sits on AppKit, so AppKit is reported only when nothing more specific
+    /// was found — including when nothing was found at all.
+    private static func resolve(_ stacks: TechStack) -> TechStack {
+        let specific = stacks.subtracting(.appKit)
+        return specific.isEmpty ? .appKit : specific
     }
 
     // MARK: - Helpers
 
-    private func directoryContains(path: String, extensions: [String]) -> Bool {
-        guard fileManager.fileExists(atPath: path) else { return false }
-        do {
-            let items = try fileManager.contentsOfDirectory(atPath: path)
-            for item in items {
-                for ext in extensions {
-                    if item.lowercased().hasSuffix(".\(ext.lowercased())") {
-                        return true
-                    }
-                }
-            }
-        } catch {
-            print("[DetectService] Error reading directory \(path): \(error.localizedDescription)")
+    private static func match(_ text: String, against signatures: [TextSignature]) -> TechStack {
+        var stacks: TechStack = []
+        for signature in signatures where signature.markers.contains(where: text.contains) {
+            stacks.insert(signature.stack)
         }
-        return false
-    }
-
-    private func readInfoPlist(from infoPlist: URL) -> [String: Any]? {
-        do {
-            guard let plistData = try? Data(contentsOf: infoPlist) else {
-                return nil
-            }
-            return try PropertyListSerialization.propertyList(from: plistData, options: [], format: nil) as? [String: Any]
-        } catch {
-            print("[DetectService] Error parsing Info.plist at \(infoPlist.path): \(error.localizedDescription)")
-            return nil
-        }
-    }
-
-    private func findExecutable(in directoryPath: String, named executableName: String) -> URL? {
-        let directoryURL = URL(fileURLWithPath: directoryPath)
-        do {
-            let directoryContents = try fileManager.contentsOfDirectory(at: directoryURL, includingPropertiesForKeys: nil, options: .skipsHiddenFiles)
-            if let executableURL = directoryContents.first(where: { $0.lastPathComponent == executableName }) {
-                return executableURL
-            }
-            for item in directoryContents {
-                if item.pathExtension == "app" || item.pathExtension == "dylib" || item.pathExtension == "framework" {
-                    return item
-                }
-            }
-        } catch {
-            print("[DetectService] Error finding executable in \(directoryPath): \(error.localizedDescription)")
-        }
-        return nil
+        return stacks
     }
 }

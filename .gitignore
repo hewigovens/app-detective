@@ -6,3 +6,4 @@ xcuserdata
 
 build/
 AppDetective/AppDetective.xcodeproj/
+.build/

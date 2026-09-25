@@ -181,7 +181,7 @@ class ContentViewModel: ObservableObject {
                         guard let self = self else { return nil }
                         let appName = url.deletingPathExtension().lastPathComponent
                         let detectedStack = await self.detectService.detectStack(for: url)
-                        let category = await self.detectService.extractCategory(from: url)
+                        let category = self.detectService.extractCategory(from: url)
                         let bundleId = Bundle(url: url)?.bundleIdentifier
                         let appInfo = AppInfo(name: appName, path: url.path, bundleId: bundleId, techStacks: detectedStack, category: category)
                         return appInfo

@@ -89,6 +89,7 @@ targets:
         dependencies:
             - target: AppDetective
             - package: DetectiveCore
+            - package: LSAppCategory
         settings:
             base:
                 BUNDLE_LOADER: "$(TEST_HOST)"

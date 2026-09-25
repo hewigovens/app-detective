@@ -53,20 +53,11 @@ public struct TechStack: OptionSet, Codable, Hashable, Sendable {
         Self.other.rawValue: "Other",
     ]
 
+    /// Sorted display names of every stack in the set.
     public var displayNames: [String] {
-        var names: [String] = []
-        for (rawKey, value) in Self.flagNames {
-            let key = TechStack(rawValue: rawKey)
-            if self.contains(key) {
-                names.append(value)
-            }
-        }
-        return names.sorted()
-    }
-
-    public var toArray: [TechStack] {
-        Self.flagNames.enumerated().map { key, _ in
-            TechStack(rawValue: key)
-        }
+        Self.flagNames
+            .filter { contains(TechStack(rawValue: $0.key)) }
+            .map(\.value)
+            .sorted()
     }
 }
