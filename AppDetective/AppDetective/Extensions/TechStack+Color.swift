@@ -7,6 +7,7 @@ extension TechStack {
         case .swiftUI: return Color.orange
         case .appKit: return Color.blue
         case .catalyst: return Color.purple
+        case .uiKit: return Color.indigo
         case .electron: return Color.cyan
         case .cef: return Color(hex: "#3498db")
         case .python: return Color(hex: "#336c9d")

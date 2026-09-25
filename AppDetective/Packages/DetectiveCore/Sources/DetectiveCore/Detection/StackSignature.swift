@@ -36,7 +36,7 @@ public enum Evidence: Sendable, CustomStringConvertible {
     case plugIn(Pattern)
     case file(String) // Relative to the bundle root, e.g. "Contents/MonoBundle".
     case linkedLibrary(Pattern)
-    case embeddedString(String) // Runs `strings`, so only evaluated when nothing else matched.
+    case embeddedString(String) // Runs `strings`, so only evaluated when no cross-platform stack matched.
 
     public var description: String {
         switch self {

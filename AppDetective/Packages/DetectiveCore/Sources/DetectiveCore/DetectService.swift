@@ -2,10 +2,20 @@ import Foundation
 import LSAppCategory
 
 public final class DetectService: Sendable {
+    // Bump when detection logic outside the catalog changes; catalog edits change `version` on their own.
+    private static let engineVersion = 2
+
     private let signatures: [StackSignature]
+
+    /// Identifies these rules, so results saved under a different version can be discarded.
+    public let version: String
 
     public init(signatures: [StackSignature] = StackSignature.catalog) {
         self.signatures = signatures
+        let ruleText = signatures
+            .flatMap { signature in signature.rules.map { "\(signature.stack.rawValue) \($0.evidence) \($0.confidence.rawValue)" } }
+            .joined(separator: "\n")
+        version = "\(Self.engineVersion)-\(String(Self.fnv1a(ruleText), radix: 16))"
     }
 
     public func detectStack(for appURL: URL) async -> TechStack {
@@ -20,7 +30,7 @@ public final class DetectService: Sendable {
         let inspector = BundleInspector(bundle: bundle)
 
         var matches = evaluate(inspector, embeddedStrings: false)
-        if Self.confidentStacks(in: matches).isEmpty, inspector.executableURL != nil {
+        if Self.confidentStacks(in: matches).isDisjoint(with: .crossPlatform), inspector.executableURL != nil {
             matches += evaluate(inspector, embeddedStrings: true)
         }
 
@@ -67,6 +77,11 @@ public final class DetectService: Sendable {
         }
     }
 
+    // Stable across launches, unlike `hashValue`.
+    private static func fnv1a(_ text: String) -> UInt64 {
+        text.utf8.reduce(14_695_981_039_346_656_037) { ($0 ^ UInt64($1)) &* 1_099_511_628_211 }
+    }
+
     private static func confidentStacks(in matches: [Match]) -> TechStack {
         let scores = matches.reduce(into: [TechStack: Int]()) { scores, match in
             scores[match.stack, default: 0] += match.rule.confidence.rawValue
@@ -74,9 +89,12 @@ public final class DetectService: Sendable {
         return TechStack(scores.filter { $0.value >= Confidence.reportingThreshold }.keys)
     }
 
-    // Every Mac UI stack sits on AppKit, so report it only when nothing more specific was found.
+    // AppKit and UIKit underlie every other UI stack, so report them only when nothing more specific was found.
     private static func resolve(_ stacks: TechStack) -> TechStack {
-        let specific = stacks.subtracting(.appKit)
-        return specific.isEmpty ? .appKit : specific
+        let specific = stacks.subtracting([.appKit, .uiKit])
+        if !specific.isEmpty {
+            return specific
+        }
+        return stacks.contains(.uiKit) ? .uiKit : .appKit
     }
 }

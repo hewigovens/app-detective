@@ -11,6 +11,10 @@ extension StackSignature {
             .strong(.linkedLibrary(.contains("/Cocoa.framework/"))),
             .strong(.linkedLibrary(.suffix("/libswiftAppKit.dylib"))),
         ]),
+        StackSignature(.uiKit, [
+            // macOS has no UIKit at this path; only iOS binaries link it.
+            .strong(.linkedLibrary(.prefix("/System/Library/Frameworks/UIKit.framework/"))),
+        ]),
         StackSignature(.catalyst, [
             .strong(.linkedLibrary(.prefix("/System/iOSSupport/System/Library/Frameworks/UIKit.framework/"))),
         ]),
