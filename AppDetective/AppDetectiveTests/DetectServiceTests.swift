@@ -1,4 +1,4 @@
-import DetectiveCore
+@testable import DetectiveCore
 import Foundation
 import LSAppCategory
 import Testing
@@ -159,57 +159,30 @@ struct DetectServiceTests {
         #expect(detectService.extractCategory(from: outerURL) == .productivity)
         #expect(detectService.extractCategory(from: innerURL) == .productivity)
     }
-}
 
-private struct FakeApp {
-    let url: URL
+    @Test("UIKit, like AppKit, is reported only when nothing more specific is found")
+    func uiKitIsBaseline() throws {
+        let app = try FakeApp(contents: ["UIKitMarker", "SwiftUIMarker"])
+        defer { app.remove() }
+        let uiKitRule = StackSignature(.uiKit, [.strong(.file("Contents/UIKitMarker"))])
+        let swiftUIRule = StackSignature(.swiftUI, [.strong(.file("Contents/SwiftUIMarker"))])
 
-    init(
-        frameworks: [String] = [],
-        resources: [String] = [],
-        contents: [String] = [],
-        declaresExecutable: Bool = true,
-        category: String? = nil
-    ) throws {
-        let fileManager = FileManager.default
-        let name = "Fake\(UUID().uuidString.prefix(8))"
-        url = try makeTempDirectory().appendingPathComponent("\(name).app")
-
-        let contentsURL = url.appendingPathComponent("Contents")
-        let macOSURL = contentsURL.appendingPathComponent("MacOS")
-        try fileManager.createDirectory(at: macOSURL, withIntermediateDirectories: true)
-        // A Mach-O that links only libSystem.
-        try fileManager.copyItem(atPath: "/usr/bin/true", toPath: macOSURL.appendingPathComponent(name).path)
-
-        var info: [String: Any] = ["CFBundleIdentifier": "test.\(name)", "CFBundlePackageType": "APPL"]
-        if declaresExecutable {
-            info["CFBundleExecutable"] = name
-        }
-        if let category {
-            info["LSApplicationCategoryType"] = category
-        }
-        try writePlist(info, to: contentsURL.appendingPathComponent("Info.plist"))
-
-        // Rules only check existence, so directories suffice.
-        let items = frameworks.map { "Frameworks/\($0)" } + resources.map { "Resources/\($0)" } + contents
-        for item in items {
-            try fileManager.createDirectory(at: contentsURL.appendingPathComponent(item), withIntermediateDirectories: true)
-        }
+        #expect(DetectService(signatures: [uiKitRule]).detect(app.url).stacks == .uiKit)
+        #expect(DetectService(signatures: [uiKitRule, swiftUIRule]).detect(app.url).stacks == .swiftUI)
     }
 
-    func remove() {
-        try? FileManager.default.removeItem(at: url.deletingLastPathComponent())
+    @Test("Rules version changes when the rules change")
+    func versionTracksRules() {
+        let rules = [StackSignature(.gtk, [.strong(.file("A"))])]
+        let changed = [StackSignature(.gtk, [.weak(.file("A"))])]
+
+        #expect(DetectService(signatures: rules).version == DetectService(signatures: rules).version)
+        #expect(DetectService(signatures: rules).version != DetectService(signatures: changed).version)
     }
-}
 
-private func makeTempDirectory() throws -> URL {
-    let url = URL(fileURLWithPath: NSTemporaryDirectory())
-        .appendingPathComponent("AppDetectiveTests_\(UUID().uuidString)")
-    try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
-    return url
-}
-
-private func writePlist(_ plist: [String: Any], to url: URL) throws {
-    let data = try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
-    try data.write(to: url)
+    @Test("ProcessRunner returns nil when a tool exceeds its timeout")
+    func processRunnerTimesOut() {
+        #expect(ProcessRunner.output(of: "/bin/sleep", arguments: ["5"], timeout: 0.2) == nil)
+        #expect(ProcessRunner.output(of: "/bin/echo", arguments: ["hi"]) == "hi\n")
+    }
 }

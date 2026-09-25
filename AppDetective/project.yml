@@ -72,6 +72,8 @@ targets:
         settings:
             base:
                 PRODUCT_NAME: appdetective
+                # The binary's name would otherwise collide with the app's module on case-insensitive disks.
+                PRODUCT_MODULE_NAME: AppDetectiveCLI
                 CODE_SIGN_STYLE: Automatic
                 CODE_SIGN_IDENTITY: "-"
                 ENABLE_HARDENED_RUNTIME: NO
