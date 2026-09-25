@@ -6,96 +6,70 @@ struct CategoryView: View {
     @ObservedObject var viewModel: CategoryViewModel
 
     var body: some View {
-        List {
+        List(selection: selection) {
             Section("Categories") {
-                FilterRow(
-                    title: "All Apps",
-                    count: viewModel.apps.count,
-                    isSelected: viewModel.selectedCategory == nil
-                ) {
-                    categoryIcon("square.grid.2x2")
-                } action: {
-                    viewModel.selectedCategory = nil
-                }
+                Label("All Apps", systemImage: "square.grid.2x2")
+                    .badge(viewModel.apps.count)
+                    .tag(SidebarItem.allCategories)
 
                 ForEach(viewModel.sortedCategories) { category in
-                    FilterRow(
-                        title: category.description,
-                        count: viewModel.categoryCounts[category] ?? 0,
-                        isSelected: viewModel.selectedCategory == category
-                    ) {
-                        categoryIcon(category.sfSymbol)
-                    } action: {
-                        viewModel.selectedCategory = category
-                    }
+                    Label(category.description, systemImage: category.sfSymbol)
+                        .badge(viewModel.categoryCounts[category] ?? 0)
+                        .tag(SidebarItem.category(category))
                 }
             }
 
             Section("Tech Stacks") {
-                FilterRow(title: "All", count: nil, isSelected: viewModel.selectedTechStack == nil) {
-                    EmptyView()
-                } action: {
-                    viewModel.selectedTechStack = nil
-                }
+                Label("All Stacks", systemImage: "square.stack.3d.up")
+                    .tag(SidebarItem.allStacks)
 
                 ForEach(TechStack.allStacks, id: \.self) { stack in
                     if let count = viewModel.stackCounts[stack], count > 0 {
-                        FilterRow(
-                            title: stack.displayName,
-                            count: count,
-                            isSelected: viewModel.selectedTechStack == stack
-                        ) {
+                        Label {
+                            Text(stack.displayName)
+                        } icon: {
                             Circle()
                                 .fill(stack.mainColor)
-                                .frame(width: 12, height: 12)
-                        } action: {
-                            viewModel.selectedTechStack = stack
+                                .frame(width: 9, height: 9)
                         }
+                        .badge(count)
+                        .tag(SidebarItem.stack(stack))
                     }
                 }
             }
         }
         .listStyle(.sidebar)
-        .animation(.easeInOut(duration: 0.2), value: viewModel.selectedCategory)
-        .animation(.easeInOut(duration: 0.2), value: viewModel.selectedTechStack)
     }
 
-    private func categoryIcon(_ systemName: String) -> some View {
-        Image(systemName: systemName)
-            .font(.system(size: 12))
-            .frame(width: 16)
+    /// The category and stack filters combine, so one row stays selected in each section.
+    private var selection: Binding<Set<SidebarItem>> {
+        Binding {
+            selectedItems
+        } set: { items in
+            for item in items.subtracting(selectedItems) {
+                switch item {
+                case .allCategories: viewModel.selectedCategory = nil
+                case let .category(category): viewModel.selectedCategory = category
+                case .allStacks: viewModel.selectedTechStack = nil
+                case let .stack(stack): viewModel.selectedTechStack = stack
+                }
+            }
+        }
+    }
+
+    private var selectedItems: Set<SidebarItem> {
+        [
+            viewModel.selectedCategory.map(SidebarItem.category) ?? .allCategories,
+            viewModel.selectedTechStack.map(SidebarItem.stack) ?? .allStacks,
+        ]
     }
 }
 
-private struct FilterRow<Icon: View>: View {
-    let title: String
-    let count: Int?
-    let isSelected: Bool
-    @ViewBuilder let icon: () -> Icon
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                icon()
-                Text(title)
-                    .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
-                Spacer()
-                if let count {
-                    Text("\(count)")
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Capsule().fill(Color.secondary.opacity(0.2)))
-                }
-            }
-            .contentShape(Rectangle())
-            .padding(.vertical, 2)
-        }
-        .buttonStyle(.plain)
-        .listRowBackground(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
-    }
+private enum SidebarItem: Hashable {
+    case allCategories
+    case category(AppCategory)
+    case allStacks
+    case stack(TechStack)
 }
 
 #Preview {

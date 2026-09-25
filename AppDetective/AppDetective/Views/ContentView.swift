@@ -68,16 +68,10 @@ struct ContentView: View {
         }
     }
 
-    @ViewBuilder
     private var sidebar: some View {
-        let sidebar = CategoryView(viewModel: categoryViewModel)
+        CategoryView(viewModel: categoryViewModel)
             .navigationTitle("Filters")
-            .navigationSplitViewColumnWidth(220)
-        if #available(macOS 15.0, *) {
-            sidebar.containerBackground(.ultraThinMaterial, for: .window)
-        } else {
-            sidebar
-        }
+            .navigationSplitViewColumnWidth(min: 200, ideal: 230)
     }
 
     @ToolbarContentBuilder
