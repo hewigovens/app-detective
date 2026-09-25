@@ -9,6 +9,7 @@ struct ContentView: View {
     }
 
     var body: some View {
+        @Bindable var viewModel = viewModel
         @Bindable var categoryViewModel = categoryViewModel
 
         NavigationSplitView {
@@ -32,6 +33,10 @@ struct ContentView: View {
             .navigationSubtitle(subtitle)
             .searchable(text: $categoryViewModel.searchText, prompt: "Name or bundle ID")
             .toolbar { toolbar }
+            .inspector(isPresented: $viewModel.isShowingInspector) {
+                AppDetailView(app: categoryViewModel.selectedApp)
+                    .inspectorColumnWidth(min: 280, ideal: 340, max: 520)
+            }
             .frame(minWidth: 500, minHeight: 400)
         }
     }
@@ -55,7 +60,8 @@ struct ContentView: View {
         } else if categoryViewModel.filteredApps.isEmpty {
             ContentUnavailableView.search(text: categoryViewModel.searchText)
         } else {
-            List(categoryViewModel.filteredApps) { app in
+            @Bindable var categoryViewModel = categoryViewModel
+            List(categoryViewModel.filteredApps, selection: $categoryViewModel.selectedAppID) { app in
                 AppListCell(appInfo: app)
             }
         }
@@ -95,6 +101,11 @@ struct ContentView: View {
             }
             .help("Clear the cache and rescan")
             .disabled(viewModel.isLoading)
+
+            Button("Inspector", systemImage: "sidebar.trailing") {
+                viewModel.isShowingInspector.toggle()
+            }
+            .help("Show or hide the selected app's details")
         }
     }
 }

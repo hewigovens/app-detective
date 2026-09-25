@@ -7,6 +7,7 @@ struct CachedApp: Codable, Sendable {
     let fingerprint: Date? // Info.plist modification date; changes when the app is updated.
     let detectorVersion: String
     let bundleId: String?
+    let version: String?
     let stacks: TechStack
     let possibleStacks: TechStack
     let evidence: [StackEvidence]
@@ -34,10 +35,12 @@ enum AppAnalyzer {
         }
 
         let detection = detectService.detect(url)
+        let bundle = Bundle(url: url)
         return CachedApp(
             fingerprint: fingerprint,
             detectorVersion: detectService.version,
-            bundleId: Bundle(url: url)?.bundleIdentifier,
+            bundleId: bundle?.bundleIdentifier,
+            version: bundle.flatMap(version(of:)),
             stacks: detection.stacks,
             possibleStacks: detection.possibleStacks,
             evidence: detection.matches.map {
@@ -52,6 +55,17 @@ enum AppAnalyzer {
             iconData: isUnchanged ? cached?.iconData : iconData(forAppAt: url.path),
             size: isUnchanged ? cached?.size : BundleMetrics.size(at: url).map(BundleMetrics.format(bytes:))
         )
+    }
+
+    private static func version(of bundle: Bundle) -> String? {
+        let short = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+        let build = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+        switch (short, build) {
+        case let (short?, build?) where short != build: return "\(short) (\(build))"
+        case let (short?, _): return short
+        case let (nil, build?): return build
+        case (nil, nil): return nil
+        }
     }
 
     private static func fingerprint(of appURL: URL) -> Date? {

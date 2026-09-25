@@ -50,4 +50,24 @@ final class AppDetectiveUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["scan-warning-message"].waitForExistence(timeout: 5), app.debugDescription)
         XCTAssertFalse(app.staticTexts["scan-error-message"].exists, app.debugDescription)
     }
+
+    @MainActor
+    func testInspectorShowsSelectedApp() throws {
+        let scanFolderURL = try XCTUnwrap(scanFolderURL)
+        let app = XCUIApplication()
+        app.launchArguments = ["-ApplePersistenceIgnoreState", "YES", "--scan-folder", scanFolderURL.path]
+
+        app.launch()
+        app.activate()
+        XCTAssertTrue(app.staticTexts["Readable"].waitForExistence(timeout: 15), app.debugDescription)
+
+        app.typeKey("i", modifierFlags: [.command, .option])
+        XCTAssertTrue(app.staticTexts["No Selection"].waitForExistence(timeout: 5), app.debugDescription)
+
+        app.staticTexts["Readable"].click()
+        XCTAssertTrue(app.staticTexts["Bundle ID"].waitForExistence(timeout: 5), app.debugDescription)
+        // The temporary folder is reported under /private, so match on the bundle name only.
+        let path = app.staticTexts.matching(NSPredicate(format: "value ENDSWITH %@", "/Readable.app")).firstMatch
+        XCTAssertTrue(path.exists, app.debugDescription)
+    }
 }

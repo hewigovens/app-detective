@@ -6,6 +6,7 @@ struct AppInfo: Identifiable, Hashable, Sendable {
     let name: String
     let path: String
     let bundleId: String?
+    var version: String?
     let techStacks: TechStack
     var possibleStacks: TechStack = []
     var evidence: [StackEvidence] = []
@@ -23,6 +24,7 @@ extension AppInfo {
             name: url.deletingPathExtension().lastPathComponent,
             path: url.path,
             bundleId: analysis.bundleId,
+            version: analysis.version,
             techStacks: analysis.stacks,
             possibleStacks: analysis.possibleStacks,
             evidence: analysis.evidence,

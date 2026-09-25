@@ -6,6 +6,7 @@ enum ResultsExporter {
         let name: String
         let path: String
         let bundleId: String?
+        let version: String?
         let category: String
         let stacks: [String]
         let possibleStacks: [String]
@@ -15,6 +16,7 @@ enum ResultsExporter {
             name = app.name
             path = app.path
             bundleId = app.bundleId
+            version = app.version
             category = app.category.description
             stacks = app.techStacks.displayNames
             possibleStacks = app.possibleStacks.displayNames
@@ -29,12 +31,13 @@ enum ResultsExporter {
     }
 
     static func csv(_ apps: [AppInfo]) -> Data {
-        let header = ["Name", "Path", "Bundle ID", "Category", "Stacks", "Possible Stacks", "Size"]
+        let header = ["Name", "Path", "Bundle ID", "Version", "Category", "Stacks", "Possible Stacks", "Size"]
         let rows = apps.map(Row.init).map { row in
             [
                 row.name,
                 row.path,
                 row.bundleId ?? "",
+                row.version ?? "",
                 row.category,
                 row.stacks.joined(separator: "; "),
                 row.possibleStacks.joined(separator: "; "),

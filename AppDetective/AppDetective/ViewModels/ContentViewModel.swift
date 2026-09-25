@@ -19,6 +19,7 @@ final class ContentViewModel {
     }
     var errorMessage: String?
     var warningMessage: String?
+    var isShowingInspector = false
     var folderURLs: [URL] {
         didSet {
             if persistsFolders {

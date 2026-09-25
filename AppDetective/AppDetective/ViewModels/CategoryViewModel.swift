@@ -18,8 +18,12 @@ final class CategoryViewModel {
     var searchText = "" {
         didSet { refresh() }
     }
+    var selectedAppID: AppInfo.ID? {
+        didSet { selectedApp = apps.first { $0.id == selectedAppID } }
+    }
 
     private(set) var filteredApps: [AppInfo] = []
+    private(set) var selectedApp: AppInfo?
     private(set) var sortedCategories: [AppCategory] = []
     private(set) var categoryCounts: [AppCategory: Int] = [:]
     private(set) var stackCounts: [TechStack: Int] = [:]
@@ -30,6 +34,7 @@ final class CategoryViewModel {
     }
 
     private func refresh() {
+        selectedApp = apps.first { $0.id == selectedAppID }
         categoryCounts = apps.reduce(into: [:]) { counts, app in counts[app.category, default: 0] += 1 }
         sortedCategories = categoryCounts.keys.sorted { $0.description < $1.description }
 

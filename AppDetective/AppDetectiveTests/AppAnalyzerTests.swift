@@ -12,6 +12,7 @@ struct AppAnalyzerTests {
             fingerprint: fingerprint,
             detectorVersion: version,
             bundleId: "cached",
+            version: "1.0",
             stacks: .gtk,
             possibleStacks: [],
             evidence: [],

@@ -18,8 +18,8 @@ struct ResultsExporterTests {
         let text = try #require(String(data: ResultsExporter.csv([app]), encoding: .utf8))
         let lines = text.components(separatedBy: "\r\n")
 
-        #expect(lines[0] == "Name,Path,Bundle ID,Category,Stacks,Possible Stacks,Size")
-        #expect(lines[1] == #""Say ""Hi"", World",/Applications/Say.app,,Utilities,Electron; Python,Java,12 MB"#)
+        #expect(lines[0] == "Name,Path,Bundle ID,Version,Category,Stacks,Possible Stacks,Size")
+        #expect(lines[1] == #""Say ""Hi"", World",/Applications/Say.app,,,Utilities,Electron; Python,Java,12 MB"#)
     }
 
     @Test("JSON includes stacks and possible stacks")
