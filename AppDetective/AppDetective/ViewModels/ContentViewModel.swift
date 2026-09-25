@@ -3,30 +3,60 @@ import Foundation
 import SwiftUI
 
 @MainActor
-final class ContentViewModel: ObservableObject {
+@Observable
+final class ContentViewModel {
     private static let concurrencyLimit = 8
     private static let publishBatchSize = 8
 
-    @Published var isLoading = false
-    @Published var appResults: [AppInfo] = [] {
+    private static let folderPathKey = "scanFolderPath"
+    private static let legacyBookmarkKey = "selectedFolderBookmark"
+
+    var isLoading = false
+    var appResults: [AppInfo] = [] {
         didSet { categoryViewModel.apps = appResults }
     }
-    @Published var errorMessage: String?
-    @Published var warningMessage: String?
-    @Published var navigationTitle: String
-    @Published var folderURL: URL?
+    var errorMessage: String?
+    var warningMessage: String?
+    var navigationTitle: String
+    var folderURL: URL? {
+        didSet {
+            if persistsFolder {
+                UserDefaults.standard.set(folderURL?.path, forKey: Self.folderPathKey)
+            }
+        }
+    }
 
     let categoryViewModel = CategoryViewModel()
 
-    private let detectService = DetectService()
-    private let scanService = ScanService()
-    private let diskCacheService = DiskCacheService()
-    private var metadataCache: [String: CachedMetadata]
+    @ObservationIgnored private let persistsFolder: Bool
+    @ObservationIgnored private let detectService = DetectService()
+    @ObservationIgnored private let scanService = ScanService()
+    @ObservationIgnored private let diskCacheService = DiskCacheService()
+    @ObservationIgnored private var metadataCache: [String: CachedMetadata]
 
-    init(folderURL: URL? = nil) {
+    /// - Parameter startupFolderURL: A folder from the command line; used for this launch only.
+    init(startupFolderURL: URL? = nil) {
+        persistsFolder = startupFolderURL == nil
+        let folderURL = startupFolderURL ?? Self.savedFolderURL()
         self.folderURL = folderURL
-        self.navigationTitle = folderURL?.lastPathComponent ?? Constants.AppName
-        self.metadataCache = diskCacheService.load()
+        navigationTitle = folderURL?.lastPathComponent ?? Constants.AppName
+        metadataCache = diskCacheService.load()
+    }
+
+    private static func savedFolderURL() -> URL? {
+        let defaults = UserDefaults.standard
+        if let path = defaults.string(forKey: folderPathKey) {
+            return URL(fileURLWithPath: path, isDirectory: true)
+        }
+        // Earlier versions saved a security-scoped bookmark; the app isn't sandboxed, so a path suffices.
+        guard let bookmark = defaults.data(forKey: legacyBookmarkKey) else { return nil }
+        defaults.removeObject(forKey: legacyBookmarkKey)
+        var isStale = false
+        guard let url = try? URL(resolvingBookmarkData: bookmark, options: .withSecurityScope, bookmarkDataIsStale: &isStale) else {
+            return nil
+        }
+        defaults.set(url.path, forKey: folderPathKey)
+        return url
     }
 
     func reset(title: String = "Select Folder", errorMessage: String? = nil) {
@@ -69,13 +99,6 @@ final class ContentViewModel: ObservableObject {
         categoryViewModel.resetFilters()
         isLoading = true
         defer { isLoading = false }
-
-        let isSecurityScoped = folderURL.startAccessingSecurityScopedResource()
-        defer {
-            if isSecurityScoped {
-                folderURL.stopAccessingSecurityScopedResource()
-            }
-        }
 
         let scanResult: ScanService.ScanResult
         do {

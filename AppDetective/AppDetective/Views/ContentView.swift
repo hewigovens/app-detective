@@ -2,12 +2,10 @@ import DetectiveCore
 import SwiftUI
 
 struct ContentView: View {
-    @ObservedObject var viewModel: ContentViewModel
-    @ObservedObject private var categoryViewModel: CategoryViewModel
+    let viewModel: ContentViewModel
 
-    init(viewModel: ContentViewModel) {
-        self.viewModel = viewModel
-        self._categoryViewModel = ObservedObject(wrappedValue: viewModel.categoryViewModel)
+    private var categoryViewModel: CategoryViewModel {
+        viewModel.categoryViewModel
     }
 
     var body: some View {
@@ -76,6 +74,7 @@ struct ContentView: View {
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
+        @Bindable var categoryViewModel = categoryViewModel
         ToolbarItem(placement: .automatic) {
             TextField("Filter by name or bundle ID", text: $categoryViewModel.searchText)
                 .textFieldStyle(.roundedBorder)
@@ -129,7 +128,7 @@ struct ContentView: View {
 }
 
 #Preview {
-    let viewModel = ContentViewModel(folderURL: URL(fileURLWithPath: "/Applications"))
+    let viewModel = ContentViewModel(startupFolderURL: URL(fileURLWithPath: "/Applications"))
     viewModel.appResults = AppInfo.samples
     return ContentView(viewModel: viewModel)
 }

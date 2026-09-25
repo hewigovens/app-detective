@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct AboutView: View {
-    @ObservedObject var updater: SparkleUpdater
+    @Bindable var updater: SparkleUpdater
 
     private var versionString: String {
         let info = Bundle.main.infoDictionary
@@ -32,7 +32,7 @@ struct AboutView: View {
             Link("View on GitHub", destination: URL(string: Constants.githubLink)!)
                 .buttonStyle(.link)
 
-            Text("© 2025 \(Constants.AppName). All rights reserved.")
+            Text("© 2025–\(Calendar.current.component(.year, from: .now).formatted(.number.grouping(.never))) \(Constants.AppName)")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }

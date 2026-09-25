@@ -4,24 +4,25 @@ import LSAppCategory
 import SwiftUI
 
 @MainActor
-final class CategoryViewModel: ObservableObject {
-    @Published var apps: [AppInfo] = [] {
+@Observable
+final class CategoryViewModel {
+    var apps: [AppInfo] = [] {
         didSet { refresh() }
     }
-    @Published var selectedCategory: AppCategory? {
+    var selectedCategory: AppCategory? {
         didSet { refresh() }
     }
-    @Published var selectedTechStack: TechStack? {
+    var selectedTechStack: TechStack? {
         didSet { refresh() }
     }
-    @Published var searchText = "" {
+    var searchText = "" {
         didSet { refresh() }
     }
 
-    @Published private(set) var filteredApps: [AppInfo] = []
-    @Published private(set) var sortedCategories: [AppCategory] = []
-    @Published private(set) var categoryCounts: [AppCategory: Int] = [:]
-    @Published private(set) var stackCounts: [TechStack: Int] = [:]
+    private(set) var filteredApps: [AppInfo] = []
+    private(set) var sortedCategories: [AppCategory] = []
+    private(set) var categoryCounts: [AppCategory: Int] = [:]
+    private(set) var stackCounts: [TechStack: Int] = [:]
 
     func resetFilters() {
         selectedCategory = nil

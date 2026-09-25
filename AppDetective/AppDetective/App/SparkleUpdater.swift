@@ -1,12 +1,14 @@
 import Sparkle
 import SwiftUI
 
-final class SparkleUpdater: ObservableObject {
-    private let controller: SPUStandardUpdaterController
-
-    init() {
-        controller = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
-    }
+@MainActor
+@Observable
+final class SparkleUpdater {
+    @ObservationIgnored private let controller = SPUStandardUpdaterController(
+        startingUpdater: true,
+        updaterDelegate: nil,
+        userDriverDelegate: nil
+    )
 
     func checkForUpdates() {
         controller.checkForUpdates(nil)

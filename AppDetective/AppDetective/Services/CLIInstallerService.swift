@@ -118,7 +118,7 @@ struct CLIInstallerService {
     private static var loginShell: String {
         if let passwordEntry = getpwuid(getuid()),
            let shell = passwordEntry.pointee.pw_shell,
-           let shellString = String(validatingUTF8: shell),
+           let shellString = String(validatingCString: shell),
            !shellString.isEmpty
         {
             return shellString

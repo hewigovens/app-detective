@@ -3,7 +3,7 @@ import LSAppCategory
 import SwiftUI
 
 struct CategoryView: View {
-    @ObservedObject var viewModel: CategoryViewModel
+    let viewModel: CategoryViewModel
 
     var body: some View {
         List(selection: selection) {

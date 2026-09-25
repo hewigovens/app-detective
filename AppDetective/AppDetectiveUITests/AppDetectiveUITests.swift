@@ -30,6 +30,7 @@ final class AppDetectiveUITests: XCTestCase {
         }
     }
 
+    @MainActor
     func testPermissionDeniedFolderDoesNotBlockReadableApps() throws {
         let scanFolderURL = try XCTUnwrap(scanFolderURL)
         let app = XCUIApplication()

@@ -1,10 +1,9 @@
 import AppKit
-import OSLog
 import SwiftUI
 
 struct OnboardingView: View {
     @State private var selectedFolderName: String?
-    var onPermissionGranted: (Data) -> Void
+    var onFolderSelected: (URL) -> Void
 
     var body: some View {
         VStack(spacing: 16) {
@@ -54,17 +53,9 @@ struct OnboardingView: View {
         panel.canCreateDirectories = false
         panel.directoryURL = URL(fileURLWithPath: "/Applications", isDirectory: true)
 
-        if panel.runModal() == .OK {
-            if let url = panel.url {
-                do {
-                    let bookmarkData = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
-                    selectedFolderName = url.lastPathComponent
-                    onPermissionGranted(bookmarkData)
-                } catch {
-                    Logger.app.error("Failed to create bookmark: \(error.localizedDescription)")
-                }
-            }
-        }
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        selectedFolderName = url.lastPathComponent
+        onFolderSelected(url)
     }
 }
 
