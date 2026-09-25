@@ -32,7 +32,7 @@ final class ContentViewModel {
     @ObservationIgnored private let detectService = DetectService()
     @ObservationIgnored private let scanService = ScanService()
     @ObservationIgnored private let diskCacheService = DiskCacheService()
-    @ObservationIgnored private var metadataCache: [String: CachedMetadata]
+    @ObservationIgnored private var appCache: [String: CachedApp]
 
     /// - Parameter startupFolderURL: A folder from the command line; used for this launch only.
     init(startupFolderURL: URL? = nil) {
@@ -40,7 +40,7 @@ final class ContentViewModel {
         let folderURL = startupFolderURL ?? Self.savedFolderURL()
         self.folderURL = folderURL
         navigationTitle = folderURL?.lastPathComponent ?? Constants.AppName
-        metadataCache = diskCacheService.load()
+        appCache = diskCacheService.load()
     }
 
     private static func savedFolderURL() -> URL? {
@@ -68,7 +68,7 @@ final class ContentViewModel {
 
     func clearCachesAndRescan() {
         diskCacheService.clear()
-        metadataCache.removeAll()
+        appCache.removeAll()
         Task {
             await scanApplications()
         }
@@ -118,49 +118,25 @@ final class ContentViewModel {
             warningMessage = permissionNote
         }
 
-        appResults = await detectApps(at: scanResult.appURLs)
-        await loadMetadata()
-        diskCacheService.save(metadataCache)
+        await analyzeApps(at: scanResult.appURLs)
+        diskCacheService.save(appCache)
         navigationTitle = folderURL.lastPathComponent
     }
 
-    private func detectApps(at urls: [URL]) async -> [AppInfo] {
+    private func analyzeApps(at urls: [URL]) async {
         let detectService = detectService
+        let requests = urls.map { (url: $0, cached: appCache[$0.path]) }
         var apps: [AppInfo] = []
         apps.reserveCapacity(urls.count)
 
-        await forEachConcurrently(urls) { url in
-            await AppInfo(
-                name: url.deletingPathExtension().lastPathComponent,
-                path: url.path,
-                bundleId: Bundle(url: url)?.bundleIdentifier,
-                techStacks: detectService.detectStack(for: url),
-                category: detectService.extractCategory(from: url)
-            )
-        } receive: { app in
-            apps.append(app)
-            navigationTitle = "Scanning (\(apps.count * 100 / urls.count)%)…"
-        }
-
-        return apps.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-    }
-
-    private func loadMetadata() async {
-        var results = appResults
-        let requests = results.indices.map { (index: $0, path: results[$0].path, cached: metadataCache[results[$0].path]) }
-        var completed = 0
-
         await forEachConcurrently(requests) { request in
-            (request.index, MetadataLoaderService.metadata(forAppAt: request.path, cached: request.cached))
-        } receive: { index, metadata in
-            results[index].iconData = metadata.iconData
-            results[index].size = metadata.size
-            metadataCache[results[index].path] = metadata
-            completed += 1
-
-            if completed % Self.publishBatchSize == 0 || completed == requests.count {
-                appResults = results
-                navigationTitle = "Loading Details (\(completed * 100 / requests.count)%)…"
+            (request.url, AppAnalyzer.analyze(request.url, cached: request.cached, detectService: detectService))
+        } receive: { url, analysis in
+            appCache[url.path] = analysis
+            apps.append(AppInfo(url: url, analysis: analysis))
+            if apps.count % Self.publishBatchSize == 0 || apps.count == urls.count {
+                appResults = apps.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+                navigationTitle = "Scanning (\(apps.count * 100 / urls.count)%)…"
             }
         }
     }

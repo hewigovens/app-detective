@@ -1,21 +1,56 @@
 import AppKit
 import DetectiveCore
 import Foundation
+import LSAppCategory
 
-enum MetadataLoaderService {
+struct CachedApp: Codable, Sendable {
+    let fingerprint: Date? // Info.plist modification date; changes when the app is updated.
+    let detectorVersion: String
+    let bundleId: String?
+    let stacks: TechStack
+    let possibleStacks: TechStack
+    let evidence: [StackEvidence]
+    let category: AppCategory
+    let iconData: Data?
+    let size: String?
+}
+
+struct StackEvidence: Codable, Hashable, Sendable {
+    let stack: String
+    let rule: String
+    let item: String
+    let isStrong: Bool
+}
+
+enum AppAnalyzer {
     // Rows draw icons at 44pt; 128px stays sharp on Retina.
     private static let iconPixelSize: CGFloat = 128
 
-    static func metadata(forAppAt path: String, cached: CachedMetadata?) -> CachedMetadata {
-        let url = URL(fileURLWithPath: path)
+    static func analyze(_ url: URL, cached: CachedApp?, detectService: DetectService) -> CachedApp {
         let fingerprint = fingerprint(of: url)
-        if let cached, cached.fingerprint == fingerprint, fingerprint != nil {
+        let isUnchanged = fingerprint != nil && cached?.fingerprint == fingerprint
+        if let cached, isUnchanged, cached.detectorVersion == detectService.version {
             return cached
         }
-        return CachedMetadata(
+
+        let detection = detectService.detect(url)
+        return CachedApp(
             fingerprint: fingerprint,
-            iconData: iconData(forAppAt: path),
-            size: BundleMetrics.size(at: url).map(BundleMetrics.format(bytes:))
+            detectorVersion: detectService.version,
+            bundleId: Bundle(url: url)?.bundleIdentifier,
+            stacks: detection.stacks,
+            possibleStacks: detection.possibleStacks,
+            evidence: detection.matches.map {
+                StackEvidence(
+                    stack: $0.stack.displayName,
+                    rule: $0.rule.evidence.description,
+                    item: $0.item,
+                    isStrong: $0.rule.confidence == .strong
+                )
+            },
+            category: detectService.extractCategory(from: url),
+            iconData: isUnchanged ? cached?.iconData : iconData(forAppAt: url.path),
+            size: isUnchanged ? cached?.size : BundleMetrics.size(at: url).map(BundleMetrics.format(bytes:))
         )
     }
 

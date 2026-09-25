@@ -1,14 +1,8 @@
 import Foundation
 import OSLog
 
-struct CachedMetadata: Codable, Sendable {
-    let fingerprint: Date? // Info.plist modification date; changes when the app is updated.
-    let iconData: Data?
-    let size: String?
-}
-
 struct DiskCacheService {
-    private static let cacheFileName = "metadataCache.plist"
+    private static let cacheFileName = "appCache.plist"
     // Written to Application Support by earlier versions.
     private static let legacyFileNames = ["iconCache.plist", "sizeCache.plist"]
 
@@ -28,20 +22,20 @@ struct DiskCacheService {
         return directoryURL.appendingPathComponent(Self.cacheFileName)
     }
 
-    func load() -> [String: CachedMetadata] {
+    func load() -> [String: CachedApp] {
         removeLegacyCaches()
         guard let fileURL = cacheFileURL, let data = try? Data(contentsOf: fileURL) else {
             return [:]
         }
         do {
-            return try PropertyListDecoder().decode([String: CachedMetadata].self, from: data)
+            return try PropertyListDecoder().decode([String: CachedApp].self, from: data)
         } catch {
-            Logger.cache.error("Failed to decode metadata cache: \(error.localizedDescription)")
+            Logger.cache.error("Failed to decode app cache: \(error.localizedDescription)")
             return [:]
         }
     }
 
-    func save(_ cache: [String: CachedMetadata]) {
+    func save(_ cache: [String: CachedApp]) {
         guard let fileURL = cacheFileURL else { return }
         let liveEntries = cache.filter { FileManager.default.fileExists(atPath: $0.key) }
         let encoder = PropertyListEncoder()
@@ -49,7 +43,7 @@ struct DiskCacheService {
         do {
             try encoder.encode(liveEntries).write(to: fileURL, options: .atomic)
         } catch {
-            Logger.cache.error("Failed to save metadata cache: \(error.localizedDescription)")
+            Logger.cache.error("Failed to save app cache: \(error.localizedDescription)")
         }
     }
 
