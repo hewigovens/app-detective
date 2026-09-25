@@ -171,6 +171,21 @@ struct DetectServiceTests {
         #expect(DetectService(signatures: [uiKitRule, swiftUIRule]).detect(app.url).stacks == .swiftUI)
     }
 
+    @Test("Embedded-string rules are skipped once a stack beyond AppKit is found")
+    func embeddedStringsSkippedForSwiftUI() throws {
+        // The fake executable is /usr/bin/true, whose strings include this version tag.
+        let app = try FakeApp(contents: ["SwiftUIMarker"])
+        defer { app.remove() }
+        let gpuiRule = StackSignature(.gpui, [.strong(.embeddedString("PROGRAM:true"))])
+        let swiftUIRule = StackSignature(.swiftUI, [.strong(.file("Contents/SwiftUIMarker"))])
+
+        #expect(DetectService(signatures: [gpuiRule]).detect(app.url).stacks == .gpui)
+        let detection = DetectService(signatures: [gpuiRule, swiftUIRule]).detect(app.url)
+        #expect(detection.stacks == .swiftUI)
+        #expect(detection.possibleStacks.isEmpty)
+        #expect(detection.matches.map(\.stack) == [.swiftUI])
+    }
+
     @Test("Rules version changes when the rules change")
     func versionTracksRules() {
         let rules = [StackSignature(.gtk, [.strong(.file("A"))])]

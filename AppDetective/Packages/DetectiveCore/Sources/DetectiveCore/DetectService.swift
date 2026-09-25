@@ -3,7 +3,7 @@ import LSAppCategory
 
 public final class DetectService: Sendable {
     // Bump when detection logic outside the catalog changes; catalog edits change `version` on their own.
-    private static let engineVersion = 2
+    private static let engineVersion = 3
 
     private let signatures: [StackSignature]
 
@@ -30,7 +30,10 @@ public final class DetectService: Sendable {
         let inspector = BundleInspector(bundle: bundle)
 
         var matches = evaluate(inspector, embeddedStrings: false)
-        if Self.confidentStacks(in: matches).isDisjoint(with: .crossPlatform), inspector.executableURL != nil {
+        // String rules are circumstantial and `strings` is slow, so they run only when nothing beyond the
+        // baseline frameworks was found. This also keeps apps that embed DetectiveCore (and so its catalog
+        // strings) from matching every string rule.
+        if Self.confidentStacks(in: matches).subtracting(Self.baseline).isEmpty, inspector.executableURL != nil {
             matches += evaluate(inspector, embeddedStrings: true)
         }
 
@@ -90,8 +93,10 @@ public final class DetectService: Sendable {
     }
 
     // AppKit and UIKit underlie every other UI stack, so report them only when nothing more specific was found.
+    private static let baseline: TechStack = [.appKit, .uiKit]
+
     private static func resolve(_ stacks: TechStack) -> TechStack {
-        let specific = stacks.subtracting([.appKit, .uiKit])
+        let specific = stacks.subtracting(baseline)
         if !specific.isEmpty {
             return specific
         }
