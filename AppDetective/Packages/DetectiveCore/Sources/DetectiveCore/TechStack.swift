@@ -32,6 +32,14 @@ public struct TechStack: OptionSet, Codable, Hashable, Sendable {
         .xamarin, .flutter, .reactNative, .tauri, .gpui, .iced, .microsoftEdge,
     ]
 
+    /// Every individual stack, native stacks first, in sidebar display order.
+    public static let allStacks: [TechStack] = [
+        .swiftUI, .appKit, .catalyst,
+        .electron, .cef, .microsoftEdge, .flutter, .qt, .reactNative, .java, .python,
+        .xamarin, .tauri, .wxWidgets, .gpui, .iced, .gtk,
+        .other,
+    ]
+
     public static let flagNames: [Int: String] = [
         Self.swiftUI.rawValue: "SwiftUI",
         Self.appKit.rawValue: "AppKit",
@@ -52,6 +60,11 @@ public struct TechStack: OptionSet, Codable, Hashable, Sendable {
         Self.gtk.rawValue: "GTK",
         Self.other.rawValue: "Other",
     ]
+
+    /// Display name of a single stack, e.g. "SwiftUI".
+    public var displayName: String {
+        Self.flagNames[rawValue] ?? "Unknown"
+    }
 
     /// Sorted display names of every stack in the set.
     public var displayNames: [String] {

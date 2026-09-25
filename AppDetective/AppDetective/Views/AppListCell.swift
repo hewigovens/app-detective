@@ -4,39 +4,22 @@ import SwiftUI
 
 struct AppListCell: View {
     let appInfo: AppInfo
-    @EnvironmentObject var viewModel: ContentViewModel
 
     var body: some View {
-        let cachedIconData = viewModel.getIconData(for: appInfo.path)
-        let _ = viewModel.getSizeString(for: appInfo.path)
-
         HStack(spacing: 12) {
-            Group {
-                if let thumbnailData = cachedIconData, let thumbnailImage = NSImage(data: thumbnailData) {
-                    Image(nsImage: thumbnailImage)
-                        .resizable()
-                        .scaledToFit()
-                } else {
-                    Image(systemName: "app.dashed")
-                        .resizable()
-                        .scaledToFit()
-                        .foregroundColor(.secondary)
-                }
-            }
-            .frame(width: 44, height: 44)
+            icon
+                .frame(width: 44, height: 44)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(appInfo.name)
                     .font(.system(size: 14, weight: .medium))
                     .lineLimit(1)
-
-                Text(appInfo.category.description)
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
-
-                Text(viewModel.getSizeString(for: appInfo.path) ?? "Loading size...")
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+                Group {
+                    Text(appInfo.category.description)
+                    Text(appInfo.size ?? "Loading size…")
+                }
+                .font(.system(size: 12))
+                .foregroundColor(.secondary)
             }
 
             Spacer()
@@ -57,54 +40,29 @@ struct AppListCell: View {
             Button {
                 NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: appInfo.path)])
             } label: {
-                Text("Show in Finder")
-                Image(systemName: "folder")
+                Label("Show in Finder", systemImage: "folder")
             }
+        }
+    }
+
+    @ViewBuilder
+    private var icon: some View {
+        if let data = appInfo.iconData, let image = NSImage(data: data) {
+            Image(nsImage: image)
+                .resizable()
+                .scaledToFit()
+        } else {
+            Image(systemName: "app.dashed")
+                .resizable()
+                .scaledToFit()
+                .foregroundColor(.secondary)
         }
     }
 }
 
-struct AppListCell_Previews: PreviewProvider {
-    static var previews: some View {
-        List {
-            AppListCell(
-                appInfo: AppInfo(
-                    name: "ExampleApp very long name to test truncation.app",
-                    path: "/Applications/Calculator.app",
-                    bundleId: "com.apple.calculator",
-                    techStacks: .electron,
-                    category: .utilities
-                )
-            )
-            AppListCell(
-                appInfo: AppInfo(
-                    name: "Another App.app",
-                    path: "/Applications/Safari.app",
-                    bundleId: "com.apple.Safari",
-                    techStacks: .appKit,
-                    category: .reference
-                )
-            )
-            AppListCell(
-                appInfo: AppInfo(
-                    name: "MyPythonThing.app",
-                    path: "/System/Applications/Messages.app",
-                    bundleId: "com.example.python",
-                    techStacks: .python,
-                    category: .socialNetworking
-                )
-            )
-            AppListCell(
-                appInfo: AppInfo(
-                    name: "UnknownApp.app",
-                    path: "/System/Applications/Mail.app",
-                    bundleId: nil,
-                    techStacks: [],
-                    category: .productivity
-                )
-            )
-        }
-        .frame(width: 350)
-        .environmentObject(ContentViewModel())
+#Preview {
+    List(AppInfo.samples) { app in
+        AppListCell(appInfo: app)
     }
+    .frame(width: 400)
 }

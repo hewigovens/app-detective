@@ -3,69 +3,50 @@ import Foundation
 import LSAppCategory
 import SwiftUI
 
-class CategoryViewModel: ObservableObject {
-    @Published var categories: [AppCategory: [AppInfo]] = [:]
-    @Published var allApps: [AppInfo] = []
-    @Published var selectedCategory: AppCategory?
-    @Published var selectedTechStack: TechStack?
-    @Published var searchText: String = ""
-
-    var sortedCategories: [AppCategory] {
-        Array(categories.keys).sorted { $0.description < $1.description }
+/// Sidebar filters and the app list they produce. Derived values are recomputed once per change
+/// rather than on every view evaluation.
+@MainActor
+final class CategoryViewModel: ObservableObject {
+    @Published var apps: [AppInfo] = [] {
+        didSet { refresh() }
+    }
+    @Published var selectedCategory: AppCategory? {
+        didSet { refresh() }
+    }
+    @Published var selectedTechStack: TechStack? {
+        didSet { refresh() }
+    }
+    @Published var searchText = "" {
+        didSet { refresh() }
     }
 
-    var filteredApps: [AppInfo] {
-        var apps: [AppInfo] = []
+    @Published private(set) var filteredApps: [AppInfo] = []
+    @Published private(set) var sortedCategories: [AppCategory] = []
+    @Published private(set) var categoryCounts: [AppCategory: Int] = [:]
+    /// App counts per stack within the selected category.
+    @Published private(set) var stackCounts: [TechStack: Int] = [:]
 
-        if let selectedCategory = selectedCategory {
-            apps = categories[selectedCategory] ?? []
-        } else {
-            apps = allApps
-        }
-
-        if let techStack = selectedTechStack {
-            apps = apps.filter { $0.techStacks.contains(techStack) }
-        }
-
-        if !searchText.isEmpty {
-            let query = searchText.lowercased()
-            apps = apps.filter {
-                $0.name.lowercased().contains(query) ||
-                ($0.bundleId?.lowercased().contains(query) ?? false)
-            }
-        }
-
-        return apps
-    }
-
-    func updateCategories(with apps: [AppInfo]) {
-        allApps = apps
-        categories = [:]
-
-        for app in apps {
-            if categories[app.category] == nil {
-                categories[app.category] = []
-            }
-            categories[app.category]?.append(app)
-        }
-
+    func resetFilters() {
         selectedCategory = nil
         selectedTechStack = nil
     }
 
-    func selectCategory(_ category: AppCategory?) {
-        selectedCategory = category
-    }
+    private func refresh() {
+        categoryCounts = apps.reduce(into: [:]) { counts, app in counts[app.category, default: 0] += 1 }
+        sortedCategories = categoryCounts.keys.sorted { $0.description < $1.description }
 
-    func selectTechStack(_ techStack: TechStack?) {
-        selectedTechStack = techStack
-    }
+        let inCategory = selectedCategory.map { category in apps.filter { $0.category == category } } ?? apps
+        stackCounts = Dictionary(uniqueKeysWithValues: TechStack.allStacks.map { stack in
+            (stack, inCategory.filter { $0.techStacks.contains(stack) }.count)
+        })
 
-    func count(for category: AppCategory) -> Int {
-        categories[category]?.count ?? 0
-    }
-
-    func count(for category: AppCategory, techStack: TechStack) -> Int {
-        (categories[category] ?? []).filter { $0.techStacks.contains(techStack) }.count
+        let query = searchText.lowercased()
+        filteredApps = inCategory.filter { app in
+            let matchesStack = selectedTechStack.map(app.techStacks.contains) ?? true
+            let matchesQuery = query.isEmpty
+                || app.name.lowercased().contains(query)
+                || (app.bundleId?.lowercased().contains(query) ?? false)
+            return matchesStack && matchesQuery
+        }
     }
 }

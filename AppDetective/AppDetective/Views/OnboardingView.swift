@@ -1,9 +1,9 @@
 import AppKit
+import OSLog
 import SwiftUI
 
 struct OnboardingView: View {
-    @State private var selectedFolderBookmark: Data? = nil
-    @State private var selectedFolderName: String? = nil
+    @State private var selectedFolderName: String?
     var onPermissionGranted: (Data) -> Void
 
     var body: some View {
@@ -58,19 +58,16 @@ struct OnboardingView: View {
             if let url = panel.url {
                 do {
                     let bookmarkData = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
-                    selectedFolderBookmark = bookmarkData
                     selectedFolderName = url.lastPathComponent
                     onPermissionGranted(bookmarkData)
                 } catch {
-                    print("Error creating bookmark data: \(error.localizedDescription)")
+                    Logger.app.error("Failed to create bookmark: \(error.localizedDescription)")
                 }
             }
         }
     }
 }
 
-struct OnboardingView_Previews: PreviewProvider {
-    static var previews: some View {
-        OnboardingView { _ in }
-    }
+#Preview {
+    OnboardingView { _ in }
 }

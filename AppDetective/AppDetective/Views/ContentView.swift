@@ -11,31 +11,18 @@ struct ContentView: View {
     }
 
     var body: some View {
-        let isLoading = viewModel.isLoading
-        let errorMessage = viewModel.errorMessage
-        let warningMessage = viewModel.warningMessage
-
         NavigationSplitView {
-            if #available(macOS 15.0, *) {
-                CategoryView(viewModel: categoryViewModel)
-                    .navigationTitle("Filters")
-                    .navigationSplitViewColumnWidth(220)
-                    .containerBackground(.ultraThinMaterial, for: .window)
-            } else {
-                CategoryView(viewModel: categoryViewModel)
-                    .navigationTitle("Filters")
-                    .navigationSplitViewColumnWidth(220)
-            }
+            sidebar
         } detail: {
             ZStack {
                 VStack {
-                    if let msg = errorMessage {
-                        Text("Error: \(msg)")
+                    if let errorMessage = viewModel.errorMessage {
+                        Text("Error: \(errorMessage)")
                             .foregroundColor(.red)
                             .padding()
                             .accessibilityIdentifier("scan-error-message")
                     } else {
-                        if let warningMessage {
+                        if let warningMessage = viewModel.warningMessage {
                             Text(warningMessage)
                                 .font(.caption)
                                 .foregroundColor(.orange)
@@ -46,44 +33,26 @@ struct ContentView: View {
                                 .accessibilityIdentifier("scan-warning-message")
                         }
 
-                        if viewModel.appResults.isEmpty && !isLoading {
-                            Text("No apps found or scan not started.")
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        } else if !viewModel.appResults.isEmpty {
+                        if viewModel.appResults.isEmpty {
+                            if !viewModel.isLoading {
+                                Text("No apps found or scan not started.")
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            }
+                        } else {
                             List(categoryViewModel.filteredApps) { app in
                                 AppListCell(appInfo: app)
                             }
-                            .environmentObject(viewModel)
-                            HStack(spacing: 4) {
-                                if let selectedCategory = categoryViewModel.selectedCategory {
-                                    Text("Showing \(categoryViewModel.filteredApps.count) apps in \(selectedCategory.description)")
-                                } else {
-                                    Text("Showing \(categoryViewModel.filteredApps.count) of \(viewModel.appResults.count) apps")
-                                }
-
-                                if let selectedTechStack = categoryViewModel.selectedTechStack {
-                                    Text(
-                                        "with \(TechStack.flagNames[selectedTechStack.rawValue] ?? "Unknown")"
-                                    )
-                                }
-
-                                if !categoryViewModel.searchText.isEmpty {
-                                    Text("matching \"\(categoryViewModel.searchText)\"")
-                                }
-                            }
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.bottom, 8)
-                        } else {
-                            Spacer()
+                            Text(summary)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .padding(.bottom, 8)
                         }
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                if isLoading {
-                    ProgressView("Scanning...")
+                if viewModel.isLoading {
+                    ProgressView("Scanning…")
                         .padding(16)
                         .background(.ultraThinMaterial)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -92,65 +61,81 @@ struct ContentView: View {
                 }
             }
             .navigationTitle(viewModel.navigationTitle)
-            .toolbar {
-                ToolbarItem(placement: .automatic) {
-                    TextField("Filter by name or bundle ID", text: $categoryViewModel.searchText)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 200)
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    HStack {
-                        Button {
-                            viewModel.selectNewFolderAndScan()
-                        } label: {
-                            Image(systemName: "folder.badge.plus")
-                        }
-                        .help("Select a new folder to scan for applications")
-                        .disabled(viewModel.isLoading)
-
-                        Button {
-                            viewModel.clearCachesAndRescan()
-                        } label: {
-                            Image(systemName: "arrow.clockwise")
-                        }
-                        .help("Clear cache and rescan the selected folder")
-                        .disabled(viewModel.isLoading)
-
-                        Divider()
-
-                        Button {
-                            NSWorkspace.shared.open(URL(string: Constants.sponsorLink)!)
-                        } label: {
-                            Image(systemName: "heart.circle")
-                        }
-                        .help("Buy author a Coffee if you find this app useful")
-                    }
-                }
-            }
-            .background(Color.clear)
+            .toolbar { toolbar }
             .frame(minWidth: 500, minHeight: 400)
             .animation(.easeInOut(duration: 0.2), value: categoryViewModel.selectedCategory)
             .animation(.easeInOut(duration: 0.2), value: categoryViewModel.selectedTechStack)
         }
     }
+
+    @ViewBuilder
+    private var sidebar: some View {
+        let sidebar = CategoryView(viewModel: categoryViewModel)
+            .navigationTitle("Filters")
+            .navigationSplitViewColumnWidth(220)
+        if #available(macOS 15.0, *) {
+            sidebar.containerBackground(.ultraThinMaterial, for: .window)
+        } else {
+            sidebar
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var toolbar: some ToolbarContent {
+        ToolbarItem(placement: .automatic) {
+            TextField("Filter by name or bundle ID", text: $categoryViewModel.searchText)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 200)
+        }
+        ToolbarItem(placement: .primaryAction) {
+            HStack {
+                Button {
+                    viewModel.selectNewFolderAndScan()
+                } label: {
+                    Image(systemName: "folder.badge.plus")
+                }
+                .help("Select a new folder to scan for applications")
+                .disabled(viewModel.isLoading)
+
+                Button {
+                    viewModel.clearCachesAndRescan()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .help("Clear cache and rescan the selected folder")
+                .disabled(viewModel.isLoading)
+
+                Divider()
+
+                Button {
+                    NSWorkspace.shared.open(URL(string: Constants.sponsorLink)!)
+                } label: {
+                    Image(systemName: "heart.circle")
+                }
+                .help("Buy author a Coffee if you find this app useful")
+            }
+        }
+    }
+
+    private var summary: String {
+        let shown = categoryViewModel.filteredApps.count
+        var parts = if let category = categoryViewModel.selectedCategory {
+            ["Showing \(shown) apps in \(category.description)"]
+        } else {
+            ["Showing \(shown) of \(viewModel.appResults.count) apps"]
+        }
+        if let stack = categoryViewModel.selectedTechStack {
+            parts.append("with \(stack.displayName)")
+        }
+        if !categoryViewModel.searchText.isEmpty {
+            parts.append("matching \"\(categoryViewModel.searchText)\"")
+        }
+        return parts.joined(separator: " ")
+    }
 }
 
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        let dummyURL = URL(fileURLWithPath: "/Applications")
-        let dummyViewModel = ContentViewModel(folderURL: dummyURL)
-
-        let sampleApps = [
-            AppInfo(name: "Preview", path: "/Applications/Preview.app", bundleId: "com.apple.Preview", techStacks: .swiftUI, category: .utilities),
-            AppInfo(name: "Xcode", path: "/Applications/Xcode.app", bundleId: "com.apple.dt.Xcode", techStacks: .appKit, category: .developerTools),
-            AppInfo(name: "Safari", path: "/Applications/Safari.app", bundleId: "com.apple.Safari", techStacks: .appKit, category: .productivity),
-            AppInfo(name: "Music", path: "/Applications/Music.app", bundleId: "com.apple.Music", techStacks: .catalyst, category: .music),
-            AppInfo(name: "Notes", path: "/Applications/Notes.app", bundleId: "com.apple.Notes", techStacks: .catalyst, category: .productivity)
-        ]
-
-        dummyViewModel.appResults = sampleApps
-        dummyViewModel.categoryViewModel.updateCategories(with: sampleApps)
-
-        return ContentView(viewModel: dummyViewModel)
-    }
+#Preview {
+    let viewModel = ContentViewModel(folderURL: URL(fileURLWithPath: "/Applications"))
+    viewModel.appResults = AppInfo.samples
+    return ContentView(viewModel: viewModel)
 }

@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import SwiftUI
 
 @main
@@ -32,8 +33,6 @@ struct AppDetectiveApp: App {
                         } else {
                             OnboardingView { bookmarkData in
                                 selectedFolderBookmark = bookmarkData
-                                resolveBookmark()
-                                resolveBookmark()
                             }
                         }
                     }
@@ -56,7 +55,7 @@ struct AppDetectiveApp: App {
                             selectedFolderBookmark = newBookmarkData
                         }
                     } catch {
-                        print("Error creating bookmark data: \(error.localizedDescription)")
+                        Logger.app.error("Failed to create bookmark: \(error.localizedDescription)")
                     }
                 } else {
                     if selectedFolderBookmark != nil {
@@ -88,13 +87,8 @@ struct AppDetectiveApp: App {
                 }
                 .disabled(CLIInstallerService.bundledBinaryURL() == nil)
             }
-            CommandGroup(replacing: .newItem) {
-                Button {
-                } label: {
-                    Label("New Window", systemImage: "plus.rectangle")
-                }
-                .keyboardShortcut("n", modifiers: .command)
-            }
+            // A single window shares one scan; hide File > New Window.
+            CommandGroup(replacing: .newItem) {}
         }
     }
 
@@ -191,10 +185,7 @@ struct AppDetectiveApp: App {
         guard let bookmarkData = selectedFolderBookmark else {
             if contentViewModel.folderURL != nil {
                 contentViewModel.folderURL = nil
-                contentViewModel.appResults = []
-                contentViewModel.errorMessage = nil
-                contentViewModel.warningMessage = nil
-                contentViewModel.navigationTitle = "Select Folder"
+                contentViewModel.reset()
             }
             isResolvingBookmark = false
             return
@@ -214,12 +205,10 @@ struct AppDetectiveApp: App {
             }
 
         } catch {
-            print("Error resolving bookmark: \(error.localizedDescription)")
+            Logger.app.error("Failed to resolve bookmark: \(error.localizedDescription)")
             selectedFolderBookmark = nil
             contentViewModel.folderURL = nil
-            contentViewModel.errorMessage = "Error resolving bookmark."
-            contentViewModel.warningMessage = nil
-            contentViewModel.navigationTitle = "Error"
+            contentViewModel.reset(title: "Error", errorMessage: "Error resolving bookmark.")
         }
         isResolvingBookmark = false
     }

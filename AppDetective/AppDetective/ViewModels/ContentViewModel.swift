@@ -3,114 +3,49 @@ import Foundation
 import SwiftUI
 
 @MainActor
-class ContentViewModel: ObservableObject {
+final class ContentViewModel: ObservableObject {
+    /// Upper bound on concurrent per-app work, which blocks on `otool`/`strings` and disk I/O.
+    private static let concurrencyLimit = 8
+    /// Number of loaded icons to accumulate before publishing, so the list isn't redrawn per icon.
+    private static let publishBatchSize = 8
+
     @Published var isLoading = false
-    @Published var scanProgress: Double = 0.0
-    @Published var totalAppsToScan: Int = 0
-    @Published var appResults: [AppInfo] = []
-    @Published var errorMessage: String? = nil
-    @Published var warningMessage: String? = nil
-    @Published var navigationTitle: String = Constants.AppName
-    @Published var folderURL: URL? = nil
-    @Published var metadataLoadProgress: Double = 0.0
-    @Published var totalMetadataItems: Int = 0
-
-    let categoryViewModel: CategoryViewModel
-
-    private var iconCache: [String: Data] = [:]
-    private var sizeCache: [String: String] = [:]
-    private let cacheQueue = DispatchQueue(label: Constants.BundleId + ".cacheQueue")
-    private let metadataLoader: MetadataLoaderService
-    private let scanService: ScanService
-    private let detectService: DetectService
-    private var loadedMetadataCount: Int = 0
-    private let diskCacheService: DiskCacheService
-
-    init() {
-        self.diskCacheService = DiskCacheService()
-        self.metadataLoader = MetadataLoaderService()
-        self.detectService = DetectService()
-        self.scanService = ScanService()
-        self.categoryViewModel = CategoryViewModel()
-        loadExistingCaches()
-        setupMetadataLoaderCallbacks()
+    @Published var appResults: [AppInfo] = [] {
+        didSet { categoryViewModel.apps = appResults }
     }
+    @Published var errorMessage: String?
+    @Published var warningMessage: String?
+    @Published var navigationTitle: String
+    @Published var folderURL: URL?
 
-    init(folderURL: URL?, categoryViewModel: CategoryViewModel) {
-        self.folderURL = folderURL
-        self.diskCacheService = DiskCacheService()
-        self.metadataLoader = MetadataLoaderService()
-        self.detectService = DetectService()
-        self.scanService = ScanService()
-        self.categoryViewModel = categoryViewModel
-        loadExistingCaches()
-        setupMetadataLoaderCallbacks()
-    }
+    let categoryViewModel = CategoryViewModel()
 
-    private func loadExistingCaches() {
-        iconCache = diskCacheService.loadIconCache() ?? [:]
-        sizeCache = diskCacheService.loadSizeCache() ?? [:]
-    }
+    private let detectService = DetectService()
+    private let scanService = ScanService()
+    private let diskCacheService = DiskCacheService()
+    private var metadataCache: [String: CachedMetadata]
 
-    init(folderURL: URL?) {
+    init(folderURL: URL? = nil) {
         self.folderURL = folderURL
         self.navigationTitle = folderURL?.lastPathComponent ?? Constants.AppName
-        self.diskCacheService = DiskCacheService()
-        self.metadataLoader = MetadataLoaderService()
-        self.detectService = DetectService()
-        self.scanService = ScanService()
-        self.categoryViewModel = CategoryViewModel()
-        setupMetadataLoaderCallbacks()
-        loadCachesFromDisk()
+        self.metadataCache = diskCacheService.load()
     }
 
-    // MARK: - Cache Loading/Saving
+    // MARK: - Actions
 
-    private func loadCachesFromDisk() {
-        if let loadedIcons = diskCacheService.loadIconCache() {
-            iconCache = loadedIcons
-        }
-        if let loadedSizes = diskCacheService.loadSizeCache() {
-            sizeCache = loadedSizes
-        }
+    /// Clears results and messages, e.g. when the saved folder is forgotten.
+    func reset(title: String = "Select Folder", errorMessage: String? = nil) {
+        appResults = []
+        self.errorMessage = errorMessage
+        warningMessage = nil
+        navigationTitle = title
     }
-
-    private func setupMetadataLoaderCallbacks() {
-        metadataLoader.onMetadataItemLoaded = { [weak self] path, iconData, sizeString in
-            guard let self = self else { return }
-            Task {
-                await self.cacheData(path: path, iconData: iconData, sizeString: sizeString)
-            }
-        }
-
-        metadataLoader.onAllMetadataLoaded = { [weak self] in
-            guard let self = self else { return }
-            self.metadataLoadingDidComplete()
-        }
-    }
-
-    // MARK: - Scanning and Loading Logic
 
     func clearCachesAndRescan() {
-        diskCacheService.clearAllCaches()
-        iconCache.removeAll()
-        sizeCache.removeAll()
-        appResults.removeAll()
-        errorMessage = nil
-        warningMessage = nil
-        scanProgress = 0.0
-        metadataLoadProgress = 0.0
-        totalMetadataItems = 0
-        loadedMetadataCount = 0
-        navigationTitle = Constants.AppName
-        isLoading = false
-
-        if folderURL != nil {
-            Task {
-                await scanApplications()
-            }
-        } else {
-            navigationTitle = "Select Folder"
+        diskCacheService.clear()
+        metadataCache.removeAll()
+        Task {
+            await scanApplications()
         }
     }
 
@@ -121,196 +56,118 @@ class ContentViewModel: ObservableObject {
         openPanel.allowsMultipleSelection = false
         openPanel.prompt = "Select Folder"
 
-        if openPanel.runModal() == .OK {
-            if let newURL = openPanel.url {
-                folderURL?.stopAccessingSecurityScopedResource()
-                folderURL = newURL
-                clearCachesAndRescan()
-            }
+        guard openPanel.runModal() == .OK, let url = openPanel.url else { return }
+        folderURL = url
+        Task {
+            await scanApplications()
         }
     }
 
+    // MARK: - Scanning
+
     func scanApplications() async {
-        guard let currentFolderURL = folderURL else {
-            errorMessage = "No folder selected."
-            warningMessage = nil
-            navigationTitle = "No Folder"
-            appResults = []
-            isLoading = false
+        guard let folderURL else {
+            reset(title: "No Folder", errorMessage: "No folder selected.")
+            return
+        }
+        guard !isLoading else { return }
+
+        reset(title: "Scanning…")
+        categoryViewModel.resetFilters()
+        isLoading = true
+        defer { isLoading = false }
+
+        let isSecurityScoped = folderURL.startAccessingSecurityScopedResource()
+        defer {
+            if isSecurityScoped {
+                folderURL.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        let scanResult: ScanService.ScanResult
+        do {
+            scanResult = try scanService.scanWithDiagnostics(folderURL: folderURL)
+        } catch {
+            reset(title: "Scan Error", errorMessage: error.localizedDescription)
             return
         }
 
-        appResults = []
-        errorMessage = nil
-        warningMessage = nil
-        isLoading = true
-        scanProgress = 0.0
-        totalAppsToScan = 0
-        navigationTitle = "Scanning..."
-
-        var detectedApps: [AppInfo] = []
-
-        do {
-            let isSecurityScoped = currentFolderURL.startAccessingSecurityScopedResource()
-            defer {
-                if isSecurityScoped {
-                    currentFolderURL.stopAccessingSecurityScopedResource()
-                }
-            }
-
-            let scanResult = try scanService.scanWithDiagnostics(folderURL: currentFolderURL)
-            let allAppURLs = scanResult.appURLs
-            if scanResult.hasSkippedDirectories {
-                warningMessage = "Some folders could not be scanned due to permissions."
-            }
-            totalAppsToScan = allAppURLs.count
-            guard totalAppsToScan > 0 else {
-                errorMessage = if scanResult.hasSkippedDirectories {
-                    "No applications found in the selected folder. Some folders could not be scanned due to permissions."
-                } else {
-                    "No applications found in the selected folder."
-                }
-                isLoading = false
-                navigationTitle = "No Apps Found"
-                return
-            }
-
-            await withTaskGroup(of: AppInfo?.self) { group in
-                for url in allAppURLs {
-                    group.addTask { [weak self] in
-                        guard let self = self else { return nil }
-                        let appName = url.deletingPathExtension().lastPathComponent
-                        let detectedStack = await self.detectService.detectStack(for: url)
-                        let category = self.detectService.extractCategory(from: url)
-                        let bundleId = Bundle(url: url)?.bundleIdentifier
-                        let appInfo = AppInfo(name: appName, path: url.path, bundleId: bundleId, techStacks: detectedStack, category: category)
-                        return appInfo
-                    }
-                }
-
-                for await result in group {
-                    if totalAppsToScan > 0 {
-                        let currentProgress = Double(detectedApps.count + 1) / Double(totalAppsToScan)
-                        self.scanProgress = min(currentProgress, 1.0)
-                    }
-
-                    if let appInfo = result {
-                        detectedApps.append(appInfo)
-                    }
-                }
-            }
-
-            detectedApps.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-            // Assign results before setting final state
-            appResults = detectedApps
-            categoryViewModel.updateCategories(with: appResults)
-
-        } catch let error as ScanService.ScanError {
-            errorMessage = error.localizedDescription
-            warningMessage = nil
-            navigationTitle = "Scan Error"
-            isLoading = false
-        } catch {
-            errorMessage = "An unexpected error occurred: \(error.localizedDescription)"
-            warningMessage = nil
-            navigationTitle = "Unexpected Error"
-            isLoading = false
+        let permissionNote = "Some folders could not be scanned due to permissions."
+        guard !scanResult.appURLs.isEmpty else {
+            let message = "No applications found in the selected folder."
+            reset(title: "No Apps Found", errorMessage: scanResult.hasSkippedDirectories ? "\(message) \(permissionNote)" : message)
+            return
+        }
+        if scanResult.hasSkippedDirectories {
+            warningMessage = permissionNote
         }
 
-        if errorMessage == nil {
-            if appResults.isEmpty {
-                isLoading = false
-                navigationTitle = "No Apps Found"
-                scanProgress = 1.0
-            } else {
-                totalMetadataItems = appResults.count
-                loadedMetadataCount = 0
-                metadataLoadProgress = 0.0
-                navigationTitle = "Loading Details (0%)..."
-                scanProgress = 1.0
+        appResults = await detectApps(at: scanResult.appURLs)
+        await loadMetadata()
+        diskCacheService.save(metadataCache)
+        navigationTitle = folderURL.lastPathComponent
+    }
 
-                let pathsToLoad = appResults.map { $0.path }
-                var pathsRequiringMetadataLoad: [String] = []
-                var initiallyCachedCount = 0
+    private func detectApps(at urls: [URL]) async -> [AppInfo] {
+        let detectService = detectService
+        var apps: [AppInfo] = []
+        apps.reserveCapacity(urls.count)
 
-                for path in pathsToLoad {
-                    if let iconData = iconCache[path], let size = sizeCache[path] {
-                        if let index = appResults.firstIndex(where: { $0.path == path }) {
-                            appResults[index].iconData = iconData
-                            appResults[index].size = size
-                        }
-                        initiallyCachedCount += 1
-                    } else {
-                        pathsRequiringMetadataLoad.append(path)
-                    }
-                }
+        await forEachConcurrently(urls) { url in
+            await AppInfo(
+                name: url.deletingPathExtension().lastPathComponent,
+                path: url.path,
+                bundleId: Bundle(url: url)?.bundleIdentifier,
+                techStacks: detectService.detectStack(for: url),
+                category: detectService.extractCategory(from: url)
+            )
+        } receive: { app in
+            apps.append(app)
+            navigationTitle = "Scanning (\(apps.count * 100 / urls.count)%)…"
+        }
 
-                loadedMetadataCount = initiallyCachedCount
-                totalMetadataItems = appResults.count
+        return apps.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
 
-                if totalMetadataItems > 0 {
-                    metadataLoadProgress = Double(loadedMetadataCount) / Double(totalMetadataItems)
-                } else {
-                    metadataLoadProgress = 1.0
-                }
+    private func loadMetadata() async {
+        var results = appResults
+        let requests = results.indices.map { (index: $0, path: results[$0].path, cached: metadataCache[results[$0].path]) }
+        var completed = 0
 
-                if pathsRequiringMetadataLoad.isEmpty {
-                    metadataLoadingDidComplete()
-                } else {
-                    metadataLoader.enqueuePaths(pathsRequiringMetadataLoad)
-                }
+        await forEachConcurrently(requests) { request in
+            (request.index, MetadataLoaderService.metadata(forAppAt: request.path, cached: request.cached))
+        } receive: { index, metadata in
+            results[index].iconData = metadata.iconData
+            results[index].size = metadata.size
+            metadataCache[results[index].path] = metadata
+            completed += 1
+
+            if completed % Self.publishBatchSize == 0 || completed == requests.count {
+                appResults = results
+                navigationTitle = "Loading Details (\(completed * 100 / requests.count)%)…"
             }
         }
     }
 
-    @MainActor
-    func metadataLoadingDidComplete() {
-        if isLoading {
-            isLoading = false
-            metadataLoadProgress = 1.0
-            if appResults.isEmpty {
-                navigationTitle = "No Apps Found"
-            } else {
-                navigationTitle = folderURL?.lastPathComponent ?? Constants.AppName
+    /// Runs `transform` over `inputs` with bounded concurrency, handing each result to `receive`
+    /// on the main actor as soon as it's ready.
+    private func forEachConcurrently<Input: Sendable, Output: Sendable>(
+        _ inputs: [Input],
+        transform: @escaping @Sendable (Input) async -> Output,
+        receive: (Output) -> Void
+    ) async {
+        await withTaskGroup(of: Output.self) { group in
+            var pending = inputs.makeIterator()
+            for _ in 0..<Self.concurrencyLimit {
+                guard let input = pending.next() else { break }
+                group.addTask { await transform(input) }
             }
-            scanProgress = 1.0
-
-            categoryViewModel.updateCategories(with: appResults)
-
-            // Save caches once after all items are processed
-            diskCacheService.saveIconCache(iconCache)
-            diskCacheService.saveSizeCache(sizeCache)
-        }
-    }
-
-    // MARK: - Caching Methods
-
-    func getIconData(for path: String) -> Data? {
-        cacheQueue.sync { iconCache[path] }
-    }
-
-    func getSizeString(for path: String) -> String? {
-        cacheQueue.sync { sizeCache[path] }
-    }
-
-    @MainActor
-    func cacheData(path: String, iconData: Data?, sizeString: String?) async {
-        objectWillChange.send()
-
-        let wasAlreadyCached = (iconCache[path] != nil && sizeCache[path] != nil)
-
-        if let data = iconData {
-            iconCache[path] = data
-        }
-        if let size = sizeString {
-            sizeCache[path] = size
-        }
-
-        if !wasAlreadyCached && iconCache[path] != nil && sizeCache[path] != nil && totalMetadataItems > 0 {
-            loadedMetadataCount += 1
-            metadataLoadProgress = Double(loadedMetadataCount) / Double(totalMetadataItems)
-            let percentage = Int(metadataLoadProgress * 100)
-            navigationTitle = "Loading Details (\(percentage)%...)"
+            for await output in group {
+                receive(output)
+                if let input = pending.next() {
+                    group.addTask { await transform(input) }
+                }
+            }
         }
     }
 }

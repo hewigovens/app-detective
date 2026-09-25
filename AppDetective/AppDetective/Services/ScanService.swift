@@ -24,14 +24,6 @@ struct ScanService {
         }
     }
 
-    /// Scans the given folder URL for .app bundles.
-    /// - Parameter folderURL: The URL of the folder to scan. Assumes security scope access has already been started.
-    /// - Returns: An array of URLs pointing to the found .app bundles.
-    /// - Throws: A ScanError if enumeration fails.
-    func scan(folderURL: URL) throws -> [URL] {
-        try scanWithDiagnostics(folderURL: folderURL).appURLs
-    }
-
     /// Scans the given folder URL for .app bundles and reports child folders that could not be read.
     /// - Parameter folderURL: The URL of the folder to scan. Assumes security scope access has already been started.
     /// - Returns: A scan result containing found app URLs and skipped child directories.
@@ -51,8 +43,7 @@ struct ScanService {
             isRequiredRoot: true
         )
 
-        // Special case: If scanning /Applications, also scan /System/Applications
-        // since macOS Catalina+ stores system apps there
+        // System apps live in /System/Applications since macOS Catalina.
         if folderURL.path == "/Applications" {
             let systemAppsURL = URL(fileURLWithPath: "/System/Applications")
             var systemIsDir: ObjCBool = false
@@ -80,7 +71,6 @@ struct ScanService {
             let contents = try fileManager.contentsOfDirectory(at: directoryURL, includingPropertiesForKeys: [.isDirectoryKey], options: [])
 
             for itemURL in contents {
-                // Skip actual hidden files (starting with a dot)
                 if itemURL.lastPathComponent.hasPrefix(".") {
                     continue
                 }
@@ -90,7 +80,6 @@ struct ScanService {
                     continue
                 }
 
-                // Check if it's a .app bundle
                 if itemURL.pathExtension.lowercased() == "app" {
                     foundApps.append(itemURL)
                 } else {
