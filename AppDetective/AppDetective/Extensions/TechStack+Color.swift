@@ -8,6 +8,8 @@ extension TechStack {
         case .appKit: return Color.blue
         case .catalyst: return Color.purple
         case .uiKit: return Color.indigo
+        case .swift: return Color(hex: "#F05138")
+        case .objectiveC: return Color(hex: "#8E8E93")
         case .electron: return Color.cyan
         case .cef: return Color(hex: "#3498db")
         case .python: return Color(hex: "#336c9d")

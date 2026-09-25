@@ -60,7 +60,8 @@ $ appdetective --json /System/Applications/Calculator.app
 
 ### Native Apple Frameworks
 - SwiftUI
-- AppKit
+- AppKit, reported with its language (Swift or Objective-C)
+- UIKit (iOS apps on Apple silicon)
 - Catalyst
 
 ### Cross-Platform Frameworks

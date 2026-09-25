@@ -18,6 +18,11 @@ extension StackSignature {
         StackSignature(.catalyst, [
             .strong(.linkedLibrary(.prefix("/System/iOSSupport/System/Library/Frameworks/UIKit.framework/"))),
         ]),
+        StackSignature(.swift, [
+            .strong(.linkedLibrary(.suffix("/libswiftCore.dylib"))),
+            // Apps deploying before macOS 10.14.4 bundle the Swift runtime.
+            .strong(.framework(.exact("libswiftCore.dylib"))),
+        ]),
 
         // MARK: Web runtimes
 

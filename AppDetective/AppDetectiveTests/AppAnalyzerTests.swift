@@ -46,7 +46,7 @@ struct AppAnalyzerTests {
 
         let result = AppAnalyzer.analyze(app.url, cached: cached, detectService: detectService)
 
-        #expect(result.stacks == .appKit)
+        #expect(result.stacks == [.appKit, .objectiveC])
         #expect(result.detectorVersion == detectService.version)
         #expect(result.iconData == sentinelIcon)
         #expect(result.size == "1 KB")
@@ -60,7 +60,7 @@ struct AppAnalyzerTests {
 
         let result = AppAnalyzer.analyze(app.url, cached: cached, detectService: detectService)
 
-        #expect(result.stacks == .appKit)
+        #expect(result.stacks == [.appKit, .objectiveC])
         #expect(result.iconData != sentinelIcon)
         #expect(result.size != "1 KB")
     }

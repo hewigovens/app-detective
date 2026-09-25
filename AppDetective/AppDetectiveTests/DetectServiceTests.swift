@@ -72,7 +72,7 @@ struct DetectServiceTests {
         }
 
         #expect(await detectService.detectStack(for: qtApp.url) == .qt)
-        #expect(await detectService.detectStack(for: otherApp.url) == .appKit)
+        #expect(await detectService.detectStack(for: otherApp.url) == [.appKit, .objectiveC])
     }
 
     @Test("A single weak rule is reported as possible, not detected")
@@ -81,7 +81,7 @@ struct DetectServiceTests {
         defer { app.remove() }
 
         let detection = detectService.detect(app.url)
-        #expect(detection.stacks == .appKit)
+        #expect(detection.stacks == [.appKit, .objectiveC])
         #expect(detection.possibleStacks == .python)
         #expect(detection.matches.map(\.item) == ["MyPythonHelpers.framework"])
     }
@@ -112,7 +112,22 @@ struct DetectServiceTests {
         let app = try FakeApp()
         defer { app.remove() }
 
-        #expect(await detectService.detectStack(for: app.url) == .appKit)
+        #expect(await detectService.detectStack(for: app.url) == [.appKit, .objectiveC])
+    }
+
+    @Test("AppKit apps report Swift when the executable links the Swift runtime")
+    func appKitReportsLanguage() throws {
+        let app = try FakeApp(contents: ["SwiftMarker", "ElectronMarker"])
+        defer { app.remove() }
+        let swiftRule = StackSignature(.swift, [.strong(.file("Contents/SwiftMarker"))])
+        let electronRule = StackSignature(.electron, [.strong(.file("Contents/ElectronMarker"))])
+
+        #expect(DetectService(signatures: [swiftRule]).detect(app.url).stacks == [.appKit, .swift])
+        #expect(DetectService(signatures: []).detect(app.url).stacks == [.appKit, .objectiveC])
+        // The language is only reported for plain AppKit apps.
+        let detection = DetectService(signatures: [swiftRule, electronRule]).detect(app.url)
+        #expect(detection.stacks == .electron)
+        #expect(detection.possibleStacks.isEmpty)
     }
 
     @Test("Finds executable when Info.plist omits CFBundleExecutable")
@@ -121,7 +136,7 @@ struct DetectServiceTests {
         let app = try FakeApp(declaresExecutable: false)
         defer { app.remove() }
 
-        #expect(await detectService.detectStack(for: app.url) == .appKit)
+        #expect(await detectService.detectStack(for: app.url) == [.appKit, .objectiveC])
     }
 
     @Test("Returns other for a directory that is not an app bundle")
@@ -167,7 +182,7 @@ struct DetectServiceTests {
         let uiKitRule = StackSignature(.uiKit, [.strong(.file("Contents/UIKitMarker"))])
         let swiftUIRule = StackSignature(.swiftUI, [.strong(.file("Contents/SwiftUIMarker"))])
 
-        #expect(DetectService(signatures: [uiKitRule]).detect(app.url).stacks == .uiKit)
+        #expect(DetectService(signatures: [uiKitRule]).detect(app.url).stacks == [.uiKit, .objectiveC])
         #expect(DetectService(signatures: [uiKitRule, swiftUIRule]).detect(app.url).stacks == .swiftUI)
     }
 

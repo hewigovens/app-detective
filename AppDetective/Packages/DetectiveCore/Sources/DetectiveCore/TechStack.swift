@@ -26,15 +26,19 @@ public struct TechStack: OptionSet, Codable, Hashable, Sendable {
     public static let iced = TechStack(rawValue: 1 << 16)
     public static let other = TechStack(rawValue: 1 << 17)
     public static let uiKit = TechStack(rawValue: 1 << 18) // iOS apps running on Apple silicon
+    public static let swift = TechStack(rawValue: 1 << 19)
+    public static let objectiveC = TechStack(rawValue: 1 << 20)
 
     public static let native: TechStack = [.swiftUI, .appKit, .catalyst, .uiKit]
+    // Reported only with AppKit or UIKit, to tell Swift and Objective-C apps apart.
+    public static let languages: TechStack = [.swift, .objectiveC]
     public static let crossPlatform: TechStack = [
         .electron, .cef, .python, .qt, .wxWidgets, .gtk, .java,
         .xamarin, .flutter, .reactNative, .tauri, .gpui, .iced, .microsoftEdge,
     ]
 
     public static let allStacks: [TechStack] = [
-        .swiftUI, .appKit, .uiKit, .catalyst,
+        .swiftUI, .appKit, .uiKit, .catalyst, .swift, .objectiveC,
         .electron, .cef, .microsoftEdge, .flutter, .qt, .reactNative, .java, .python,
         .xamarin, .tauri, .wxWidgets, .gpui, .iced, .gtk,
         .other,
@@ -45,6 +49,8 @@ public struct TechStack: OptionSet, Codable, Hashable, Sendable {
         Self.appKit.rawValue: "AppKit",
         Self.catalyst.rawValue: "Catalyst",
         Self.uiKit.rawValue: "UIKit (iOS)",
+        Self.swift.rawValue: "Swift",
+        Self.objectiveC.rawValue: "Objective-C",
         Self.electron.rawValue: "Electron",
         Self.python.rawValue: "Python",
         Self.qt.rawValue: "Qt",

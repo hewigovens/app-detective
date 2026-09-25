@@ -33,7 +33,7 @@ public final class DetectService: Sendable {
         // String rules are circumstantial and `strings` is slow, so they run only when nothing beyond the
         // baseline frameworks was found. This also keeps apps that embed DetectiveCore (and so its catalog
         // strings) from matching every string rule.
-        if Self.confidentStacks(in: matches).subtracting(Self.baseline).isEmpty, inspector.executableURL != nil {
+        if Self.specificStacks(in: Self.confidentStacks(in: matches)).isEmpty, inspector.executableURL != nil {
             matches += evaluate(inspector, embeddedStrings: true)
         }
 
@@ -92,14 +92,18 @@ public final class DetectService: Sendable {
         return TechStack(scores.filter { $0.value >= Confidence.reportingThreshold }.keys)
     }
 
-    // AppKit and UIKit underlie every other UI stack, so report them only when nothing more specific was found.
-    private static let baseline: TechStack = [.appKit, .uiKit]
-
+    // AppKit and UIKit underlie every other UI stack, so report them only when nothing more specific was found,
+    // together with the language, which tells plain AppKit apps apart.
     private static func resolve(_ stacks: TechStack) -> TechStack {
-        let specific = stacks.subtracting(baseline)
+        let specific = specificStacks(in: stacks)
         if !specific.isEmpty {
             return specific
         }
-        return stacks.contains(.uiKit) ? .uiKit : .appKit
+        let framework: TechStack = stacks.contains(.uiKit) ? .uiKit : .appKit
+        return framework.union(stacks.contains(.swift) ? .swift : .objectiveC)
+    }
+
+    private static func specificStacks(in stacks: TechStack) -> TechStack {
+        stacks.subtracting([.appKit, .uiKit]).subtracting(.languages)
     }
 }
