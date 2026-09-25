@@ -2,8 +2,13 @@ import AppKit
 import SwiftUI
 
 struct OnboardingView: View {
-    @State private var selectedFolderName: String?
-    var onFolderSelected: (URL) -> Void
+    var onFoldersSelected: ([URL]) -> Void
+
+    private var applicationFolders: [URL] {
+        let userApplications = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications")
+        return [URL(fileURLWithPath: "/Applications", isDirectory: true), userApplications]
+            .filter { FileManager.default.fileExists(atPath: $0.path) }
+    }
 
     var body: some View {
         VStack(spacing: 16) {
@@ -15,47 +20,45 @@ struct OnboardingView: View {
             Text("Welcome to \(Constants.AppName)")
                 .font(.largeTitle)
 
-            Text("Pick a folder to scan for apps.")
-                .foregroundColor(.secondary)
+            Text("Find out what each of your apps is built with.")
+                .foregroundStyle(.secondary)
 
-            Button("Choose Folder") {
-                selectFolder()
+            HStack {
+                Button("Scan Applications") {
+                    onFoldersSelected(applicationFolders)
+                }
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+
+                Button("Choose Folders…") {
+                    selectFolders()
+                }
             }
-            .buttonStyle(.borderedProminent)
             .controlSize(.large)
-
-            if let folderName = selectedFolderName {
-                Text("Selected: \(folderName)")
-                    .font(.caption)
-                    .foregroundColor(.green)
-            }
-
-            Spacer().frame(height: 4)
 
             Text("Tip: install the `appdetective` CLI from the **\(Constants.AppName)** menu to inspect a single app from your terminal.")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
+                .padding(.top, 4)
         }
         .padding()
         .frame(minWidth: 400, minHeight: 300)
     }
 
-    private func selectFolder() {
+    private func selectFolders() {
         let panel = NSOpenPanel()
-        panel.message = "Please select the folder containing your applications."
-        panel.prompt = "Select Folder"
-        panel.allowedContentTypes = [.folder]
+        panel.message = "Choose the folders containing your applications."
+        panel.prompt = "Scan"
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
-        panel.allowsMultipleSelection = false
+        panel.allowsMultipleSelection = true
         panel.canCreateDirectories = false
         panel.directoryURL = URL(fileURLWithPath: "/Applications", isDirectory: true)
 
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        selectedFolderName = url.lastPathComponent
-        onFolderSelected(url)
+        guard panel.runModal() == .OK, !panel.urls.isEmpty else { return }
+        onFoldersSelected(panel.urls)
     }
 }
 

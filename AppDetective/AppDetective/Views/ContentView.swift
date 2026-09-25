@@ -9,121 +9,93 @@ struct ContentView: View {
     }
 
     var body: some View {
+        @Bindable var categoryViewModel = categoryViewModel
+
         NavigationSplitView {
-            sidebar
+            CategoryView(viewModel: categoryViewModel)
+                .navigationSplitViewColumnWidth(min: 200, ideal: 230)
         } detail: {
-            ZStack {
-                VStack {
-                    if let errorMessage = viewModel.errorMessage {
-                        Text("Error: \(errorMessage)")
-                            .foregroundColor(.red)
-                            .padding()
-                            .accessibilityIdentifier("scan-error-message")
-                    } else {
-                        if let warningMessage = viewModel.warningMessage {
-                            Text(warningMessage)
-                                .font(.caption)
-                                .foregroundColor(.orange)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(Color.orange.opacity(0.12))
-                                .accessibilityIdentifier("scan-warning-message")
-                        }
-
-                        if viewModel.appResults.isEmpty {
-                            if !viewModel.isLoading {
-                                Text("No apps found or scan not started.")
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            }
-                        } else {
-                            List(categoryViewModel.filteredApps) { app in
-                                AppListCell(appInfo: app)
-                            }
-                            Text(summary)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .padding(.bottom, 8)
-                        }
-                    }
+            VStack(spacing: 0) {
+                if let warningMessage = viewModel.warningMessage {
+                    Label(warningMessage, systemImage: "exclamationmark.triangle.fill")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(.yellow.opacity(0.12))
+                        .accessibilityIdentifier("scan-warning-message")
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                if viewModel.isLoading {
-                    ProgressView("Scanning…")
-                        .padding(16)
-                        .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
-                        .transition(.opacity.animation(.easeInOut(duration: 0.2)))
-                }
+                content
             }
-            .navigationTitle(viewModel.navigationTitle)
+            .navigationTitle(viewModel.title)
+            .navigationSubtitle(subtitle)
+            .searchable(text: $categoryViewModel.searchText, prompt: "Name or bundle ID")
             .toolbar { toolbar }
             .frame(minWidth: 500, minHeight: 400)
-            .animation(.easeInOut(duration: 0.2), value: categoryViewModel.selectedCategory)
-            .animation(.easeInOut(duration: 0.2), value: categoryViewModel.selectedTechStack)
         }
     }
 
-    private var sidebar: some View {
-        CategoryView(viewModel: categoryViewModel)
-            .navigationTitle("Filters")
-            .navigationSplitViewColumnWidth(min: 200, ideal: 230)
+    @ViewBuilder
+    private var content: some View {
+        if let errorMessage = viewModel.errorMessage {
+            ContentUnavailableView {
+                Label("No Apps", systemImage: "questionmark.app.dashed")
+            } description: {
+                Text(errorMessage)
+                    .accessibilityIdentifier("scan-error-message")
+            }
+        } else if viewModel.appResults.isEmpty {
+            if viewModel.isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ContentUnavailableView("No Apps", systemImage: "app.dashed")
+            }
+        } else if categoryViewModel.filteredApps.isEmpty {
+            ContentUnavailableView.search(text: categoryViewModel.searchText)
+        } else {
+            List(categoryViewModel.filteredApps) { app in
+                AppListCell(appInfo: app)
+            }
+        }
+    }
+
+    private var subtitle: String {
+        if let progress = viewModel.progress {
+            return "Scanning \(Int(progress * 100))%"
+        }
+        let shown = categoryViewModel.filteredApps.count
+        let total = viewModel.appResults.count
+        return shown == total ? "\(total) apps" : "\(shown) of \(total) apps"
     }
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
-        @Bindable var categoryViewModel = categoryViewModel
-        ToolbarItem(placement: .automatic) {
-            TextField("Filter by name or bundle ID", text: $categoryViewModel.searchText)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 200)
-        }
-        ToolbarItem(placement: .primaryAction) {
-            HStack {
-                Button {
-                    viewModel.selectNewFolderAndScan()
-                } label: {
-                    Image(systemName: "folder.badge.plus")
+        ToolbarItemGroup(placement: .primaryAction) {
+            Menu {
+                Section("Scanned Folders") {
+                    ForEach(viewModel.folderURLs, id: \.self) { url in
+                        Button("Remove \(url.lastPathComponent)", systemImage: "minus.circle") {
+                            viewModel.removeFolder(url)
+                        }
+                    }
                 }
-                .help("Select a new folder to scan for applications")
-                .disabled(viewModel.isLoading)
-
-                Button {
-                    viewModel.clearCachesAndRescan()
-                } label: {
-                    Image(systemName: "arrow.clockwise")
+                Button("Add Folder…", systemImage: "plus") {
+                    viewModel.addFolders()
                 }
-                .help("Clear cache and rescan the selected folder")
-                .disabled(viewModel.isLoading)
-
-                Divider()
-
-                Button {
-                    NSWorkspace.shared.open(URL(string: Constants.sponsorLink)!)
-                } label: {
-                    Image(systemName: "heart.circle")
-                }
-                .help("Buy author a Coffee if you find this app useful")
+            } label: {
+                Label("Folders", systemImage: "folder")
             }
-        }
-    }
+            .help("Choose which folders to scan")
+            .disabled(viewModel.isLoading)
 
-    private var summary: String {
-        let shown = categoryViewModel.filteredApps.count
-        var parts = if let category = categoryViewModel.selectedCategory {
-            ["Showing \(shown) apps in \(category.description)"]
-        } else {
-            ["Showing \(shown) of \(viewModel.appResults.count) apps"]
+            Button("Rescan", systemImage: "arrow.clockwise") {
+                viewModel.clearCachesAndRescan()
+            }
+            .help("Clear the cache and rescan")
+            .disabled(viewModel.isLoading)
         }
-        if let stack = categoryViewModel.selectedTechStack {
-            parts.append("with \(stack.displayName)")
-        }
-        if !categoryViewModel.searchText.isEmpty {
-            parts.append("matching \"\(categoryViewModel.searchText)\"")
-        }
-        return parts.joined(separator: " ")
     }
 }
 

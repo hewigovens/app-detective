@@ -8,14 +8,14 @@ struct AppDetectiveApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if contentViewModel.folderURL != nil {
+            if !contentViewModel.folderURLs.isEmpty {
                 ContentView(viewModel: contentViewModel)
                     .task {
                         await contentViewModel.scanApplications()
                     }
             } else {
-                OnboardingView { url in
-                    contentViewModel.folderURL = url
+                OnboardingView { urls in
+                    contentViewModel.folderURLs = urls
                 }
             }
         }
@@ -44,6 +44,18 @@ struct AppDetectiveApp: App {
             }
             // A single window shares one scan; hide File > New Window.
             CommandGroup(replacing: .newItem) {}
+            CommandGroup(replacing: .importExport) {
+                Button("Export Results…") {
+                    contentViewModel.exportResults()
+                }
+                .keyboardShortcut("e")
+                .disabled(contentViewModel.appResults.isEmpty)
+            }
+            CommandGroup(after: .help) {
+                Button("Sponsor App Detective…") {
+                    NSWorkspace.shared.open(URL(string: Constants.sponsorLink)!)
+                }
+            }
         }
     }
 }

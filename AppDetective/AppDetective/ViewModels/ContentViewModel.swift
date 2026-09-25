@@ -1,6 +1,7 @@
 import DetectiveCore
 import Foundation
 import SwiftUI
+import UniformTypeIdentifiers
 
 @MainActor
 @Observable
@@ -8,119 +9,142 @@ final class ContentViewModel {
     private static let concurrencyLimit = 8
     private static let publishBatchSize = 8
 
-    private static let folderPathKey = "scanFolderPath"
+    private static let folderPathsKey = "scanFolderPaths"
+    private static let legacyFolderPathKey = "scanFolderPath"
     private static let legacyBookmarkKey = "selectedFolderBookmark"
 
-    var isLoading = false
+    private(set) var progress: Double?
     var appResults: [AppInfo] = [] {
         didSet { categoryViewModel.apps = appResults }
     }
     var errorMessage: String?
     var warningMessage: String?
-    var navigationTitle: String
-    var folderURL: URL? {
+    var folderURLs: [URL] {
         didSet {
-            if persistsFolder {
-                UserDefaults.standard.set(folderURL?.path, forKey: Self.folderPathKey)
+            if persistsFolders {
+                UserDefaults.standard.set(folderURLs.map(\.path), forKey: Self.folderPathsKey)
             }
         }
     }
 
     let categoryViewModel = CategoryViewModel()
 
-    @ObservationIgnored private let persistsFolder: Bool
+    @ObservationIgnored private let persistsFolders: Bool
     @ObservationIgnored private let detectService = DetectService()
     @ObservationIgnored private let scanService = ScanService()
     @ObservationIgnored private let diskCacheService = DiskCacheService()
     @ObservationIgnored private var appCache: [String: CachedApp]
 
-    /// - Parameter startupFolderURL: A folder from the command line; used for this launch only.
+    var isLoading: Bool {
+        progress != nil
+    }
+
+    var title: String {
+        switch folderURLs.count {
+        case 0: Constants.AppName
+        case 1: folderURLs[0].lastPathComponent
+        default: "\(folderURLs.count) Folders"
+        }
+    }
+
+    // A folder passed on the command line is used for this launch only.
     init(startupFolderURL: URL? = nil) {
-        persistsFolder = startupFolderURL == nil
-        let folderURL = startupFolderURL ?? Self.savedFolderURL()
-        self.folderURL = folderURL
-        navigationTitle = folderURL?.lastPathComponent ?? Constants.AppName
+        persistsFolders = startupFolderURL == nil
+        folderURLs = startupFolderURL.map { [$0] } ?? Self.savedFolderURLs()
         appCache = diskCacheService.load()
     }
 
-    private static func savedFolderURL() -> URL? {
+    private static func savedFolderURLs() -> [URL] {
         let defaults = UserDefaults.standard
-        if let path = defaults.string(forKey: folderPathKey) {
-            return URL(fileURLWithPath: path, isDirectory: true)
+        if let paths = defaults.stringArray(forKey: folderPathsKey) {
+            return paths.map { URL(fileURLWithPath: $0, isDirectory: true) }
         }
+
+        var legacyURL = defaults.string(forKey: legacyFolderPathKey).map { URL(fileURLWithPath: $0, isDirectory: true) }
         // Earlier versions saved a security-scoped bookmark; the app isn't sandboxed, so a path suffices.
-        guard let bookmark = defaults.data(forKey: legacyBookmarkKey) else { return nil }
-        defaults.removeObject(forKey: legacyBookmarkKey)
-        var isStale = false
-        guard let url = try? URL(resolvingBookmarkData: bookmark, options: .withSecurityScope, bookmarkDataIsStale: &isStale) else {
-            return nil
+        if legacyURL == nil, let bookmark = defaults.data(forKey: legacyBookmarkKey) {
+            var isStale = false
+            legacyURL = try? URL(resolvingBookmarkData: bookmark, options: .withSecurityScope, bookmarkDataIsStale: &isStale)
         }
-        defaults.set(url.path, forKey: folderPathKey)
-        return url
+        defaults.removeObject(forKey: legacyFolderPathKey)
+        defaults.removeObject(forKey: legacyBookmarkKey)
+
+        let urls = legacyURL.map { [$0] } ?? []
+        defaults.set(urls.map(\.path), forKey: folderPathsKey)
+        return urls
     }
 
-    func reset(title: String = "Select Folder", errorMessage: String? = nil) {
-        appResults = []
-        self.errorMessage = errorMessage
-        warningMessage = nil
-        navigationTitle = title
+    func addFolders() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = true
+        panel.prompt = "Add"
+
+        guard panel.runModal() == .OK else { return }
+        let newURLs = panel.urls.filter { url in !folderURLs.contains { $0.standardizedFileURL == url.standardizedFileURL } }
+        guard !newURLs.isEmpty else { return }
+        folderURLs += newURLs
+        rescan()
+    }
+
+    func removeFolder(_ url: URL) {
+        folderURLs.removeAll { $0 == url }
+        if folderURLs.isEmpty {
+            appResults = []
+        } else {
+            rescan()
+        }
     }
 
     func clearCachesAndRescan() {
         diskCacheService.clear()
         appCache.removeAll()
-        Task {
-            await scanApplications()
-        }
+        rescan()
     }
 
-    func selectNewFolderAndScan() {
-        let openPanel = NSOpenPanel()
-        openPanel.canChooseFiles = false
-        openPanel.canChooseDirectories = true
-        openPanel.allowsMultipleSelection = false
-        openPanel.prompt = "Select Folder"
-
-        guard openPanel.runModal() == .OK, let url = openPanel.url else { return }
-        folderURL = url
+    private func rescan() {
         Task {
             await scanApplications()
         }
     }
 
     func scanApplications() async {
-        guard let folderURL else {
-            reset(title: "No Folder", errorMessage: "No folder selected.")
-            return
-        }
-        guard !isLoading else { return }
+        guard !folderURLs.isEmpty, !isLoading else { return }
 
-        reset(title: "Scanning…")
+        appResults = []
+        errorMessage = nil
+        warningMessage = nil
         categoryViewModel.resetFilters()
-        isLoading = true
-        defer { isLoading = false }
+        progress = 0
+        defer { progress = nil }
 
-        let scanResult: ScanService.ScanResult
-        do {
-            scanResult = try scanService.scanWithDiagnostics(folderURL: folderURL)
-        } catch {
-            reset(title: "Scan Error", errorMessage: error.localizedDescription)
+        var appURLs: [URL] = []
+        var seenPaths: Set<String> = []
+        var failures: [String] = []
+        var hasSkippedDirectories = false
+        for folderURL in folderURLs {
+            do {
+                let result = try scanService.scanWithDiagnostics(folderURL: folderURL)
+                appURLs += result.appURLs.filter { seenPaths.insert($0.standardizedFileURL.path).inserted }
+                hasSkippedDirectories = hasSkippedDirectories || result.hasSkippedDirectories
+            } catch {
+                failures.append(error.localizedDescription)
+            }
+        }
+
+        var warnings = failures
+        if hasSkippedDirectories {
+            warnings.append("Some folders could not be scanned due to permissions.")
+        }
+        guard !appURLs.isEmpty else {
+            errorMessage = (["No applications found."] + warnings).joined(separator: " ")
             return
         }
+        warningMessage = warnings.isEmpty ? nil : warnings.joined(separator: " ")
 
-        let permissionNote = "Some folders could not be scanned due to permissions."
-        guard !scanResult.appURLs.isEmpty else {
-            let message = "No applications found in the selected folder."
-            reset(title: "No Apps Found", errorMessage: scanResult.hasSkippedDirectories ? "\(message) \(permissionNote)" : message)
-            return
-        }
-        if scanResult.hasSkippedDirectories {
-            warningMessage = permissionNote
-        }
-
-        await analyzeApps(at: scanResult.appURLs)
+        await analyzeApps(at: appURLs)
         diskCacheService.save(appCache)
-        navigationTitle = folderURL.lastPathComponent
     }
 
     private func analyzeApps(at urls: [URL]) async {
@@ -134,9 +158,9 @@ final class ContentViewModel {
         } receive: { url, analysis in
             appCache[url.path] = analysis
             apps.append(AppInfo(url: url, analysis: analysis))
+            progress = Double(apps.count) / Double(urls.count)
             if apps.count % Self.publishBatchSize == 0 || apps.count == urls.count {
                 appResults = apps.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-                navigationTitle = "Scanning (\(apps.count * 100 / urls.count)%)…"
             }
         }
     }
@@ -158,6 +182,22 @@ final class ContentViewModel {
                     group.addTask { await transform(input) }
                 }
             }
+        }
+    }
+
+    func exportResults() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.commaSeparatedText, .json]
+        panel.nameFieldStringValue = "\(title).csv"
+        panel.isExtensionHidden = false
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let apps = categoryViewModel.filteredApps
+        let data = url.pathExtension.lowercased() == "json" ? ResultsExporter.json(apps) : ResultsExporter.csv(apps)
+        do {
+            try data.write(to: url, options: .atomic)
+        } catch {
+            warningMessage = "Export failed: \(error.localizedDescription)"
         }
     }
 }
