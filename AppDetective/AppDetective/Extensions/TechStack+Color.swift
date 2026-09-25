@@ -24,6 +24,15 @@ extension TechStack {
         case .gpui: return Color(hex: "#FF6B6B")
         case .iced: return Color(hex: "#A0D2DB")
         case .microsoftEdge: return Color(hex: "#0078D4")
+        case .unity: return Color(hex: "#222C37")
+        case .unreal: return Color(hex: "#0E1128")
+        case .compose: return Color(hex: "#4285F4")
+        case .avalonia: return Color(hex: "#8B44AC")
+        case .wails: return Color(hex: "#DF0000")
+        case .fyne: return Color(hex: "#00ADD8")
+        case .xojo: return Color(hex: "#C9302C")
+        case .egui: return Color(hex: "#E0B84C")
+        case .slint: return Color(hex: "#2379F4")
         case .other: return Color.gray
         default:
             if self.contains(.swiftUI) { return Color.orange }

@@ -86,6 +86,44 @@ extension StackSignature {
             .strong(.embeddedString("iced_wgpu")),
             .strong(.embeddedString("iced_winit")),
         ]),
+        StackSignature(.egui, [
+            // Cargo registry paths, kept in panic messages.
+            .strong(.embeddedString("/eframe-")),
+            .strong(.embeddedString("/egui-")),
+        ]),
+        StackSignature(.slint, [
+            .strong(.embeddedString("/slint-")),
+        ]),
+        StackSignature(.wails, [
+            // Go module paths from the binary's build info.
+            .strong(.embeddedString("github.com/wailsapp/wails")),
+        ]),
+        StackSignature(.fyne, [
+            .strong(.embeddedString("fyne.io/fyne")),
+        ]),
+        StackSignature(.compose, [
+            // jpackage puts the Skia bindings next to the app's jars.
+            .strong(.entry(in: "Contents/app", .prefix("libskiko"))),
+            .strong(.entry(in: "Contents/app", .prefix("skiko-awt"))),
+        ]),
+        StackSignature(.avalonia, [
+            .strong(.entry(in: "Contents/MacOS", .exact("libAvaloniaNative.dylib"))),
+        ]),
+        StackSignature(.xojo, [
+            .strong(.framework(.exact("XojoFramework.framework"))),
+        ]),
+
+        // MARK: Game engines
+
+        StackSignature(.unity, [
+            .strong(.framework(.exact("UnityPlayer.dylib"))),
+            .strong(.linkedLibrary(.contains("UnityPlayer"))),
+            .weak(.resource(.exact("Data"))),
+        ]),
+        StackSignature(.unreal, [
+            .strong(.file("Contents/UE4")),
+            .strong(.file("Contents/UE")),
+        ]),
 
         // MARK: Language runtimes
 

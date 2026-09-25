@@ -62,6 +62,48 @@ struct DetectServiceTests {
         #expect(await detectService.detectStack(for: app.url) == .xamarin)
     }
 
+    @Test("Detects Unity from the bundled player")
+    func detectsUnity() throws {
+        let app = try FakeApp(frameworks: ["UnityPlayer.dylib"], resources: ["Data"])
+        defer { app.remove() }
+
+        #expect(detectService.detect(app.url).stacks == .unity)
+    }
+
+    @Test("Detects Unreal Engine from its engine directory")
+    func detectsUnreal() throws {
+        let app = try FakeApp(contents: ["UE/Engine"])
+        defer { app.remove() }
+
+        #expect(detectService.detect(app.url).stacks == .unreal)
+    }
+
+    @Test("Detects Compose Multiplatform from Skiko next to the jars")
+    func detectsCompose() throws {
+        let app = try FakeApp(contents: ["app/libskiko-macos-arm64.dylib", "runtime/Contents/Home"])
+        defer { app.remove() }
+
+        let detection = detectService.detect(app.url)
+        #expect(detection.stacks == [.compose, .java])
+        #expect(detection.matches.map(\.item).contains("libskiko-macos-arm64.dylib"))
+    }
+
+    @Test("Detects Avalonia from its native bridge")
+    func detectsAvalonia() throws {
+        let app = try FakeApp(contents: ["MacOS/libAvaloniaNative.dylib"])
+        defer { app.remove() }
+
+        #expect(detectService.detect(app.url).stacks == .avalonia)
+    }
+
+    @Test("Detects Xojo from its framework")
+    func detectsXojo() throws {
+        let app = try FakeApp(frameworks: ["XojoFramework.framework"])
+        defer { app.remove() }
+
+        #expect(detectService.detect(app.url).stacks == .xojo)
+    }
+
     @Test("Qt requires a Qt module name, not any Qt prefix")
     func qtRequiresModuleName() async throws {
         let qtApp = try FakeApp(frameworks: ["QtWidgets.framework"])

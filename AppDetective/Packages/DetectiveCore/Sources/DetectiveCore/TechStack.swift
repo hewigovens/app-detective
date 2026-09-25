@@ -28,6 +28,15 @@ public struct TechStack: OptionSet, Codable, Hashable, Sendable {
     public static let uiKit = TechStack(rawValue: 1 << 18) // iOS apps running on Apple silicon
     public static let swift = TechStack(rawValue: 1 << 19)
     public static let objectiveC = TechStack(rawValue: 1 << 20)
+    public static let unity = TechStack(rawValue: 1 << 21)
+    public static let unreal = TechStack(rawValue: 1 << 22)
+    public static let compose = TechStack(rawValue: 1 << 23)
+    public static let avalonia = TechStack(rawValue: 1 << 24)
+    public static let wails = TechStack(rawValue: 1 << 25)
+    public static let fyne = TechStack(rawValue: 1 << 26)
+    public static let xojo = TechStack(rawValue: 1 << 27)
+    public static let egui = TechStack(rawValue: 1 << 28)
+    public static let slint = TechStack(rawValue: 1 << 29)
 
     public static let native: TechStack = [.swiftUI, .appKit, .catalyst, .uiKit]
     // Reported only with AppKit or UIKit, to tell Swift and Objective-C apps apart.
@@ -35,12 +44,14 @@ public struct TechStack: OptionSet, Codable, Hashable, Sendable {
     public static let crossPlatform: TechStack = [
         .electron, .cef, .python, .qt, .wxWidgets, .gtk, .java,
         .xamarin, .flutter, .reactNative, .tauri, .gpui, .iced, .microsoftEdge,
+        .unity, .unreal, .compose, .avalonia, .wails, .fyne, .xojo, .egui, .slint,
     ]
 
     public static let allStacks: [TechStack] = [
         .swiftUI, .appKit, .uiKit, .catalyst, .swift, .objectiveC,
         .electron, .cef, .microsoftEdge, .flutter, .qt, .reactNative, .java, .python,
-        .xamarin, .tauri, .wxWidgets, .gpui, .iced, .gtk,
+        .xamarin, .avalonia, .compose, .tauri, .wxWidgets, .gpui, .iced, .egui, .slint, .wails, .fyne, .gtk,
+        .unity, .unreal, .xojo,
         .other,
     ]
 
@@ -65,6 +76,15 @@ public struct TechStack: OptionSet, Codable, Hashable, Sendable {
         Self.iced.rawValue: "Iced",
         Self.microsoftEdge.rawValue: "Microsoft Edge",
         Self.gtk.rawValue: "GTK",
+        Self.unity.rawValue: "Unity",
+        Self.unreal.rawValue: "Unreal Engine",
+        Self.compose.rawValue: "Compose Multiplatform",
+        Self.avalonia.rawValue: "Avalonia",
+        Self.wails.rawValue: "Wails",
+        Self.fyne.rawValue: "Fyne",
+        Self.xojo.rawValue: "Xojo",
+        Self.egui.rawValue: "egui",
+        Self.slint.rawValue: "Slint",
         Self.other.rawValue: "Other",
     ]
 

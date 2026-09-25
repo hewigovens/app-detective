@@ -73,9 +73,14 @@ $ appdetective --json /System/Applications/Calculator.app
 - Xamarin/MAUI
 - Flutter
 - React Native
-- Tauri / GPUI / Iced
+- Tauri / GPUI / Iced / egui / Slint
+- Wails / Fyne
+- Compose Multiplatform
+- Avalonia
 - GTK
 - wxWidgets
+- Xojo
+- Unity / Unreal Engine
 
 ## Contributing
 

@@ -33,7 +33,7 @@ Use the `justfile` recipes; they regenerate the Xcode project first.
 - Don't run `swift build` inside `Packages/DetectiveCore`; it leaves `.build/` and `Package.resolved` in the working copy, which jj snapshots.
 
 ## Detection Changes
-- Detection lives in `Packages/DetectiveCore/Sources/DetectiveCore/Detection/`. Each stack has a `StackSignature` in `StackSignatures.swift`: a list of rules, each an `Evidence` (framework, resource, plug-in, file, linked library, embedded string) with a `Confidence`.
+- Detection lives in `Packages/DetectiveCore/Sources/DetectiveCore/Detection/`. Each stack has a `StackSignature` in `StackSignatures.swift`: a list of rules, each an `Evidence` (framework, resource, plug-in, file, directory entry, linked library, embedded string) with a `Confidence`.
 - **Confidence**: `.strong` identifies the stack alone (its runtime is bundled or linked); `.weak` is circumstantial. A stack is reported at one strong or two weak matches; below that it appears in `possibleStacks`. Don't mark substring or string matches strong unless the text is unique to the stack.
 - **Adding a stack**: add the flag, `allStacks` entry, and name in `TechStack.swift`; its color in `TechStack+Color.swift`; its signature in `StackSignatures.swift`; and a fake-bundle test in `DetectServiceTests.swift`.
 - AppKit and UIKit are reported only when nothing more specific matched, together with the language (`.swift` when the Swift runtime is linked, else `.objectiveC`); `TechStack.languages` never counts as a specific stack.

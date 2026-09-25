@@ -14,6 +14,7 @@ final class BundleInspector {
     private lazy var frameworks = Self.itemNames(in: bundle.privateFrameworksURL)
     private lazy var resources = Self.itemNames(in: bundle.resourceURL)
     private lazy var plugIns = Self.itemNames(in: bundle.builtInPlugInsURL)
+    private var entries: [String: [String]] = [:]
 
     private lazy var linkedLibraries: [String] = {
         guard
@@ -49,9 +50,20 @@ final class BundleInspector {
             FileManager.default.fileExists(atPath: bundle.bundleURL.appendingPathComponent(path).path) ? path : nil
         case let .linkedLibrary(pattern):
             linkedLibraries.first(where: pattern.matches)
+        case let .entry(directory, pattern):
+            entries(in: directory).first(where: pattern.matches)
         case let .embeddedString(text):
             embeddedStrings.contains(text) ? text : nil
         }
+    }
+
+    private func entries(in directory: String) -> [String] {
+        if let cached = entries[directory] {
+            return cached
+        }
+        let names = Self.itemNames(in: bundle.bundleURL.appendingPathComponent(directory))
+        entries[directory] = names
+        return names
     }
 
     private static func itemNames(in directoryURL: URL?) -> [String] {
