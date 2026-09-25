@@ -1,8 +1,10 @@
+import AppKit
 import DetectiveCore
 import SwiftUI
 
 struct ContentView: View {
     let viewModel: ContentViewModel
+    @State private var isSearchVisible = false
 
     private var categoryViewModel: CategoryViewModel {
         viewModel.categoryViewModel
@@ -31,7 +33,6 @@ struct ContentView: View {
             }
             .navigationTitle(viewModel.title)
             .navigationSubtitle(subtitle)
-            .searchable(text: $categoryViewModel.searchText, prompt: "Name or bundle ID")
             .toolbar { toolbar }
             .inspector(isPresented: $viewModel.isShowingInspector) {
                 AppDetailView(app: categoryViewModel.selectedApp)
@@ -64,6 +65,17 @@ struct ContentView: View {
             List(categoryViewModel.filteredApps, selection: $categoryViewModel.selectedAppID) { app in
                 AppListCell(appInfo: app)
             }
+            // A tap gesture on the rows would delay selection; the list reports double-clicks as its primary action.
+            .contextMenu(forSelectionType: AppInfo.ID.self) { paths in
+                Button("Show in Finder", systemImage: "folder") {
+                    NSWorkspace.shared.activateFileViewerSelecting(paths.map { URL(fileURLWithPath: $0) })
+                }
+            } primaryAction: { paths in
+                if let path = paths.first {
+                    categoryViewModel.selectedAppID = path
+                }
+                viewModel.isShowingInspector.toggle()
+            }
         }
     }
 
@@ -78,7 +90,11 @@ struct ContentView: View {
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
-        ToolbarItemGroup(placement: .primaryAction) {
+        // Separate items keep their identity, so toggling the search field doesn't redraw the menu.
+        ToolbarItem(placement: .primaryAction) {
+            searchItem
+        }
+        ToolbarItem(placement: .primaryAction) {
             Menu {
                 Section("Scanned Folders") {
                     ForEach(viewModel.folderURLs, id: \.self) { url in
@@ -90,23 +106,36 @@ struct ContentView: View {
                 Button("Add Folder…", systemImage: "plus") {
                     viewModel.addFolders()
                 }
+                Divider()
+                Button("Rescan All Folders", systemImage: "arrow.clockwise") {
+                    viewModel.clearCachesAndRescan()
+                }
             } label: {
-                Label("Folders", systemImage: "folder")
+                Label("Manage", systemImage: "folder.badge.gearshape")
             }
-            .help("Choose which folders to scan")
+            .help("Add or remove folders, or clear the cache and rescan")
             .disabled(viewModel.isLoading)
-
-            Button("Rescan", systemImage: "arrow.clockwise") {
-                viewModel.clearCachesAndRescan()
-            }
-            .help("Clear the cache and rescan")
-            .disabled(viewModel.isLoading)
-
-            Button("Inspector", systemImage: "sidebar.trailing") {
-                viewModel.isShowingInspector.toggle()
-            }
-            .help("Show or hide the selected app's details")
         }
+    }
+
+    @ViewBuilder
+    private var searchItem: some View {
+        if isSearchVisible {
+            @Bindable var categoryViewModel = categoryViewModel
+            ToolbarSearchField(text: $categoryViewModel.searchText, onCancel: hideSearch)
+                .accessibilityIdentifier("search-field")
+        } else {
+            Button("Search", systemImage: "magnifyingglass") {
+                isSearchVisible = true
+            }
+            .keyboardShortcut("f")
+            .help("Search by name or bundle ID")
+        }
+    }
+
+    private func hideSearch() {
+        categoryViewModel.searchText = ""
+        isSearchVisible = false
     }
 }
 

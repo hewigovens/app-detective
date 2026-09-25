@@ -1,4 +1,3 @@
-import AppKit
 import DetectiveCore
 import SwiftUI
 
@@ -35,11 +34,6 @@ struct AppListCell: View {
             }
         }
         .padding(.vertical, 2)
-        .contextMenu {
-            Button("Show in Finder", systemImage: "folder") {
-                NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: appInfo.path)])
-            }
-        }
     }
 }
 

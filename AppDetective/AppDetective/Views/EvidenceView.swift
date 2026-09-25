@@ -8,14 +8,14 @@ struct EvidenceView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(appInfo.name)
                 .font(.headline)
-            EvidenceGrid(appInfo: appInfo)
+            EvidenceList(appInfo: appInfo)
         }
         .padding()
         .frame(width: 440, alignment: .leading)
     }
 }
 
-struct EvidenceGrid: View {
+struct EvidenceList: View {
     let appInfo: AppInfo
 
     var body: some View {
@@ -24,23 +24,23 @@ struct EvidenceGrid: View {
                 Text("No specific evidence found; native apps fall back to AppKit.")
                     .foregroundStyle(.secondary)
             } else {
-                Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 8, verticalSpacing: 6) {
-                    ForEach(appInfo.evidence, id: \.self) { evidence in
-                        GridRow {
+                ForEach(appInfo.evidence, id: \.self) { evidence in
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text(evidence.stack)
+                                .fontWeight(.medium)
                             Text(evidence.isStrong ? "Strong" : "Weak")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(evidence.isStrong ? .green : .orange)
-                            Text(evidence.stack)
-                                .fontWeight(.medium)
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(evidence.rule)
-                                Text(evidence.item)
-                                    .font(.caption.monospaced())
-                                    .foregroundStyle(.secondary)
-                                    .textSelection(.enabled)
-                            }
                         }
+                        Text(evidence.rule)
+                            .foregroundStyle(.secondary)
+                        Text(evidence.item)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.tertiary)
+                            .textSelection(.enabled)
                     }
+                    .fixedSize(horizontal: false, vertical: true)
                 }
             }
 

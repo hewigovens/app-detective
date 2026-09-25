@@ -22,10 +22,11 @@ struct AppDetailView: View {
                     LabeledContent("Bundle ID", value: app.bundleId ?? "—")
                     LabeledContent("Category", value: app.category.description)
                     LabeledContent("Size", value: app.size ?? "—")
-                    LabeledContent("Path") {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Path")
                         Text(app.path)
                             .font(.callout.monospaced())
-                            .multilineTextAlignment(.trailing)
+                            .foregroundStyle(.secondary)
                             .textSelection(.enabled)
                     }
                 }
@@ -33,12 +34,18 @@ struct AppDetailView: View {
                     StackTagRow(techStacks: app.techStacks, possibleStacks: app.possibleStacks)
                 }
                 Section("Evidence") {
-                    EvidenceGrid(appInfo: app)
+                    EvidenceList(appInfo: app)
                 }
             }
             .formStyle(.grouped)
         }
         .textSelection(.enabled)
+    }
+
+    private func copy(_ text: String) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
     }
 
     private func header(for app: AppInfo) -> some View {
@@ -53,10 +60,11 @@ struct AppDetailView: View {
                 Button("Show in Finder", systemImage: "folder") {
                     NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: app.path)])
                 }
+                Button("Copy Path", systemImage: "doc.on.clipboard") {
+                    copy(app.path)
+                }
                 Button("Copy as JSON", systemImage: "doc.on.doc") {
-                    let pasteboard = NSPasteboard.general
-                    pasteboard.clearContents()
-                    pasteboard.setString(String(decoding: ResultsExporter.json([app]), as: UTF8.self), forType: .string)
+                    copy(String(decoding: ResultsExporter.json([app]), as: UTF8.self))
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
