@@ -83,7 +83,7 @@ targets:
     AppDetectiveTests:
         type: bundle.unit-test
         platform: macOS
-        deploymentTarget: "26.0"
+        deploymentTarget: "27.0"
         sources:
             - path: AppDetectiveTests
         dependencies:

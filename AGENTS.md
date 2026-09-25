@@ -9,7 +9,7 @@
 
 ## CI/CD
 - **GitHub Actions**: `.github/workflows/ci.yml` runs `just build` and `just test` on branch pushes and PRs to main
-- **Platform**: macOS 26 runner; the app and CLI deploy to macOS 14.6
+- **Platform**: the `xcode-27` runner (macOS 27 with Xcode 27, a GitHub preview image; there is no `macos-27` label yet); the app and CLI deploy to macOS 14.6
 
 ## Jujutsu Workflow
 - **Tooling**: Use Jujutsu (`jj`) for local version control. The Git checkout may appear as detached `HEAD`; this is expected.

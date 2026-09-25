@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Xcode 16.0 or later
+- Xcode 27 or later (macOS 27 SDK)
 - `xcodegen`
 - `just`
 
