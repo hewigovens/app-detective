@@ -1,4 +1,3 @@
-#if DEBUG
 import Foundation
 
 extension AppInfo {
@@ -10,4 +9,3 @@ extension AppInfo {
         AppInfo(name: "Slack", path: "/Applications/Slack.app", bundleId: "com.tinyspeck.slackmacgap", techStacks: .electron, category: .business),
     ]
 }
-#endif
