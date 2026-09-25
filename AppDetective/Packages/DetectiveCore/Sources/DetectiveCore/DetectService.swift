@@ -3,37 +3,49 @@ import LSAppCategory
 
 /// Detects the UI technology stack and category of application bundles.
 public final class DetectService: Sendable {
-    public init() {}
+    private let signatures: [StackSignature]
+
+    /// - Parameter signatures: Rules to evaluate; defaults to the built-in catalog.
+    public init(signatures: [StackSignature] = StackSignature.catalog) {
+        self.signatures = signatures
+    }
 
     // MARK: - Public API
 
     /// Analyzes an app bundle and returns the tech stacks it is built with.
-    ///
-    /// Checks run cheapest first: bundled frameworks, bundled resources, linked libraries
-    /// (`otool -L`), and finally a `strings` scan of the executable when nothing else matched.
-    /// Standard macOS bundles and iOS apps wrapped for Apple silicon Macs are both supported.
     /// - Parameter appURL: URL of the `.app` bundle.
     /// - Returns: The detected stacks, or `.other` if the bundle can't be analyzed.
     public func detectStack(for appURL: URL) async -> TechStack {
+        detect(appURL).stacks
+    }
+
+    /// Analyzes an app bundle and returns the detected stacks with the evidence for each.
+    ///
+    /// Rules that inspect the bundle's files and linked libraries run first. Embedded-string
+    /// rules scan the whole executable, so they run only when nothing else was identified.
+    /// Standard macOS bundles and iOS apps wrapped for Apple silicon Macs are both supported.
+    /// - Parameter appURL: URL of the `.app` bundle.
+    public func detect(_ appURL: URL) -> Detection {
         // Bundle resolves the executable the same way LaunchServices does, including bundles
         // without CFBundleExecutable (named after the bundle) and iOS `WrappedBundle` layouts.
         guard let bundle = Bundle(url: appURL) else {
-            return .other
+            return Detection(stacks: .other, possibleStacks: [], matches: [])
+        }
+        let inspector = BundleInspector(bundle: bundle)
+
+        var matches = evaluate(inspector, embeddedStrings: false)
+        if Self.confidentStacks(in: matches).isEmpty, inspector.executableURL != nil {
+            matches += evaluate(inspector, embeddedStrings: true)
         }
 
-        var stacks = Self.frameworkStacks(in: bundle.privateFrameworksURL)
-        stacks.formUnion(Self.resourceStacks(in: bundle.resourceURL))
-
-        if let executableURL = bundle.executableURL {
-            stacks.formUnion(Self.linkedLibraryStacks(of: executableURL))
-            if stacks.isEmpty {
-                stacks.formUnion(Self.embeddedStringStacks(of: executableURL))
-            }
-        } else if stacks.isEmpty {
-            return .other
+        let confident = Self.confidentStacks(in: matches)
+        let possible = TechStack(matches.map(\.stack)).subtracting(confident)
+        let stacks: TechStack = if confident.isEmpty, inspector.executableURL == nil {
+            .other
+        } else {
+            Self.resolve(confident)
         }
-
-        return Self.resolve(stacks)
+        return Detection(stacks: stacks, possibleStacks: possible.subtracting(stacks), matches: matches)
     }
 
     /// Reads the app category from `LSApplicationCategoryType`, falling back to the
@@ -63,83 +75,23 @@ public final class DetectService: Sendable {
         return .other
     }
 
-    // MARK: - Signatures
+    // MARK: - Evaluation
 
-    private typealias NameSignature = (stack: TechStack, matches: @Sendable (String) -> Bool)
-    private typealias TextSignature = (stack: TechStack, markers: [String])
-
-    /// Matched against item names in the bundle's Frameworks directory.
-    private static let frameworkSignatures: [NameSignature] = [
-        (.electron, { $0 == "Electron Framework.framework" }),
-        (.microsoftEdge, { $0 == "Microsoft Edge Framework.framework" }),
-        (.cef, { $0 == "Chromium Embedded Framework.framework" }),
-        (.flutter, { $0.contains("Flutter") }),
-        (.xamarin, { $0.contains("Xamarin") || $0.contains("Microsoft.Maui") || $0.contains("MonoBundle") }),
-        (.python, { $0.hasSuffix(".framework") && $0.lowercased().contains("python") }),
-        (.qt, { $0.hasPrefix("Qt") && $0.hasSuffix(".framework") }),
-    ]
-
-    /// Matched against the install names of libraries the executable links.
-    private static let linkedLibrarySignatures: [TextSignature] = [
-        (.swiftUI, ["SwiftUI"]),
-        (.catalyst, ["/System/iOSSupport/System/Library/Frameworks/UIKit.framework"]),
-        (.appKit, ["/System/Library/Frameworks/Cocoa.framework", "/usr/lib/swift/libswiftAppKit.dylib"]),
-        (.electron, ["Electron", "libnode"]),
-        (.cef, ["Chromium Embedded Framework", "libcef"]),
-        (.python, ["Python", "libpython"]),
-        (.qt, ["QtCore", "QtGui"]),
-        (.wxWidgets, ["wxWidgets", "libwx_"]),
-        (.java, ["libjvm", "JavaVM", "JavaNativeFoundation"]),
-        (.xamarin, ["libmono", "libcoreclr", "Microsoft.Maui"]),
-        (.flutter, ["Flutter"]),
-        (.reactNative, ["React Native", "libjsi", "libhermes"]),
-        (.gtk, ["libgtk", "libgdk"]),
-    ]
-
-    /// Matched against printable strings in the executable, for stacks that are statically linked.
-    private static let embeddedStringSignatures: [TextSignature] = [
-        (.java, ["java/lang"]),
-        (.gpui, ["gpui::", "/gpui/"]),
-        (.tauri, ["tauri"]),
-        (.wxWidgets, ["wx_main"]),
-        (.iced, ["iced_wgpu"]),
-    ]
-
-    // MARK: - Detection Steps
-
-    private static func frameworkStacks(in frameworksURL: URL?) -> TechStack {
-        let names = frameworksURL.flatMap { try? FileManager.default.contentsOfDirectory(atPath: $0.path) } ?? []
-        var stacks: TechStack = []
-        for signature in frameworkSignatures where names.contains(where: signature.matches) {
-            stacks.insert(signature.stack)
+    private func evaluate(_ inspector: BundleInspector, embeddedStrings: Bool) -> [Match] {
+        signatures.flatMap { signature in
+            signature.rules
+                .filter { $0.evidence.isEmbeddedString == embeddedStrings }
+                .compactMap { rule in
+                    inspector.match(rule.evidence).map { Match(stack: signature.stack, rule: rule, item: $0) }
+                }
         }
-        return stacks
     }
 
-    private static func resourceStacks(in resourcesURL: URL?) -> TechStack {
-        let names = resourcesURL.flatMap { try? FileManager.default.contentsOfDirectory(atPath: $0.path) } ?? []
-        let hasJSBundle = names.contains { $0 == "index.bundle" || $0.lowercased().hasSuffix(".jsbundle") }
-        return hasJSBundle ? .reactNative : []
-    }
-
-    private static func linkedLibraryStacks(of executableURL: URL) -> TechStack {
-        guard let output = ProcessRunner.output(of: "/usr/bin/otool", arguments: ["-L", executableURL.path]) else {
-            return []
+    private static func confidentStacks(in matches: [Match]) -> TechStack {
+        let scores = matches.reduce(into: [TechStack: Int]()) { scores, match in
+            scores[match.stack, default: 0] += match.rule.confidence.rawValue
         }
-        // Library lines are tab-indented; other lines name the binary itself or its architectures,
-        // and matching those would flag apps by their own names (e.g. "Python Launcher").
-        let libraries = output
-            .split(separator: "\n")
-            .filter { $0.hasPrefix("\t") }
-            .joined(separator: "\n")
-        return match(libraries, against: linkedLibrarySignatures)
-    }
-
-    private static func embeddedStringStacks(of executableURL: URL) -> TechStack {
-        guard let output = ProcessRunner.output(of: "/usr/bin/strings", arguments: [executableURL.path]) else {
-            return []
-        }
-        return match(output, against: embeddedStringSignatures)
+        return TechStack(scores.filter { $0.value >= Confidence.reportingThreshold }.keys)
     }
 
     /// Every Mac UI stack sits on AppKit, so AppKit is reported only when nothing more specific
@@ -147,15 +99,5 @@ public final class DetectService: Sendable {
     private static func resolve(_ stacks: TechStack) -> TechStack {
         let specific = stacks.subtracting(.appKit)
         return specific.isEmpty ? .appKit : specific
-    }
-
-    // MARK: - Helpers
-
-    private static func match(_ text: String, against signatures: [TextSignature]) -> TechStack {
-        var stacks: TechStack = []
-        for signature in signatures where signature.markers.contains(where: text.contains) {
-            stacks.insert(signature.stack)
-        }
-        return stacks
     }
 }

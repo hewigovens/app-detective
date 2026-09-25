@@ -1,3 +1,4 @@
+import DetectiveCore
 import Foundation
 
 /// Machine-readable shape of a single-app analysis result.
@@ -11,6 +12,22 @@ struct CLIOutput: Encodable {
     let sizeHuman: String?
     let category: String
     let stacks: [String]
+    let possibleStacks: [String]
+    let evidence: [Evidence]?
+
+    struct Evidence: Encodable {
+        let stack: String
+        let rule: String
+        let match: String
+        let confidence: String
+
+        init(_ match: Match) {
+            stack = match.stack.displayName
+            rule = match.rule.evidence.description
+            self.match = match.item
+            confidence = "\(match.rule.confidence)"
+        }
+    }
 }
 
 enum CLIPrinter {
@@ -30,6 +47,15 @@ enum CLIPrinter {
         print("Size:       \(o.sizeHuman ?? "—")")
         print("Category:   \(o.category)")
         print("Stacks:     \(stackLine)")
+        if !o.possibleStacks.isEmpty {
+            print("Possibly:   \(o.possibleStacks.joined(separator: ", "))")
+        }
+        if let evidence = o.evidence {
+            print("Evidence:")
+            for item in evidence {
+                print("  [\(item.confidence)] \(item.stack): \(item.rule) → \(item.match)")
+            }
+        }
     }
 
     static func json(_ o: CLIOutput) {

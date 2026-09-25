@@ -7,6 +7,7 @@ struct AppDetectiveCLI {
     static func main() async {
         var positional: [String] = []
         var jsonOutput = false
+        var explain = false
         var showHelp = false
 
         for arg in CommandLine.arguments.dropFirst() {
@@ -15,6 +16,8 @@ struct AppDetectiveCLI {
                 showHelp = true
             case "--json":
                 jsonOutput = true
+            case "--explain":
+                explain = true
             default:
                 positional.append(arg)
             }
@@ -42,7 +45,7 @@ struct AppDetectiveCLI {
         }
 
         let service = DetectService()
-        let stacks = await service.detectStack(for: url)
+        let detection = service.detect(url)
         let category = service.extractCategory(from: url)
 
         let bundle = Bundle(url: url)
@@ -57,7 +60,9 @@ struct AppDetectiveCLI {
             sizeBytes: sizeBytes,
             sizeHuman: sizeBytes.map(BundleMetrics.format(bytes:)),
             category: category.description,
-            stacks: stacks.displayNames
+            stacks: detection.stacks.displayNames,
+            possibleStacks: detection.possibleStacks.displayNames,
+            evidence: explain ? detection.matches.map(CLIOutput.Evidence.init) : nil
         )
 
         if jsonOutput {
@@ -69,12 +74,13 @@ struct AppDetectiveCLI {
 
     static func printUsage() {
         let name = (CommandLine.arguments.first.map { ($0 as NSString).lastPathComponent }) ?? "appdetective"
-        print("Usage: \(name) [--json] <path-to-.app>")
+        print("Usage: \(name) [--json] [--explain] <path-to-.app>")
         print("")
         print("Detect the tech stack and category of a single macOS app bundle.")
         print("")
         print("Options:")
         print("  --json        Emit machine-readable JSON instead of text.")
+        print("  --explain     Include the evidence behind each detected stack.")
         print("  -h, --help    Show this help.")
     }
 }

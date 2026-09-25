@@ -28,9 +28,11 @@ Use the `justfile` recipes; they regenerate the Xcode project first.
 - Don't run `swift build` inside `Packages/DetectiveCore`; it leaves `.build/` and `Package.resolved` in the working copy, which jj snapshots.
 
 ## Detection Changes
-- Detection rules are data tables in `DetectService.swift` (framework names, linked-library markers, embedded strings). Add a signature there rather than new branching logic.
-- Before and after a detection change, run the CLI over `/Applications` and diff the results; only intended apps should change.
-- Cover new rules with a fake-bundle test in `DetectServiceTests.swift`.
+- Detection lives in `Packages/DetectiveCore/Sources/DetectiveCore/Detection/`. Each stack has a `StackSignature` in `StackSignatures.swift`: a list of rules, each an `Evidence` (framework, resource, plug-in, file, linked library, embedded string) with a `Confidence`.
+- **Confidence**: `.strong` identifies the stack alone (its runtime is bundled or linked); `.weak` is circumstantial. A stack is reported at one strong or two weak matches; below that it appears in `possibleStacks`. Don't mark substring or string matches strong unless the text is unique to the stack.
+- **Adding a stack**: add the flag, `allStacks` entry, and name in `TechStack.swift`; its color in `TechStack+Color.swift`; its signature in `StackSignatures.swift`; and a fake-bundle test in `DetectServiceTests.swift`.
+- Embedded-string rules run `strings` over the executable, so they are evaluated only when no other rule found a stack. Prefer file or linked-library evidence.
+- Use `appdetective --explain <app>` to see which rules matched. Before and after a detection change, run the CLI over `/Applications` and diff the results; only intended apps should change.
 
 ## Code Style Guidelines
 

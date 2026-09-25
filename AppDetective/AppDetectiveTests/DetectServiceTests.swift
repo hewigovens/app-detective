@@ -49,6 +49,69 @@ struct DetectServiceTests {
         #expect(await detectService.detectStack(for: app.url) == .reactNative)
     }
 
+    @Test("Detects Electron from app.asar when the framework is renamed")
+    func detectsElectronFromAsar() async throws {
+        let app = try FakeApp(frameworks: ["Codex Framework.framework"], resources: ["app.asar"])
+        defer { app.remove() }
+
+        #expect(await detectService.detectStack(for: app.url) == .electron)
+    }
+
+    @Test("Detects Xamarin from Contents/MonoBundle")
+    func detectsXamarinFromMonoBundle() async throws {
+        let app = try FakeApp(contents: ["MonoBundle"])
+        defer { app.remove() }
+
+        #expect(await detectService.detectStack(for: app.url) == .xamarin)
+    }
+
+    @Test("Qt requires a Qt module name, not any Qt prefix")
+    func qtRequiresModuleName() async throws {
+        let qtApp = try FakeApp(frameworks: ["QtWidgets.framework"])
+        let otherApp = try FakeApp(frameworks: ["Qtum.framework"])
+        defer {
+            qtApp.remove()
+            otherApp.remove()
+        }
+
+        #expect(await detectService.detectStack(for: qtApp.url) == .qt)
+        #expect(await detectService.detectStack(for: otherApp.url) == .appKit)
+    }
+
+    // MARK: - Confidence Tests
+
+    @Test("A single weak rule is reported as possible, not detected")
+    func weakEvidenceIsOnlyPossible() throws {
+        let app = try FakeApp(frameworks: ["MyPythonHelpers.framework"])
+        defer { app.remove() }
+
+        let detection = detectService.detect(app.url)
+        #expect(detection.stacks == .appKit)
+        #expect(detection.possibleStacks == .python)
+        #expect(detection.matches.map(\.item) == ["MyPythonHelpers.framework"])
+    }
+
+    @Test("Two weak rules for the same stack are enough to report it")
+    func twoWeakRulesAreReported() throws {
+        let app = try FakeApp(frameworks: ["React.framework"], resources: ["index.bundle"])
+        defer { app.remove() }
+
+        let detection = detectService.detect(app.url)
+        #expect(detection.stacks == .reactNative)
+        #expect(detection.possibleStacks.isEmpty)
+    }
+
+    @Test("Custom signatures can be supplied without changing the catalog")
+    func customSignatures() throws {
+        let app = try FakeApp(contents: ["Toolkit"])
+        defer { app.remove() }
+
+        let service = DetectService(signatures: [StackSignature(.gtk, [.strong(.file("Contents/Toolkit"))])])
+        let detection = service.detect(app.url)
+        #expect(detection.stacks == .gtk)
+        #expect(detection.matches.first?.item == "Contents/Toolkit")
+    }
+
     // MARK: - Bundle Layout Tests
 
     @Test("Falls back to AppKit for a plain native executable")
@@ -116,6 +179,7 @@ private struct FakeApp {
     init(
         frameworks: [String] = [],
         resources: [String] = [],
+        contents: [String] = [],
         declaresExecutable: Bool = true,
         category: String? = nil
     ) throws {
@@ -138,14 +202,10 @@ private struct FakeApp {
         }
         try writePlist(info, to: contentsURL.appendingPathComponent("Info.plist"))
 
-        for framework in frameworks {
-            let frameworkURL = contentsURL.appendingPathComponent("Frameworks").appendingPathComponent(framework)
-            try fileManager.createDirectory(at: frameworkURL, withIntermediateDirectories: true)
-        }
-        for resource in resources {
-            let resourcesURL = contentsURL.appendingPathComponent("Resources")
-            try fileManager.createDirectory(at: resourcesURL, withIntermediateDirectories: true)
-            fileManager.createFile(atPath: resourcesURL.appendingPathComponent(resource).path, contents: Data())
+        // Rules only check that items exist, so every item can be a directory.
+        let items = frameworks.map { "Frameworks/\($0)" } + resources.map { "Resources/\($0)" } + contents
+        for item in items {
+            try fileManager.createDirectory(at: contentsURL.appendingPathComponent(item), withIntermediateDirectories: true)
         }
     }
 
