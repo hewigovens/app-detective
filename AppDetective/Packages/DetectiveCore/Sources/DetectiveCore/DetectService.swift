@@ -3,7 +3,7 @@ import LSAppCategory
 
 public final class DetectService: Sendable {
     // Bump when detection logic outside the catalog changes; catalog edits change `version` on their own.
-    private static let engineVersion = 3
+    private static let engineVersion = 4
 
     private let signatures: [StackSignature]
 

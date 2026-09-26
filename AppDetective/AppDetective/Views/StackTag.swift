@@ -8,13 +8,13 @@ struct StackTag: View {
     var body: some View {
         Text(isPossible ? "\(stack.displayName)?" : stack.displayName)
             .font(.caption.weight(.medium))
-            .foregroundStyle(isPossible ? AnyShapeStyle(.secondary) : AnyShapeStyle(stack.mainColor))
+            .foregroundStyle(isPossible ? Color(nsColor: .secondaryLabelColor) : stack.mainColor)
             .padding(.horizontal, 7)
             .padding(.vertical, 3)
             .background(stack.mainColor.opacity(isPossible ? 0 : 0.14), in: Capsule())
             .overlay {
                 if isPossible {
-                    Capsule().strokeBorder(.secondary.opacity(0.5), style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
+                    Capsule().strokeBorder(Color(nsColor: .secondaryLabelColor).opacity(0.5), style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
                 }
             }
     }

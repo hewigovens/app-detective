@@ -8,15 +8,17 @@ struct AppListCell: View {
     var body: some View {
         HStack(spacing: 12) {
             AppIcon(iconData: appInfo.iconData)
-                .frame(width: 40, height: 40)
+                .frame(width: 36, height: 36)
 
+            // Explicit colors: a focused selection would otherwise turn the text white on the row's light tint.
             VStack(alignment: .leading, spacing: 2) {
                 Text(appInfo.name)
                     .font(.headline)
+                    .foregroundStyle(Color(nsColor: .labelColor))
                     .lineLimit(1)
                 Text([appInfo.category.description, appInfo.size].compactMap { $0 }.joined(separator: " · "))
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color(nsColor: .secondaryLabelColor))
                     .lineLimit(1)
             }
 
@@ -33,7 +35,7 @@ struct AppListCell: View {
                 EvidenceView(appInfo: appInfo)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 0)
     }
 }
 

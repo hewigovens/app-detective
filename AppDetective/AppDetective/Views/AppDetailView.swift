@@ -9,7 +9,7 @@ struct AppDetailView: View {
         if let app {
             details(for: app)
         } else {
-            ContentUnavailableView("No Selection", systemImage: "app.dashed", description: Text("Select an app to see its details."))
+            ContentUnavailableView("No Selection", systemImage: "app.dashed", description: Text("Double-click an app to see its details."))
         }
     }
 
@@ -19,7 +19,6 @@ struct AppDetailView: View {
             Form {
                 Section {
                     LabeledContent("Version", value: app.version ?? "—")
-                    LabeledContent("Bundle ID", value: app.bundleId ?? "—")
                     LabeledContent("Category", value: app.category.description)
                     LabeledContent("Size", value: app.size ?? "—")
                     VStack(alignment: .leading, spacing: 4) {
@@ -52,10 +51,19 @@ struct AppDetailView: View {
         HStack(spacing: 12) {
             AppIcon(iconData: app.iconData)
                 .frame(width: 56, height: 56)
-            Text(app.name)
-                .font(.title2.weight(.semibold))
-                .lineLimit(2)
-            Spacer()
+            VStack(alignment: .leading, spacing: 2) {
+                Text(app.name)
+                    .font(.title2.weight(.semibold))
+                    .lineLimit(1)
+                    .help(app.name)
+                Text(app.bundleId ?? "No bundle identifier")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .help(app.bundleId ?? "")
+            }
+            Spacer(minLength: 8)
             Menu {
                 Button("Show in Finder", systemImage: "folder") {
                     NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: app.path)])

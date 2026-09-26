@@ -33,7 +33,7 @@ struct EvidenceList: View {
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(evidence.isStrong ? .green : .orange)
                         }
-                        Text(evidence.rule)
+                        Text(evidence.kind ?? evidence.rule)
                             .foregroundStyle(.secondary)
                         Text(evidence.item)
                             .font(.caption.monospaced())
@@ -41,6 +41,7 @@ struct EvidenceList: View {
                             .textSelection(.enabled)
                     }
                     .fixedSize(horizontal: false, vertical: true)
+                    .help(evidence.rule)
                 }
             }
 

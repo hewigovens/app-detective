@@ -27,6 +27,7 @@ final class CategoryViewModel {
     private(set) var sortedCategories: [AppCategory] = []
     private(set) var categoryCounts: [AppCategory: Int] = [:]
     private(set) var stackCounts: [TechStack: Int] = [:]
+    private(set) var sortedStacks: [TechStack] = []
 
     func resetFilters() {
         selectedCategory = nil
@@ -42,6 +43,11 @@ final class CategoryViewModel {
         stackCounts = Dictionary(uniqueKeysWithValues: TechStack.allStacks.map { stack in
             (stack, inCategory.filter { $0.techStacks.contains(stack) }.count)
         })
+        // Most common first; catalog order breaks ties so the list is stable.
+        sortedStacks = TechStack.allStacks.enumerated()
+            .filter { stackCounts[$0.element, default: 0] > 0 }
+            .sorted { (stackCounts[$0.element]!, $1.offset) > (stackCounts[$1.element]!, $0.offset) }
+            .map(\.element)
 
         let query = searchText.lowercased()
         filteredApps = inCategory.filter { app in

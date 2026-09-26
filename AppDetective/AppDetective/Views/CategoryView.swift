@@ -8,33 +8,44 @@ struct CategoryView: View {
     var body: some View {
         List(selection: selection) {
             Section("Categories") {
-                Label("All Apps", systemImage: "square.grid.2x2")
-                    .badge(viewModel.apps.count)
+                Label {
+                    Text("All Apps")
+                } icon: {
+                    SidebarIcon(systemName: "square.grid.2x2")
+                }
+                .badge(viewModel.apps.count)
                     .tag(SidebarItem.allCategories)
 
                 ForEach(viewModel.sortedCategories) { category in
-                    Label(category.description, systemImage: category.sfSymbol)
-                        .badge(viewModel.categoryCounts[category] ?? 0)
+                    Label {
+                        Text(category.description)
+                    } icon: {
+                        SidebarIcon(systemName: category.sfSymbol)
+                    }
+                    .badge(viewModel.categoryCounts[category] ?? 0)
                         .tag(SidebarItem.category(category))
                 }
             }
 
             Section("Tech Stacks") {
-                Label("All Stacks", systemImage: "square.stack.3d.up")
-                    .tag(SidebarItem.allStacks)
+                Label {
+                    Text("All Stacks")
+                } icon: {
+                    SidebarIcon(systemName: "square.stack.3d.up")
+                }
+                .tag(SidebarItem.allStacks)
 
-                ForEach(TechStack.allStacks, id: \.self) { stack in
-                    if let count = viewModel.stackCounts[stack], count > 0 {
-                        Label {
-                            Text(stack.displayName)
-                        } icon: {
-                            Circle()
-                                .fill(stack.mainColor)
-                                .frame(width: 9, height: 9)
-                        }
-                        .badge(count)
-                        .tag(SidebarItem.stack(stack))
+                ForEach(viewModel.sortedStacks, id: \.self) { stack in
+                    Label {
+                        Text(stack.displayName)
+                    } icon: {
+                        Circle()
+                            .fill(stack.mainColor)
+                            .frame(width: 9, height: 9)
+                            .frame(width: SidebarIcon.width)
                     }
+                    .badge(viewModel.stackCounts[stack] ?? 0)
+                    .tag(SidebarItem.stack(stack))
                 }
             }
         }
@@ -62,6 +73,22 @@ struct CategoryView: View {
             viewModel.selectedCategory.map(SidebarItem.category) ?? .allCategories,
             viewModel.selectedTechStack.map(SidebarItem.stack) ?? .allStacks,
         ]
+    }
+}
+
+// SF Symbols differ in size and width, so each one is scaled to fit the same box inside the same slot,
+// which keeps the titles aligned and the icons visually even. The sidebar's own label style still
+// colors it, including the white-on-selection swap.
+private struct SidebarIcon: View {
+    static let width: CGFloat = 20
+    let systemName: String
+
+    var body: some View {
+        Image(systemName: systemName)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 16, height: 16)
+            .frame(width: Self.width, height: 18)
     }
 }
 

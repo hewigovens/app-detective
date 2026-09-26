@@ -51,6 +51,18 @@ public enum Evidence: Sendable, CustomStringConvertible {
         }
     }
 
+    public var kind: String {
+        switch self {
+        case .framework: "Framework"
+        case .resource: "Resource"
+        case .plugIn: "Plug-in"
+        case .file: "File"
+        case .linkedLibrary: "Linked library"
+        case let .entry(directory, _): "Entry in \(directory)"
+        case .embeddedString: "Embedded string"
+        }
+    }
+
     var isEmbeddedString: Bool {
         if case .embeddedString = self { return true }
         return false

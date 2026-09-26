@@ -19,6 +19,7 @@ struct CachedApp: Codable, Sendable {
 struct StackEvidence: Codable, Hashable, Sendable {
     let stack: String
     let rule: String
+    var kind: String? // Absent in caches written before 1.5.2; the engine version bump re-detects them.
     let item: String
     let isStrong: Bool
 }
@@ -47,6 +48,7 @@ enum AppAnalyzer {
                 StackEvidence(
                     stack: $0.stack.displayName,
                     rule: $0.rule.evidence.description,
+                    kind: $0.rule.evidence.kind,
                     item: $0.item,
                     isStrong: $0.rule.confidence == .strong
                 )

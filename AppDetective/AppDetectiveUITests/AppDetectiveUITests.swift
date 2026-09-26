@@ -66,12 +66,12 @@ final class AppDetectiveUITests: XCTestCase {
             try XCTUnwrap(app.staticTexts.matching(identifier: "Readable").allElementsBoundByIndex.min { $0.frame.minX < $1.frame.minX })
         }
         try row().doubleClick()
-        XCTAssertTrue(app.staticTexts["Bundle ID"].waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(app.staticTexts["Version"].waitForExistence(timeout: 5), app.debugDescription)
         // The temporary folder is reported under /private, so match on the bundle name only.
         let path = app.staticTexts.matching(NSPredicate(format: "value ENDSWITH %@", "/Readable.app")).firstMatch
         XCTAssertTrue(path.exists, app.debugDescription)
 
         try row().doubleClick()
-        XCTAssertTrue(app.staticTexts["Bundle ID"].waitForNonExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(app.staticTexts["Version"].waitForNonExistence(timeout: 5), app.debugDescription)
     }
 }

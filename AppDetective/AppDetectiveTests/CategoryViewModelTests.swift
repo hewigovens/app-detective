@@ -17,6 +17,7 @@ struct CategoryViewModelTests {
         #expect(viewModel.categoryCounts[.productivity] == 1)
         #expect(viewModel.stackCounts[.appKit] == 2)
         #expect(viewModel.filteredApps.count == AppInfo.samples.count)
+        #expect(viewModel.sortedStacks == [.appKit, .swiftUI, .catalyst, .electron])
     }
 
     @Test("Combines category, stack, and search filters")

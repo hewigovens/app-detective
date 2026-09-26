@@ -64,6 +64,7 @@ struct ContentView: View {
             @Bindable var categoryViewModel = categoryViewModel
             List(categoryViewModel.filteredApps, selection: $categoryViewModel.selectedAppID) { app in
                 AppListCell(appInfo: app)
+                    .listRowBackground(rowBackground(isSelected: app.id == categoryViewModel.selectedAppID))
             }
             // A tap gesture on the rows would delay selection; the list reports double-clicks as its primary action.
             .contextMenu(forSelectionType: AppInfo.ID.self) { paths in
@@ -76,6 +77,20 @@ struct ContentView: View {
                 }
                 viewModel.isShowingInspector.toggle()
             }
+        }
+    }
+
+    // The system highlight is accent when the list is focused and gray otherwise, and colored tags are
+    // unreadable on the accent. An opaque tint covers it, so a selected row always looks the same.
+    @ViewBuilder
+    private func rowBackground(isSelected: Bool) -> some View {
+        if isSelected {
+            Color(nsColor: .controlBackgroundColor)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.accentColor.opacity(0.14))
+                        .padding(.horizontal, 8)
+                }
         }
     }
 
