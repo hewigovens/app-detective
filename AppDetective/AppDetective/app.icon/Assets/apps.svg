@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Apps outside the lens, at their unmagnified size. -->
+  <rect x="218" y="218" width="88" height="88" rx="21" fill="#FFD60A"/>
+  <rect x="423" y="218" width="88" height="88" rx="21" fill="#AF52DE"/>
+  <rect x="628" y="218" width="88" height="88" rx="21" fill="#5AC8FA"/>
+  <rect x="218" y="423" width="88" height="88" rx="21" fill="#FF6B35"/>
+  <rect x="218" y="628" width="88" height="88" rx="21" fill="#64D2FF"/>
+</svg>

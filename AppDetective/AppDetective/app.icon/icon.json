@@ -1,41 +1,73 @@
 {
-  "fill" : {
-    "automatic-gradient" : "extended-srgb:0.11373,0.33333,0.93333,1.00000"
+  "fill": {
+    "automatic-gradient": "extended-srgb:0.96863,0.97255,0.98039,1.00000"
   },
-  "groups" : [
+  "groups": [
     {
-      "layers" : [
+      "layers": [
         {
-          "blend-mode" : "normal",
-          "fill" : "automatic",
-          "glass" : false,
-          "hidden" : false,
-          "image-name" : "logo.svg",
-          "name" : "logo",
-          "opacity" : 1.0,
-          "position" : {
-            "scale" : 2.2,
-            "translation-in-points" : [
+          "blend-mode": "normal",
+          "fill": "automatic",
+          "glass": true,
+          "hidden": false,
+          "image-name": "lens.svg",
+          "name": "lens",
+          "opacity": 1.0,
+          "position": {
+            "scale": 1.0,
+            "translation-in-points": [
               0,
-              10
+              0
+            ]
+          }
+        },
+        {
+          "blend-mode": "normal",
+          "fill": "automatic",
+          "glass": true,
+          "hidden": false,
+          "image-name": "tiles.svg",
+          "name": "tiles",
+          "opacity": 1.0,
+          "position": {
+            "scale": 1.0,
+            "translation-in-points": [
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "blend-mode": "normal",
+          "fill": "automatic",
+          "glass": true,
+          "hidden": false,
+          "image-name": "apps.svg",
+          "name": "apps",
+          "opacity": 1.0,
+          "position": {
+            "scale": 1.0,
+            "translation-in-points": [
+              0,
+              0
             ]
           }
         }
       ],
-      "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.4
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.4
       },
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.3
+      "translucency": {
+        "enabled": true,
+        "value": 0.3
       }
     }
   ],
-  "supported-platforms" : {
-    "circles" : [
+  "supported-platforms": {
+    "circles": [
       "watchOS"
     ],
-    "squares" : "shared"
+    "squares": "shared"
   }
 }

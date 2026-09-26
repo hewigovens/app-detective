@@ -12,6 +12,9 @@
 - **GitHub Actions**: `.github/workflows/ci.yml` runs `just build` and `just test` on branch pushes and PRs to main
 - **Platform**: the `xcode-27` runner (macOS 27 with Xcode 27, a GitHub preview image; there is no `macos-27` label yet); the app and CLI deploy to macOS 14.6
 
+## App Icon
+- `AppDetective/AppDetective/app.icon` is an Icon Composer bundle; its SVG layers are written by `scripts/generate-icon.py`, so change the geometry there and rerun it rather than editing the SVGs.
+
 ## Release Packaging
 - Package release apps with `scripts/package-release-zip.sh`, which uses `ditto --norsrc` so AppleDouble metadata is not written into signed app bundles.
 - Verify final notarized archives with `scripts/verify-release-archive.sh <zip> notarized`; it extracts the archive and runs `codesign`, `stapler validate`, and `spctl -av` on the extracted app.

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- The four apps under the lens, magnified. -->
+  <rect x="432" y="432" width="130" height="130" rx="32" fill="#FF9F0A"/>
+  <path d="M496 452 L508 481 L538 483 L515 502 L522 532 L496 516 L471 532 L478 502 L455 483 L485 481 Z" fill="#FFFFFF"/>
+  <rect x="578" y="432" width="130" height="130" rx="32" fill="#30D158"/>
+  <circle cx="642" cy="496" r="31" fill="none" stroke="#FFFFFF" stroke-width="16"/>
+  <rect x="432" y="578" width="130" height="130" rx="32" fill="#FF375F"/>
+  <path d="M472 608 L472 678 L534 642 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="13" stroke-linejoin="round"/>
+  <rect x="578" y="578" width="130" height="130" rx="32" fill="#BF5AF2"/>
+  <rect x="608" y="611" width="69" height="14" rx="7" fill="#FFFFFF"/>
+  <rect x="608" y="635" width="69" height="14" rx="7" fill="#FFFFFF"/>
+  <rect x="608" y="660" width="45" height="14" rx="7" fill="#FFFFFF"/>
+</svg>
