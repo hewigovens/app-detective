@@ -37,7 +37,8 @@ public enum Evidence: Sendable, CustomStringConvertible {
     case file(String) // Relative to the bundle root, e.g. "Contents/MonoBundle".
     case linkedLibrary(Pattern)
     case entry(in: String, Pattern) // An item in a directory relative to the bundle root, e.g. "Contents/app".
-    case embeddedString(String) // Runs `strings`, so only evaluated when no trait beyond AppKit/UIKit or a language matched.
+    case embeddedString(String) // In the executable; evaluated only when no trait beyond AppKit/UIKit or a language matched.
+    case codeString(String) // In the executable, the app's own frameworks, or its extensions; always evaluated.
 
     public var description: String {
         switch self {
@@ -48,6 +49,7 @@ public enum Evidence: Sendable, CustomStringConvertible {
         case let .linkedLibrary(pattern): "linked library \(pattern)"
         case let .entry(directory, pattern): "\(directory) entry \(pattern)"
         case let .embeddedString(text): "string \"\(text)\""
+        case let .codeString(text): "code string \"\(text)\""
         }
     }
 
@@ -60,6 +62,7 @@ public enum Evidence: Sendable, CustomStringConvertible {
         case .linkedLibrary: "Linked library"
         case let .entry(directory, _): "Entry in \(directory)"
         case .embeddedString: "Embedded string"
+        case .codeString: "String in the app's code"
         }
     }
 

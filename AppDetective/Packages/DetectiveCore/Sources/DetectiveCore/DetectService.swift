@@ -3,7 +3,7 @@ import LSAppCategory
 
 public final class DetectService: Sendable {
     // Bump when detection logic outside the catalog changes; catalog edits change `version` on their own.
-    private static let engineVersion = 6
+    private static let engineVersion = 7
 
     private let signatures: [TraitSignature]
 
@@ -30,9 +30,8 @@ public final class DetectService: Sendable {
         let inspector = BundleInspector(bundle: bundle)
 
         var matches = evaluate(inspector, embeddedStrings: false)
-        // String rules are circumstantial and `strings` is slow, so they run only when nothing beyond the
-        // baseline frameworks was found. This also keeps apps that embed DetectiveCore (and so its catalog
-        // strings) from matching every string rule.
+        // Embedded-string rules for UI frameworks and renderers are circumstantial, so they run only when nothing
+        // beyond the baseline frameworks was found.
         if Self.specificTraits(in: Self.confidentTraits(in: matches)).isEmpty, inspector.executableURL != nil {
             matches += evaluate(inspector, embeddedStrings: true)
         }
@@ -92,21 +91,24 @@ public final class DetectService: Sendable {
         return Set(scores.filter { $0.value >= Confidence.reportingThreshold }.keys)
     }
 
-    // AppKit and UIKit underlie every other UI stack, so report them only when nothing more specific was found,
-    // together with the language, which tells plain AppKit apps apart. wgpu likewise underlies Iced and egui,
-    // so it names the stack only for apps with their own renderer, again with the language.
+    // AppKit and UIKit underlie every other UI framework, so they are reported only when nothing more specific
+    // was found, and not for apps that draw their own UI with a renderer. Apple frameworks without another
+    // language mean Objective-C; SwiftUI always comes with Swift.
     private static func resolve(_ traits: Set<Trait>) -> Set<Trait> {
-        let specific = specificTraits(in: traits)
-        let toolkits = specific.filter { $0.kind == .ui }
-        if !toolkits.isEmpty {
-            return toolkits
+        let toolkits = specificTraits(in: traits).filter { $0.kind == .ui }
+        let renderers = traits.filter { $0.kind == .renderer }
+        let ui: Set<Trait> = if !toolkits.isEmpty {
+            toolkits
+        } else if !renderers.isEmpty {
+            []
+        } else {
+            [traits.contains(.uiKit) ? .uiKit : .appKit]
         }
-        let languages = traits.filter { $0.kind == .language }
-        if !specific.isEmpty {
-            return specific.union(languages)
+        var languages = traits.filter { $0.kind == .language }
+        if languages.isEmpty, !ui.isEmpty, ui.isSubset(of: [.appKit, .uiKit, .catalyst]) {
+            languages = [.objectiveC]
         }
-        let framework: Trait = traits.contains(.uiKit) ? .uiKit : .appKit
-        return languages.isEmpty ? [framework, .objectiveC] : languages.union([framework])
+        return ui.union(languages).union(renderers)
     }
 
     private static func specificTraits(in traits: Set<Trait>) -> Set<Trait> {

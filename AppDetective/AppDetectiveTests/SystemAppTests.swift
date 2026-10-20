@@ -5,11 +5,11 @@ import Testing
 // Expectations follow the macOS release CI runs on; update them when the runner image moves.
 struct SystemAppTests {
     static let apps: [(path: String, traits: Set<DetectiveCore.Trait>)] = [
-        ("/System/Applications/Calculator.app", [.swiftUI]),
+        ("/System/Applications/Calculator.app", [.swiftUI, .swift]),
         ("/System/Applications/TextEdit.app", [.appKit, .swift]),
         ("/System/Applications/Automator.app", [.appKit, .objectiveC]),
-        ("/System/Applications/Stocks.app", [.catalyst]),
-        ("/System/Applications/Maps.app", [.catalyst, .swiftUI]),
+        ("/System/Applications/Stocks.app", [.catalyst, .swift]),
+        ("/System/Applications/Maps.app", [.catalyst, .swiftUI, .swift]),
         ("/System/Applications/Utilities/Disk Utility.app", [.appKit, .objectiveC]),
         ("/System/Applications/Utilities/Terminal.app", [.appKit, .swift]),
     ]

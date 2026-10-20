@@ -157,8 +157,8 @@ struct DetectServiceTests {
         #expect(await detectService.detectTraits(for: app.url) == [.appKit, .objectiveC])
     }
 
-    @Test("AppKit apps report Swift when the executable links the Swift runtime")
-    func appKitReportsLanguage() throws {
+    @Test("Languages are reported next to any UI framework; Objective-C only for native apps")
+    func languagesWithAnyFramework() throws {
         let app = try FakeApp(contents: ["SwiftMarker", "ElectronMarker"])
         defer { app.remove() }
         let swiftRule = TraitSignature(.swift, [.strong(.file("Contents/SwiftMarker"))])
@@ -166,13 +166,11 @@ struct DetectServiceTests {
 
         #expect(DetectService(signatures: [swiftRule]).detect(app.url).traits == [.appKit, .swift])
         #expect(DetectService(signatures: []).detect(app.url).traits == [.appKit, .objectiveC])
-        // The language is only reported for plain AppKit apps.
-        let detection = DetectService(signatures: [swiftRule, electronRule]).detect(app.url)
-        #expect(detection.traits == [.electron])
-        #expect(detection.possibleTraits.isEmpty)
+        #expect(DetectService(signatures: [swiftRule, electronRule]).detect(app.url).traits == [.electron, .swift])
+        #expect(DetectService(signatures: [electronRule]).detect(app.url).traits == [.electron])
     }
 
-    @Test("Rust is reported as the language of AppKit and wgpu apps")
+    @Test("A renderer replaces the AppKit fallback and sits beside a toolkit")
     func rustLanguage() throws {
         let app = try FakeApp(contents: ["RustMarker", "SwiftMarker", "WgpuMarker", "IcedMarker"])
         defer { app.remove() }
@@ -184,11 +182,10 @@ struct DetectServiceTests {
         #expect(DetectService(signatures: [rustRule]).detect(app.url).traits == [.appKit, .rust])
         #expect(DetectService(signatures: [rustRule, swiftRule]).detect(app.url).traits == [.appKit, .rust, .swift])
         #expect(DetectService(signatures: [rustRule, wgpuRule]).detect(app.url).traits == [.wgpu, .rust])
-        // wgpu is only the renderer under a Rust toolkit.
-        #expect(DetectService(signatures: [rustRule, wgpuRule, icedRule]).detect(app.url).traits == [.iced])
+        #expect(DetectService(signatures: [rustRule, wgpuRule, icedRule]).detect(app.url).traits == [.iced, .rust, .wgpu])
     }
 
-    @Test("Go is reported as the language of AppKit apps, not of Wails apps")
+    @Test("Go is reported with AppKit and with Wails")
     func goLanguage() throws {
         let app = try FakeApp(contents: ["GoMarker", "WailsMarker"])
         defer { app.remove() }
@@ -196,7 +193,35 @@ struct DetectServiceTests {
         let wailsRule = TraitSignature(.wails, [.strong(.file("Contents/WailsMarker"))])
 
         #expect(DetectService(signatures: [goRule]).detect(app.url).traits == [.appKit, .go])
-        #expect(DetectService(signatures: [goRule, wailsRule]).detect(app.url).traits == [.wails])
+        #expect(DetectService(signatures: [goRule, wailsRule]).detect(app.url).traits == [.wails, .go])
+    }
+
+    @Test("Code strings are searched in the app's extensions and frameworks, but not in runtime frameworks")
+    func codeStringsInBundledBinaries() throws {
+        // The fake executable is /usr/bin/true; these binaries are /bin/echo, whose strings include "PROGRAM:echo".
+        let app = try FakeApp(contents: ["SwiftUIMarker"])
+        defer { app.remove() }
+        let swiftUIRule = TraitSignature(.swiftUI, [.strong(.file("Contents/SwiftUIMarker"))])
+        let goRule = TraitSignature(.go, [.strong(.codeString("PROGRAM:echo"))])
+        let service = DetectService(signatures: [swiftUIRule, goRule])
+
+        try addBundle(at: "Contents/Frameworks/Electron Framework.framework", executable: "Electron Framework", to: app)
+        #expect(service.detect(app.url).traits == [.swiftUI])
+
+        try addBundle(at: "Contents/PlugIns/Tunnel.appex", executable: "Contents/MacOS/Tunnel", to: app)
+        let detection = service.detect(app.url)
+        #expect(detection.traits == [.swiftUI, .go])
+        #expect(detection.matches.last?.item == "Contents/PlugIns/Tunnel.appex/Contents/MacOS/Tunnel")
+    }
+
+    private func addBundle(at path: String, executable: String, to app: FakeApp) throws {
+        let bundleURL = app.url.appendingPathComponent(path)
+        let executableURL = bundleURL.appendingPathComponent(executable)
+        let infoURL = bundleURL.appendingPathComponent(executable.hasPrefix("Contents/") ? "Contents/Info.plist" : "Resources/Info.plist")
+        try FileManager.default.createDirectory(at: executableURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: infoURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.copyItem(atPath: "/bin/echo", toPath: executableURL.path)
+        try writePlist(["CFBundleExecutable": executableURL.lastPathComponent], to: infoURL)
     }
 
     @Test("Finds executable when Info.plist omits CFBundleExecutable")

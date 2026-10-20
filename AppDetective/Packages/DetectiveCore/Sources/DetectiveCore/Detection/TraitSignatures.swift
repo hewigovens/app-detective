@@ -144,13 +144,13 @@ extension TraitSignature {
         ]),
         TraitSignature(.rust, [
             // Panic locations in the standard library and its unwrap message.
-            .strong(.embeddedString("/library/std/src/")),
-            .strong(.embeddedString("called `Result::unwrap()` on an `Err` value")),
+            .strong(.codeString("/library/std/src/")),
+            .strong(.codeString("called `Result::unwrap()` on an `Err` value")),
         ]),
         TraitSignature(.go, [
             // The module build info header and a runtime function name, both kept in stripped binaries.
-            .strong(.embeddedString("Go buildinf:")),
-            .strong(.embeddedString("runtime.gopanic")),
+            .strong(.codeString("Go buildinf:")),
+            .strong(.codeString("runtime.gopanic")),
         ]),
         TraitSignature(.python, [
             .strong(.framework(.exact("Python.framework"))),
