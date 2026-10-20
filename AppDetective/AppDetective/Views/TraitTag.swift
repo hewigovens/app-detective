@@ -26,10 +26,10 @@ struct TraitTagRow: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            ForEach(Trait.sorted(traits)) { trait in
+            ForEach(traits.sorted()) { trait in
                 TraitTag(trait: trait)
             }
-            ForEach(Trait.sorted(possibleTraits)) { trait in
+            ForEach(possibleTraits.sorted()) { trait in
                 TraitTag(trait: trait, isPossible: true)
             }
         }

@@ -95,7 +95,7 @@ extension TraitSignature {
             .strong(.embeddedString("/slint-")),
         ]),
         TraitSignature(.wgpu, [
-            // Log targets and panic locations; also inside Iced and egui, which take precedence.
+            // Log targets and panic locations, so also present in apps built on Iced or egui.
             .strong(.embeddedString("wgpu_core::")),
             .strong(.embeddedString("wgpu_hal::")),
         ]),

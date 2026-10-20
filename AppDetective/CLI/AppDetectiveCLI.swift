@@ -60,8 +60,8 @@ struct AppDetectiveCLI {
             sizeBytes: sizeBytes,
             sizeHuman: sizeBytes.map(BundleMetrics.format(bytes:)),
             category: category.description,
-            traits: Trait.namesByKind(detection.traits),
-            possibleTraits: Trait.names(detection.possibleTraits),
+            traits: detection.traits.namesByKind,
+            possibleTraits: detection.possibleTraits.names,
             evidence: explain ? detection.matches.map(CLIOutput.Evidence.init) : nil
         )
 

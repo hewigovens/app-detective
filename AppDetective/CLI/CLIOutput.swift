@@ -10,7 +10,7 @@ struct CLIOutput: Encodable {
     let sizeBytes: Int64?
     let sizeHuman: String?
     let category: String
-    let traits: [String: [String]] // Keyed by TraitKind raw value.
+    let traits: [TraitKind: [String]]
     let possibleTraits: [String]
     let evidence: [Evidence]?
 
@@ -45,7 +45,7 @@ enum CLIPrinter {
         print("Size:       \(o.sizeHuman ?? "—")")
         print("Category:   \(o.category)")
         for kind in TraitKind.allCases {
-            if let names = o.traits[kind.rawValue] {
+            if let names = o.traits[kind] {
                 print("\(kind.name + ":")".padding(toLength: 12, withPad: " ", startingAt: 0) + names.joined(separator: ", "))
             }
         }

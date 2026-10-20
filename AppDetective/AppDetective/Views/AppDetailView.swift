@@ -31,8 +31,8 @@ struct AppDetailView: View {
                 }
                 Section("Traits") {
                     ForEach(TraitKind.allCases, id: \.self) { kind in
-                        let traits = app.traits.filter { $0.kind == kind }
-                        let possibleTraits = app.possibleTraits.filter { $0.kind == kind }
+                        let traits = app.traits.of(kind)
+                        let possibleTraits = app.possibleTraits.of(kind)
                         if !traits.isEmpty || !possibleTraits.isEmpty {
                             LabeledContent(kind.name) {
                                 TraitTagRow(traits: traits, possibleTraits: possibleTraits)

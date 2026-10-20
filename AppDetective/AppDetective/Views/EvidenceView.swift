@@ -1,6 +1,6 @@
 import SwiftUI
 
-// The popover shown from a row's stack tags.
+// The popover shown from a row's trait tags.
 struct EvidenceView: View {
     let appInfo: AppInfo
 

@@ -1,6 +1,6 @@
 import Foundation
 
-public enum TraitKind: String, CaseIterable, Codable, Sendable {
+public enum TraitKind: String, CaseIterable, Codable, CodingKeyRepresentable, Sendable {
     case ui
     case language
     case renderer
@@ -25,81 +25,92 @@ public enum TraitKind: String, CaseIterable, Codable, Sendable {
     }
 }
 
-public struct Trait: Hashable, Codable, Sendable, Identifiable, CustomStringConvertible {
-    public let id: String
-    public let kind: TraitKind
-    public let name: String
+// Declaration order is display order.
+public enum Trait: String, CaseIterable, Codable, Comparable, Identifiable, Sendable, CustomStringConvertible {
+    case swiftUI, appKit, uiKit, catalyst
+    case electron, cef, microsoftEdge, flutter, qt, reactNative, java, python
+    case xamarin, avalonia, compose, tauri, wxWidgets, gpui, iced, egui, slint, wails, fyne, gtk
+    case unity, unreal, xojo
+    case other
+    case swift, objectiveC, rust, go
+    case wgpu
+    case appStore, sparkle, squirrel, tauriUpdater
 
-    init(_ id: String, _ kind: TraitKind, _ name: String) {
-        self.id = id
-        self.kind = kind
-        self.name = name
-    }
+    public var id: String { rawValue }
 
     public var description: String { name }
 
-    public static let swiftUI = Trait("swiftUI", .ui, "SwiftUI")
-    public static let appKit = Trait("appKit", .ui, "AppKit")
-    public static let uiKit = Trait("uiKit", .ui, "UIKit (iOS)") // iOS apps running on Apple silicon
-    public static let catalyst = Trait("catalyst", .ui, "Catalyst")
-    public static let electron = Trait("electron", .ui, "Electron")
-    public static let cef = Trait("cef", .ui, "Chromium Embedded Framework")
-    public static let microsoftEdge = Trait("microsoftEdge", .ui, "Microsoft Edge")
-    public static let flutter = Trait("flutter", .ui, "Flutter")
-    public static let qt = Trait("qt", .ui, "Qt")
-    public static let reactNative = Trait("reactNative", .ui, "React Native")
-    public static let java = Trait("java", .ui, "Java")
-    public static let python = Trait("python", .ui, "Python")
-    public static let xamarin = Trait("xamarin", .ui, "Xamarin/MAUI") // includes .NET MAUI
-    public static let avalonia = Trait("avalonia", .ui, "Avalonia")
-    public static let compose = Trait("compose", .ui, "Compose Multiplatform")
-    public static let tauri = Trait("tauri", .ui, "Tauri")
-    public static let wxWidgets = Trait("wxWidgets", .ui, "wxWidgets")
-    public static let gpui = Trait("gpui", .ui, "GPUI")
-    public static let iced = Trait("iced", .ui, "Iced")
-    public static let egui = Trait("egui", .ui, "egui")
-    public static let slint = Trait("slint", .ui, "Slint")
-    public static let wails = Trait("wails", .ui, "Wails")
-    public static let fyne = Trait("fyne", .ui, "Fyne")
-    public static let gtk = Trait("gtk", .ui, "GTK")
-    public static let unity = Trait("unity", .ui, "Unity")
-    public static let unreal = Trait("unreal", .ui, "Unreal Engine")
-    public static let xojo = Trait("xojo", .ui, "Xojo")
-    public static let other = Trait("other", .ui, "Other")
-
-    public static let swift = Trait("swift", .language, "Swift")
-    public static let objectiveC = Trait("objectiveC", .language, "Objective-C")
-    public static let rust = Trait("rust", .language, "Rust")
-    public static let go = Trait("go", .language, "Go")
-
-    public static let wgpu = Trait("wgpu", .renderer, "wgpu")
-
-    public static let appStore = Trait("appStore", .updater, "App Store")
-    public static let sparkle = Trait("sparkle", .updater, "Sparkle")
-    public static let squirrel = Trait("squirrel", .updater, "Squirrel")
-    public static let tauriUpdater = Trait("tauriUpdater", .updater, "Tauri Updater")
-
-    // Display order: by kind, then native before cross-platform.
-    public static let all: [Trait] = [
-        .swiftUI, .appKit, .uiKit, .catalyst,
-        .electron, .cef, .microsoftEdge, .flutter, .qt, .reactNative, .java, .python,
-        .xamarin, .avalonia, .compose, .tauri, .wxWidgets, .gpui, .iced, .egui, .slint, .wails, .fyne, .gtk,
-        .unity, .unreal, .xojo,
-        .other,
-        .swift, .objectiveC, .rust, .go,
-        .wgpu,
-        .appStore, .sparkle, .squirrel, .tauriUpdater,
-    ]
-
-    public static func sorted(_ traits: Set<Trait>) -> [Trait] {
-        all.filter(traits.contains)
+    public var kind: TraitKind {
+        switch self {
+        case .swift, .objectiveC, .rust, .go: .language
+        case .wgpu: .renderer
+        case .appStore, .sparkle, .squirrel, .tauriUpdater: .updater
+        default: .ui
+        }
     }
 
-    public static func names(_ traits: Set<Trait>) -> [String] {
-        sorted(traits).map(\.name)
+    // Every other UI framework runs on top of these, so they are reported only as a fallback.
+    var isBaseline: Bool {
+        self == .appKit || self == .uiKit
     }
 
-    public static func namesByKind(_ traits: Set<Trait>) -> [String: [String]] {
-        Dictionary(grouping: sorted(traits), by: \.kind.rawValue).mapValues { $0.map(\.name) }
+    public var name: String {
+        switch self {
+        case .swiftUI: "SwiftUI"
+        case .appKit: "AppKit"
+        case .uiKit: "UIKit (iOS)" // iOS apps running on Apple silicon
+        case .catalyst: "Catalyst"
+        case .electron: "Electron"
+        case .cef: "Chromium Embedded Framework"
+        case .microsoftEdge: "Microsoft Edge"
+        case .flutter: "Flutter"
+        case .qt: "Qt"
+        case .reactNative: "React Native"
+        case .java: "Java"
+        case .python: "Python"
+        case .xamarin: "Xamarin/MAUI"
+        case .avalonia: "Avalonia"
+        case .compose: "Compose Multiplatform"
+        case .tauri: "Tauri"
+        case .wxWidgets: "wxWidgets"
+        case .gpui: "GPUI"
+        case .iced: "Iced"
+        case .egui: "egui"
+        case .slint: "Slint"
+        case .wails: "Wails"
+        case .fyne: "Fyne"
+        case .gtk: "GTK"
+        case .unity: "Unity"
+        case .unreal: "Unreal Engine"
+        case .xojo: "Xojo"
+        case .other: "Other"
+        case .swift: "Swift"
+        case .objectiveC: "Objective-C"
+        case .rust: "Rust"
+        case .go: "Go"
+        case .wgpu: "wgpu"
+        case .appStore: "App Store"
+        case .sparkle: "Sparkle"
+        case .squirrel: "Squirrel"
+        case .tauriUpdater: "Tauri Updater"
+        }
+    }
+
+    public static func < (lhs: Trait, rhs: Trait) -> Bool {
+        allCases.firstIndex(of: lhs)! < allCases.firstIndex(of: rhs)!
+    }
+}
+
+extension Set<Trait> {
+    public func of(_ kind: TraitKind) -> Set<Trait> {
+        filter { $0.kind == kind }
+    }
+
+    public var names: [String] {
+        sorted().map(\.name)
+    }
+
+    public var namesByKind: [TraitKind: [String]] {
+        Dictionary(grouping: sorted(), by: \.kind).mapValues { $0.map(\.name) }
     }
 }

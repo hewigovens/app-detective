@@ -8,7 +8,7 @@ enum ResultsExporter {
         let bundleId: String?
         let version: String?
         let category: String
-        let traits: [String: [String]]
+        let traits: [TraitKind: [String]]
         let possibleTraits: [String]
         let size: String?
 
@@ -18,8 +18,8 @@ enum ResultsExporter {
             bundleId = app.bundleId
             version = app.version
             category = app.category.description
-            traits = Trait.namesByKind(app.traits)
-            possibleTraits = Trait.names(app.possibleTraits)
+            traits = app.traits.namesByKind
+            possibleTraits = app.possibleTraits.names
             size = app.size
         }
     }
@@ -33,16 +33,10 @@ enum ResultsExporter {
     static func csv(_ apps: [AppInfo]) -> Data {
         let header = ["Name", "Path", "Bundle ID", "Version", "Category"]
             + TraitKind.allCases.map(\.pluralName) + ["Possible Traits", "Size"]
-        let rows = apps.map { app in
-            [
-                app.name,
-                app.path,
-                app.bundleId ?? "",
-                app.version ?? "",
-                app.category.description,
-            ]
-                + TraitKind.allCases.map { kind in Trait.names(app.traits.filter { $0.kind == kind }).joined(separator: "; ") }
-                + [Trait.names(app.possibleTraits).joined(separator: "; "), app.size ?? ""]
+        let rows = apps.map(Row.init).map { row in
+            [row.name, row.path, row.bundleId ?? "", row.version ?? "", row.category]
+                + TraitKind.allCases.map { row.traits[$0, default: []].joined(separator: "; ") }
+                + [row.possibleTraits.joined(separator: "; "), row.size ?? ""]
         }
         let lines = ([header] + rows).map { $0.map(escape).joined(separator: ",") }
         return Data((lines.joined(separator: "\r\n") + "\r\n").utf8)

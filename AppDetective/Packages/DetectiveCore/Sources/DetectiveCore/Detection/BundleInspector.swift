@@ -1,12 +1,14 @@
 import Foundation
 
 final class BundleInspector {
-    // Runtimes of other UI frameworks: their code (Chromium's Rust, for one) isn't the app's.
-    private static let runtimeFrameworkMarkers = ["Electron", "Chromium", "Edge Framework"]
+    private typealias Binary = (path: String, bytes: Data)
+
     // Referenced below, so it is in every binary that links DetectiveCore, whose catalog strings must not match.
     private static let catalogMarker = Data("DetectiveCore.BundleInspector.catalogMarker".utf8)
 
     let bundle: Bundle
+    // Frameworks left out of code-string searches; set before the first one runs.
+    var excludedFrameworks: Set<String> = []
 
     init(bundle: Bundle) {
         self.bundle = bundle
@@ -38,30 +40,23 @@ final class BundleInspector {
             }
     }()
 
-    private lazy var executableBytes: Data = executableURL.map(Self.binaryBytes(at:)) ?? Data()
+    private lazy var executable: Binary? = executableURL.map(binary(at:))
 
     // The executable, the app's own frameworks and dylibs, and its app and system extensions.
-    private lazy var codeBinaries: [(path: String, bytes: Data)] = {
-        let contents = bundle.bundleURL.appendingPathComponent("Contents")
-        var urls = executableURL.map { [$0] } ?? []
-        for name in frameworks where !Self.runtimeFrameworkMarkers.contains(where: name.contains) {
-            let url = contents.appendingPathComponent("Frameworks").appendingPathComponent(name)
-            if name.hasSuffix(".dylib") {
-                urls.append(url)
-            } else if let executable = Bundle(url: url)?.executableURL {
-                urls.append(executable)
-            }
-        }
-        let extensionURLs = Self.itemURLs(in: bundle.builtInPlugInsURL, withExtension: "appex")
-            + Self.itemURLs(in: contents.appendingPathComponent("Library/SystemExtensions"), withExtension: "systemextension")
-        urls += extensionURLs.compactMap { Bundle(url: $0)?.executableURL }
-
-        let root = bundle.bundleURL.resolvingSymlinksInPath().path + "/"
-        return urls.map { url in
-            let path = url.resolvingSymlinksInPath().path
-            return (path.hasPrefix(root) ? String(path.dropFirst(root.count)) : path, Self.binaryBytes(at: url))
-        }
+    private lazy var codeBinaries: [Binary] = {
+        let frameworkURLs = frameworks
+            .filter { !excludedFrameworks.contains($0) }
+            .compactMap { bundle.privateFrameworksURL?.appendingPathComponent($0) }
+        let systemExtensionsURL = bundle.bundleURL.appendingPathComponent("Contents/Library/SystemExtensions")
+        let bundleURLs = frameworkURLs.filter { $0.pathExtension == "framework" }
+            + plugIns.filter { $0.hasSuffix(".appex") }.compactMap { bundle.builtInPlugInsURL?.appendingPathComponent($0) }
+            + Self.itemNames(in: systemExtensionsURL).map { systemExtensionsURL.appendingPathComponent($0) }
+        let urls = frameworkURLs.filter { $0.pathExtension == "dylib" } + bundleURLs.compactMap { Bundle(url: $0)?.executableURL }
+        return [executable].compactMap { $0 } + urls.map(binary(at:))
     }()
+
+    private lazy var rootPath = bundle.bundleURL.resolvingSymlinksInPath().path + "/"
+    private var catalogHosts: [String: Bool] = [:]
 
     func match(_ evidence: Evidence) -> String? {
         switch evidence {
@@ -78,9 +73,9 @@ final class BundleInspector {
         case let .entry(directory, pattern):
             entries(in: directory).first(where: pattern.matches)
         case let .embeddedString(text):
-            Self.contains(text, in: executableBytes) ? text : nil
+            firstBinary(containing: text, in: [executable].compactMap { $0 }).map { _ in text }
         case let .codeString(text):
-            codeBinaries.first { Self.contains(text, in: $0.bytes) }?.path
+            firstBinary(containing: text, in: codeBinaries)
         }
     }
 
@@ -93,19 +88,29 @@ final class BundleInspector {
         return names
     }
 
-    // Mapped rather than read, so only the pages a search touches are loaded.
-    private static func binaryBytes(at url: URL) -> Data {
-        guard
-            let bytes = try? Data(contentsOf: url, options: .alwaysMapped),
-            !contains(catalogMarker, in: bytes)
-        else {
-            return Data()
+    private func firstBinary(containing text: String, in binaries: [Binary]) -> String? {
+        let needle = Data(text.utf8)
+        for binary in binaries where Self.contains(needle, in: binary.bytes) && !isCatalogHost(binary) {
+            return binary.path
         }
-        return bytes
+        return nil
     }
 
-    private static func contains(_ text: String, in bytes: Data) -> Bool {
-        contains(Data(text.utf8), in: bytes)
+    // Checked only on a hit, as a miss already reads the whole binary and hits are rare.
+    private func isCatalogHost(_ binary: Binary) -> Bool {
+        if let cached = catalogHosts[binary.path] {
+            return cached
+        }
+        let isHost = Self.contains(Self.catalogMarker, in: binary.bytes)
+        catalogHosts[binary.path] = isHost
+        return isHost
+    }
+
+    // Mapped rather than read, so only the pages a search touches are loaded.
+    private func binary(at url: URL) -> Binary {
+        let path = url.resolvingSymlinksInPath().path
+        let bytes = (try? Data(contentsOf: url, options: .alwaysMapped)) ?? Data()
+        return (path.hasPrefix(rootPath) ? String(path.dropFirst(rootPath.count)) : path, bytes)
     }
 
     // memmem, as Data.range(of:) and String.contains take seconds on executables of hundreds of megabytes.
@@ -121,12 +126,5 @@ final class BundleInspector {
     private static func itemNames(in directoryURL: URL?) -> [String] {
         guard let directoryURL else { return [] }
         return (try? FileManager.default.contentsOfDirectory(atPath: directoryURL.path)) ?? []
-    }
-
-    private static func itemURLs(in directoryURL: URL?, withExtension pathExtension: String) -> [URL] {
-        guard let directoryURL else { return [] }
-        return itemNames(in: directoryURL)
-            .filter { $0.hasSuffix(".\(pathExtension)") }
-            .map { directoryURL.appendingPathComponent($0) }
     }
 }

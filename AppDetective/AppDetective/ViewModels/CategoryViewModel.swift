@@ -41,14 +41,13 @@ final class CategoryViewModel {
         sortedCategories = categoryCounts.keys.sorted { $0.description < $1.description }
 
         let inCategory = selectedCategory.map { category in apps.filter { $0.category == category } } ?? apps
-        traitCounts = Dictionary(uniqueKeysWithValues: Trait.all.map { trait in
-            (trait, inCategory.filter { $0.traits.contains(trait) }.count)
-        })
+        traitCounts = inCategory.reduce(into: [:]) { counts, app in
+            for trait in app.traits {
+                counts[trait, default: 0] += 1
+            }
+        }
         // Most common first; catalog order breaks ties so the list is stable.
-        let present = Trait.all.enumerated()
-            .filter { traitCounts[$0.element, default: 0] > 0 }
-            .sorted { (traitCounts[$0.element]!, $1.offset) > (traitCounts[$1.element]!, $0.offset) }
-            .map(\.element)
+        let present = traitCounts.sorted { ($0.value, $1.key) > ($1.value, $0.key) }.map(\.key)
         sortedTraits = Dictionary(grouping: present, by: \.kind)
 
         let query = searchText.lowercased()

@@ -3,7 +3,7 @@ import LSAppCategory
 
 public final class DetectService: Sendable {
     // Bump when detection logic outside the catalog changes; catalog edits change `version` on their own.
-    private static let engineVersion = 8
+    private static let engineVersion = 9
 
     private let signatures: [TraitSignature]
 
@@ -13,13 +13,9 @@ public final class DetectService: Sendable {
     public init(signatures: [TraitSignature] = TraitSignature.catalog) {
         self.signatures = signatures
         let ruleText = signatures
-            .flatMap { signature in signature.rules.map { "\(signature.trait.id) \($0.evidence) \($0.confidence.rawValue)" } }
+            .flatMap { signature in signature.rules.map { "\(signature.trait.rawValue) \($0.evidence) \($0.confidence.rawValue)" } }
             .joined(separator: "\n")
         version = "\(Self.engineVersion)-\(String(Self.fnv1a(ruleText), radix: 16))"
-    }
-
-    public func detectTraits(for appURL: URL) async -> Set<Trait> {
-        detect(appURL).traits
     }
 
     public func detect(_ appURL: URL) -> Detection {
@@ -29,11 +25,13 @@ public final class DetectService: Sendable {
         }
         let inspector = BundleInspector(bundle: bundle)
 
-        var matches = evaluate(inspector, embeddedStrings: false)
-        // Embedded-string rules for UI frameworks and renderers are circumstantial, so they run only when nothing
-        // beyond the baseline frameworks was found.
+        var matches = evaluate(inspector, .bundle)
+        // A UI framework's bundled runtime (Electron's Chromium, for one) is not the app's own code.
+        inspector.excludedFrameworks = Set(matches.filter { $0.trait.kind == .ui && $0.rule.evidence.isFramework }.map(\.item))
+        matches += evaluate(inspector, .code)
+        // Embedded strings are circumstantial, so they count only when no UI framework beyond the baseline was found.
         if Self.toolkits(in: Self.confidentTraits(in: matches)).isEmpty, inspector.executableURL != nil {
-            matches += evaluate(inspector, embeddedStrings: true)
+            matches += evaluate(inspector, .deferred)
         }
 
         let confident = Self.confidentTraits(in: matches)
@@ -69,10 +67,10 @@ public final class DetectService: Sendable {
         return .other
     }
 
-    private func evaluate(_ inspector: BundleInspector, embeddedStrings: Bool) -> [Match] {
+    private func evaluate(_ inspector: BundleInspector, _ pass: Evidence.Pass) -> [Match] {
         signatures.flatMap { signature in
             signature.rules
-                .filter { $0.evidence.isEmbeddedString == embeddedStrings }
+                .filter { $0.evidence.pass == pass }
                 .compactMap { rule in
                     inspector.match(rule.evidence).map { Match(trait: signature.trait, rule: rule, item: $0) }
                 }
@@ -91,12 +89,12 @@ public final class DetectService: Sendable {
         return Set(scores.filter { $0.value >= Confidence.reportingThreshold }.keys)
     }
 
-    // AppKit and UIKit underlie every other UI framework, so they are reported only when nothing more specific
-    // was found, and not for apps that draw their own UI with a renderer. Apple frameworks without another
-    // language mean Objective-C; SwiftUI always comes with Swift.
+    // The baseline UI is reported only when nothing more specific was found, and not for apps that draw their
+    // own UI with a renderer. Apple frameworks without another language mean Objective-C; SwiftUI always
+    // comes with Swift.
     private static func resolve(_ traits: Set<Trait>) -> Set<Trait> {
         let toolkits = toolkits(in: traits)
-        let renderers = traits.filter { $0.kind == .renderer }
+        let renderers = traits.of(.renderer)
         let ui: Set<Trait> = if !toolkits.isEmpty {
             toolkits
         } else if !renderers.isEmpty {
@@ -104,14 +102,14 @@ public final class DetectService: Sendable {
         } else {
             [traits.contains(.uiKit) ? .uiKit : .appKit]
         }
-        var languages = traits.filter { $0.kind == .language }
+        var languages = traits.of(.language)
         if languages.isEmpty, !ui.isEmpty, ui.isSubset(of: [.appKit, .uiKit, .catalyst]) {
             languages = [.objectiveC]
         }
-        return ui.union(languages).union(traits.filter { $0.kind == .renderer || $0.kind == .updater })
+        return ui.union(languages).union(renderers).union(traits.of(.updater))
     }
 
     private static func toolkits(in traits: Set<Trait>) -> Set<Trait> {
-        traits.filter { $0.kind == .ui && $0 != .appKit && $0 != .uiKit }
+        traits.of(.ui).filter { !$0.isBaseline }
     }
 }

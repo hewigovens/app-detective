@@ -11,7 +11,7 @@ struct DetectServiceTests {
         let app = try FakeApp(frameworks: ["Electron Framework.framework"])
         defer { app.remove() }
 
-        #expect(await detectService.detectTraits(for: app.url) == [.electron])
+        #expect(detectService.detect(app.url).traits == [.electron])
     }
 
     @Test("Detects Flutter framework")
@@ -19,7 +19,7 @@ struct DetectServiceTests {
         let app = try FakeApp(frameworks: ["FlutterMacOS.framework"])
         defer { app.remove() }
 
-        #expect(await detectService.detectTraits(for: app.url) == [.flutter])
+        #expect(detectService.detect(app.url).traits == [.flutter])
     }
 
     @Test("Detects multiple frameworks")
@@ -27,7 +27,7 @@ struct DetectServiceTests {
         let app = try FakeApp(frameworks: ["Electron Framework.framework", "FlutterMacOS.framework"])
         defer { app.remove() }
 
-        #expect(await detectService.detectTraits(for: app.url) == [.electron, .flutter])
+        #expect(detectService.detect(app.url).traits == [.electron, .flutter])
     }
 
     @Test("Chromium Embedded Framework is not reported as Electron")
@@ -35,7 +35,7 @@ struct DetectServiceTests {
         let app = try FakeApp(frameworks: ["Chromium Embedded Framework.framework"])
         defer { app.remove() }
 
-        #expect(await detectService.detectTraits(for: app.url) == [.cef])
+        #expect(detectService.detect(app.url).traits == [.cef])
     }
 
     @Test("Detects React Native bundle in resources")
@@ -43,7 +43,7 @@ struct DetectServiceTests {
         let app = try FakeApp(resources: ["main.jsbundle"])
         defer { app.remove() }
 
-        #expect(await detectService.detectTraits(for: app.url) == [.reactNative])
+        #expect(detectService.detect(app.url).traits == [.reactNative])
     }
 
     @Test("Detects Electron from app.asar when the framework is renamed")
@@ -51,7 +51,7 @@ struct DetectServiceTests {
         let app = try FakeApp(frameworks: ["Codex Framework.framework"], resources: ["app.asar"])
         defer { app.remove() }
 
-        #expect(await detectService.detectTraits(for: app.url) == [.electron])
+        #expect(detectService.detect(app.url).traits == [.electron])
     }
 
     @Test("Detects Xamarin from Contents/MonoBundle")
@@ -59,7 +59,7 @@ struct DetectServiceTests {
         let app = try FakeApp(contents: ["MonoBundle"])
         defer { app.remove() }
 
-        #expect(await detectService.detectTraits(for: app.url) == [.xamarin])
+        #expect(detectService.detect(app.url).traits == [.xamarin])
     }
 
     @Test("Detects Unity from the bundled player")
@@ -113,8 +113,8 @@ struct DetectServiceTests {
             otherApp.remove()
         }
 
-        #expect(await detectService.detectTraits(for: qtApp.url) == [.qt])
-        #expect(await detectService.detectTraits(for: otherApp.url) == [.appKit, .objectiveC])
+        #expect(detectService.detect(qtApp.url).traits == [.qt])
+        #expect(detectService.detect(otherApp.url).traits == [.appKit, .objectiveC])
     }
 
     @Test("A single weak rule is reported as possible, not detected")
@@ -154,7 +154,7 @@ struct DetectServiceTests {
         let app = try FakeApp()
         defer { app.remove() }
 
-        #expect(await detectService.detectTraits(for: app.url) == [.appKit, .objectiveC])
+        #expect(detectService.detect(app.url).traits == [.appKit, .objectiveC])
     }
 
     @Test("Languages are reported next to any UI framework; Objective-C only for native apps")
@@ -171,7 +171,7 @@ struct DetectServiceTests {
     }
 
     @Test("A renderer replaces the AppKit fallback and sits beside a toolkit")
-    func rustLanguage() throws {
+    func rendererReplacesAppKitFallback() throws {
         let app = try FakeApp(contents: ["RustMarker", "SwiftMarker", "WgpuMarker", "IcedMarker"])
         defer { app.remove() }
         let rustRule = TraitSignature(.rust, [.strong(.file("Contents/RustMarker"))])
@@ -196,28 +196,28 @@ struct DetectServiceTests {
         #expect(DetectService(signatures: [goRule, wailsRule]).detect(app.url).traits == [.wails, .go])
     }
 
-    @Test("Code strings are searched in the app's extensions and frameworks, but not in runtime frameworks")
+    @Test("Code strings are searched in the app's frameworks and extensions, but not in a UI framework's runtime")
     func codeStringsInBundledBinaries() throws {
         // The fake executable is /usr/bin/true; these binaries are /bin/echo, whose strings include "PROGRAM:echo".
-        let app = try FakeApp(contents: ["SwiftUIMarker"])
+        let app = try FakeApp()
         defer { app.remove() }
-        let swiftUIRule = TraitSignature(.swiftUI, [.strong(.file("Contents/SwiftUIMarker"))])
+        let electronRule = TraitSignature(.electron, [.strong(.framework(.exact("Electron Framework.framework")))])
         let goRule = TraitSignature(.go, [.strong(.codeString("PROGRAM:echo"))])
-        let service = DetectService(signatures: [swiftUIRule, goRule])
+        try addBundle(at: "Contents/Frameworks/Electron Framework.framework", executable: "Electron Framework", infoPlist: "Resources/Info.plist", to: app)
 
-        try addBundle(at: "Contents/Frameworks/Electron Framework.framework", executable: "Electron Framework", to: app)
-        #expect(service.detect(app.url).traits == [.swiftUI])
+        #expect(DetectService(signatures: [goRule]).detect(app.url).traits == [.appKit, .go])
+        #expect(DetectService(signatures: [electronRule, goRule]).detect(app.url).traits == [.electron])
 
-        try addBundle(at: "Contents/PlugIns/Tunnel.appex", executable: "Contents/MacOS/Tunnel", to: app)
-        let detection = service.detect(app.url)
-        #expect(detection.traits == [.swiftUI, .go])
+        try addBundle(at: "Contents/PlugIns/Tunnel.appex", executable: "Contents/MacOS/Tunnel", infoPlist: "Contents/Info.plist", to: app)
+        let detection = DetectService(signatures: [electronRule, goRule]).detect(app.url)
+        #expect(detection.traits == [.electron, .go])
         #expect(detection.matches.last?.item == "Contents/PlugIns/Tunnel.appex/Contents/MacOS/Tunnel")
     }
 
-    private func addBundle(at path: String, executable: String, to app: FakeApp) throws {
+    private func addBundle(at path: String, executable: String, infoPlist: String, to app: FakeApp) throws {
         let bundleURL = app.url.appendingPathComponent(path)
         let executableURL = bundleURL.appendingPathComponent(executable)
-        let infoURL = bundleURL.appendingPathComponent(executable.hasPrefix("Contents/") ? "Contents/Info.plist" : "Resources/Info.plist")
+        let infoURL = bundleURL.appendingPathComponent(infoPlist)
         try FileManager.default.createDirectory(at: executableURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         try FileManager.default.createDirectory(at: infoURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         try FileManager.default.copyItem(atPath: "/bin/echo", toPath: executableURL.path)
@@ -235,9 +235,9 @@ struct DetectServiceTests {
             electronApp.remove()
         }
 
-        #expect(await detectService.detectTraits(for: sparkleApp.url) == [.appKit, .objectiveC, .sparkle])
-        #expect(await detectService.detectTraits(for: storeApp.url) == [.appKit, .objectiveC, .appStore])
-        #expect(await detectService.detectTraits(for: electronApp.url) == [.electron, .squirrel])
+        #expect(detectService.detect(sparkleApp.url).traits == [.appKit, .objectiveC, .sparkle])
+        #expect(detectService.detect(storeApp.url).traits == [.appKit, .objectiveC, .appStore])
+        #expect(detectService.detect(electronApp.url).traits == [.electron, .squirrel])
     }
 
     @Test("An updater doesn't stop embedded-string rules from running")
@@ -256,7 +256,7 @@ struct DetectServiceTests {
         let app = try FakeApp(declaresExecutable: false)
         defer { app.remove() }
 
-        #expect(await detectService.detectTraits(for: app.url) == [.appKit, .objectiveC])
+        #expect(detectService.detect(app.url).traits == [.appKit, .objectiveC])
     }
 
     @Test("Returns other for a directory that is not an app bundle")
@@ -265,7 +265,7 @@ struct DetectServiceTests {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory.deletingLastPathComponent()) }
 
-        #expect(await detectService.detectTraits(for: directory) == [.other])
+        #expect(detectService.detect(directory).traits == [.other])
     }
 
     @Test("Reads category from Info.plist")
@@ -306,7 +306,7 @@ struct DetectServiceTests {
         #expect(DetectService(signatures: [uiKitRule, swiftUIRule]).detect(app.url).traits == [.swiftUI])
     }
 
-    @Test("Embedded-string rules are skipped once a trait beyond AppKit is found")
+    @Test("Embedded-string rules are skipped once a UI framework beyond AppKit is found")
     func embeddedStringsSkippedForSwiftUI() throws {
         // The fake executable is /usr/bin/true, whose strings include this version tag.
         let app = try FakeApp(contents: ["SwiftUIMarker"])

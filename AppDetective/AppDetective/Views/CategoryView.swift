@@ -73,8 +73,9 @@ struct CategoryView: View {
     }
 
     private var selectedItems: Set<SidebarItem> {
-        Set(TraitKind.allCases.map { kind in viewModel.selectedTraits[kind].map(SidebarItem.trait) ?? .allTraits(kind) })
-            .union([viewModel.selectedCategory.map(SidebarItem.category) ?? .allCategories])
+        let category = viewModel.selectedCategory.map(SidebarItem.category) ?? .allCategories
+        let traits = TraitKind.allCases.map { kind in viewModel.selectedTraits[kind].map(SidebarItem.trait) ?? .allTraits(kind) }
+        return Set([category] + traits)
     }
 }
 

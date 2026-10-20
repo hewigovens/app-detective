@@ -3,45 +3,42 @@ import SwiftUI
 
 extension Trait {
     var color: Color {
-        Self.colors[id] ?? .gray
+        switch self {
+        case .swiftUI: .orange
+        case .appKit: .blue
+        case .uiKit: .indigo
+        case .catalyst: .purple
+        case .electron: .cyan
+        case .cef, .xamarin: Color(hex: "#3498DB")
+        case .microsoftEdge: Color(hex: "#0078D4")
+        case .flutter: .teal
+        case .qt: Color(hex: "#4CAF50")
+        case .reactNative: Color(hex: "#61DAFB")
+        case .java: .red
+        case .python: Color(hex: "#336C9D")
+        case .avalonia: Color(hex: "#8B44AC")
+        case .compose: Color(hex: "#4285F4")
+        case .tauri, .tauriUpdater: Color(hex: "#FFC131")
+        case .wxWidgets: Color(hex: "#7B61D9")
+        case .gpui: Color(hex: "#FF6B6B")
+        case .iced: Color(hex: "#A0D2DB")
+        case .egui: Color(hex: "#E0B84C")
+        case .slint: Color(hex: "#2379F4")
+        case .wails: Color(hex: "#DF0000")
+        case .fyne: Color(hex: "#00ADD8")
+        case .gtk: Color(hex: "#729FCF")
+        case .unity: Color(hex: "#222C37")
+        case .unreal: Color(hex: "#0E1128")
+        case .xojo: Color(hex: "#C9302C")
+        case .other: .gray
+        case .swift: Color(hex: "#F05138")
+        case .objectiveC: Color(hex: "#8E8E93")
+        case .rust: Color(hex: "#B7410E")
+        case .go: Color(hex: "#007D9C")
+        case .wgpu: Color(hex: "#5C7CFA")
+        case .appStore: Color(hex: "#0D96F6")
+        case .sparkle: Color(hex: "#E8A33D")
+        case .squirrel: Color(hex: "#A0785A")
+        }
     }
-
-    private static let colors: [String: Color] = [
-        Trait.swiftUI.id: .orange,
-        Trait.appKit.id: .blue,
-        Trait.catalyst.id: .purple,
-        Trait.uiKit.id: .indigo,
-        Trait.electron.id: .cyan,
-        Trait.cef.id: Color(hex: "#3498db"),
-        Trait.python.id: Color(hex: "#336c9d"),
-        Trait.qt.id: Color(hex: "#4CAF50"),
-        Trait.wxWidgets.id: Color(hex: "#7B61D9"),
-        Trait.gtk.id: Color(hex: "#729FCF"),
-        Trait.java.id: .red,
-        Trait.xamarin.id: Color(hex: "#3498DB"),
-        Trait.flutter.id: .teal,
-        Trait.reactNative.id: Color(hex: "#61DAFB"),
-        Trait.tauri.id: Color(hex: "#FFC131"),
-        Trait.gpui.id: Color(hex: "#FF6B6B"),
-        Trait.iced.id: Color(hex: "#A0D2DB"),
-        Trait.microsoftEdge.id: Color(hex: "#0078D4"),
-        Trait.unity.id: Color(hex: "#222C37"),
-        Trait.unreal.id: Color(hex: "#0E1128"),
-        Trait.compose.id: Color(hex: "#4285F4"),
-        Trait.avalonia.id: Color(hex: "#8B44AC"),
-        Trait.wails.id: Color(hex: "#DF0000"),
-        Trait.fyne.id: Color(hex: "#00ADD8"),
-        Trait.xojo.id: Color(hex: "#C9302C"),
-        Trait.egui.id: Color(hex: "#E0B84C"),
-        Trait.slint.id: Color(hex: "#2379F4"),
-        Trait.swift.id: Color(hex: "#F05138"),
-        Trait.objectiveC.id: Color(hex: "#8E8E93"),
-        Trait.rust.id: Color(hex: "#B7410E"),
-        Trait.go.id: Color(hex: "#007D9C"),
-        Trait.wgpu.id: Color(hex: "#5C7CFA"),
-        Trait.appStore.id: Color(hex: "#0D96F6"),
-        Trait.sparkle.id: Color(hex: "#E8A33D"),
-        Trait.squirrel.id: Color(hex: "#A0785A"),
-        Trait.tauriUpdater.id: Color(hex: "#FFC131"),
-    ]
 }
