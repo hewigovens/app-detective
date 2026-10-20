@@ -2,7 +2,7 @@
 
 ## Project Layout
 - `AppDetective/project.yml`: XcodeGen spec. The `.xcodeproj` is generated and git-ignored; edit `project.yml`, never the project file.
-- `AppDetective/Packages/DetectiveCore`: detection logic (`DetectService`, `TechStack`, `BundleMetrics`), shared by the app and the CLI.
+- `AppDetective/Packages/DetectiveCore`: detection logic (`DetectService`, `Trait`, `BundleMetrics`), shared by the app and the CLI.
 - `AppDetective/AppDetective`: SwiftUI app. `AppAnalyzer` runs detection plus icon/size loading per app, and `DiskCacheService` keeps the results in `~/Library/Caches`, reused while the app's Info.plist date and `DetectService.version` are unchanged.
 - `AppDetective/CLI`: the `appdetective` command-line tool, embedded in the app bundle. Its module is `AppDetectiveCLI` so it doesn't collide with the app's `AppDetective` module on case-insensitive disks.
 - `AppDetective/AppDetectiveTests`: Swift Testing unit tests, hosted by the app. Use `@testable import AppDetective` / `DetectiveCore`, and `FakeApp` from `TestSupport.swift` for bundle fixtures. The CLI tests run the copy embedded in the host app.
@@ -36,12 +36,12 @@ Use the `justfile` recipes; they regenerate the Xcode project first.
 - Don't run `swift build` inside `Packages/DetectiveCore`; it leaves `.build/` and `Package.resolved` in the working copy, which jj snapshots.
 
 ## Detection Changes
-- Detection lives in `Packages/DetectiveCore/Sources/DetectiveCore/Detection/`. Each stack has a `StackSignature` in `StackSignatures.swift`: a list of rules, each an `Evidence` (framework, resource, plug-in, file, directory entry, linked library, embedded string) with a `Confidence`.
-- **Confidence**: `.strong` identifies the stack alone (its runtime is bundled or linked); `.weak` is circumstantial. A stack is reported at one strong or two weak matches; below that it appears in `possibleStacks`. Don't mark substring or string matches strong unless the text is unique to the stack.
-- **Adding a stack**: add the flag, `allStacks` entry, and name in `TechStack.swift`; its color in `TechStack+Color.swift`; its signature in `StackSignatures.swift`; and a fake-bundle test in `DetectServiceTests.swift`.
-- AppKit and UIKit are reported only when nothing more specific matched, together with the language (`.swift` when the Swift runtime is linked, `.rust` when the Rust standard library is embedded, `.go` when the Go runtime is, else `.objectiveC`); `TechStack.languages` never counts as a specific stack.
+- Detection reports a set of `Trait`s, each of one `TraitKind` (UI framework, language, renderer). Detection lives in `Packages/DetectiveCore/Sources/DetectiveCore/Detection/`. Each trait has a `TraitSignature` in `TraitSignatures.swift`: a list of rules, each an `Evidence` (framework, resource, plug-in, file, directory entry, linked library, embedded string) with a `Confidence`.
+- **Confidence**: `.strong` identifies the trait alone (its runtime is bundled or linked); `.weak` is circumstantial. A trait is reported at one strong or two weak matches; below that it appears in `possibleTraits`. Don't mark substring or string matches strong unless the text is unique to the trait.
+- **Adding a trait**: add the constant and its `Trait.all` entry in `Trait.swift`; its color in `Trait+Color.swift`; its signature in `TraitSignatures.swift`; and a fake-bundle test in `DetectServiceTests.swift`. Swift Testing has its own `Trait`, so tests that name the type write `DetectiveCore.Trait`.
+- AppKit and UIKit are reported only when nothing more specific matched, together with the language (`.swift` when the Swift runtime is linked, `.rust` when the Rust standard library is embedded, `.go` when the Go runtime is, else `.objectiveC`); languages never count as a specific trait.
 - wgpu is likewise reported only when no toolkit built on it (Iced, egui) matched, together with the language.
-- Embedded-string rules run `strings` over the executable, so they are evaluated only when no stack beyond AppKit/UIKit was found (a SwiftUI or cross-platform match skips them). Prefer file or linked-library evidence; note the app's own binary contains every catalog string.
+- Embedded-string rules run `strings` over the executable, so they are evaluated only when no trait beyond AppKit/UIKit or a language was found (a SwiftUI or cross-platform match skips them). Prefer file or linked-library evidence; note the app's own binary contains every catalog string.
 - Catalog edits change `DetectService.version` automatically, which invalidates saved results. Bump `engineVersion` when changing detection logic outside the catalog (thresholds, resolution).
 - Use `appdetective --explain <app>` to see which rules matched. Before and after a detection change, run the CLI over `/Applications` and diff the results; only intended apps should change.
 
@@ -53,7 +53,7 @@ Use the `justfile` recipes; they regenerate the Xcode project first.
 
 ### Naming Conventions
 - **Types**: PascalCase (AppInfo, DetectService, ContentViewModel)
-- **Variables/Functions**: camelCase (appResults, detectStack, scanApplications)
+- **Variables/Functions**: camelCase (appResults, detectTraits, scanApplications)
 - **Constants**: PascalCase for global constants (Constants.AppName)
 
 ### Types & Error Handling
@@ -70,7 +70,7 @@ Use the `justfile` recipes; they regenerate the Xcode project first.
 ### Architecture Patterns
 - MVVM: Views observe ViewModels, ViewModels coordinate with Services
 - Services for business logic (DetectService, ScanService, etc.)
-- Models for data structures (AppInfo, TechStack)
+- Models for data structures (AppInfo, Trait)
 - View models are `@MainActor @Observable`; views take them as plain `let` properties and use `@Bindable` for bindings
 - The project builds in Swift 6 language mode; keep it free of concurrency warnings
 - Keep a single source of truth: derived state (filtered lists, counts) is computed once when inputs change, not in view bodies

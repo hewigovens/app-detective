@@ -29,8 +29,16 @@ struct AppDetailView: View {
                             .textSelection(.enabled)
                     }
                 }
-                Section("Tech Stacks") {
-                    StackTagRow(techStacks: app.techStacks, possibleStacks: app.possibleStacks)
+                Section("Traits") {
+                    ForEach(TraitKind.allCases, id: \.self) { kind in
+                        let traits = app.traits.filter { $0.kind == kind }
+                        let possibleTraits = app.possibleTraits.filter { $0.kind == kind }
+                        if !traits.isEmpty || !possibleTraits.isEmpty {
+                            LabeledContent(kind.name) {
+                                TraitTagRow(traits: traits, possibleTraits: possibleTraits)
+                            }
+                        }
+                    }
                 }
                 Section("Evidence") {
                     EvidenceList(appInfo: app)

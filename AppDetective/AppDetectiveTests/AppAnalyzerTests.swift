@@ -13,8 +13,8 @@ struct AppAnalyzerTests {
             detectorVersion: version,
             bundleId: "cached",
             version: "1.0",
-            stacks: .gtk,
-            possibleStacks: [],
+            traits: [.gtk],
+            possibleTraits: [],
             evidence: [],
             category: .games,
             iconData: sentinelIcon,
@@ -35,7 +35,7 @@ struct AppAnalyzerTests {
 
         let result = AppAnalyzer.analyze(app.url, cached: cached, detectService: detectService)
 
-        #expect(result.stacks == .gtk)
+        #expect(result.traits == [.gtk])
         #expect(result.iconData == sentinelIcon)
     }
 
@@ -47,7 +47,7 @@ struct AppAnalyzerTests {
 
         let result = AppAnalyzer.analyze(app.url, cached: cached, detectService: detectService)
 
-        #expect(result.stacks == [.appKit, .objectiveC])
+        #expect(result.traits == [.appKit, .objectiveC])
         #expect(result.detectorVersion == detectService.version)
         #expect(result.iconData == sentinelIcon)
         #expect(result.size == "1 KB")
@@ -61,7 +61,7 @@ struct AppAnalyzerTests {
 
         let result = AppAnalyzer.analyze(app.url, cached: cached, detectService: detectService)
 
-        #expect(result.stacks == [.appKit, .objectiveC])
+        #expect(result.traits == [.appKit, .objectiveC])
         #expect(result.iconData != sentinelIcon)
         #expect(result.size != "1 KB")
     }

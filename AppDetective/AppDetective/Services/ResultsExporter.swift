@@ -8,8 +8,8 @@ enum ResultsExporter {
         let bundleId: String?
         let version: String?
         let category: String
-        let stacks: [String]
-        let possibleStacks: [String]
+        let traits: [String: [String]]
+        let possibleTraits: [String]
         let size: String?
 
         init(_ app: AppInfo) {
@@ -18,8 +18,8 @@ enum ResultsExporter {
             bundleId = app.bundleId
             version = app.version
             category = app.category.description
-            stacks = app.techStacks.displayNames
-            possibleStacks = app.possibleStacks.displayNames
+            traits = Trait.namesByKind(app.traits)
+            possibleTraits = Trait.names(app.possibleTraits)
             size = app.size
         }
     }
@@ -31,18 +31,18 @@ enum ResultsExporter {
     }
 
     static func csv(_ apps: [AppInfo]) -> Data {
-        let header = ["Name", "Path", "Bundle ID", "Version", "Category", "Stacks", "Possible Stacks", "Size"]
-        let rows = apps.map(Row.init).map { row in
+        let header = ["Name", "Path", "Bundle ID", "Version", "Category"]
+            + TraitKind.allCases.map(\.pluralName) + ["Possible Traits", "Size"]
+        let rows = apps.map { app in
             [
-                row.name,
-                row.path,
-                row.bundleId ?? "",
-                row.version ?? "",
-                row.category,
-                row.stacks.joined(separator: "; "),
-                row.possibleStacks.joined(separator: "; "),
-                row.size ?? "",
+                app.name,
+                app.path,
+                app.bundleId ?? "",
+                app.version ?? "",
+                app.category.description,
             ]
+                + TraitKind.allCases.map { kind in Trait.names(app.traits.filter { $0.kind == kind }).joined(separator: "; ") }
+                + [Trait.names(app.possibleTraits).joined(separator: "; "), app.size ?? ""]
         }
         let lines = ([header] + rows).map { $0.map(escape).joined(separator: ",") }
         return Data((lines.joined(separator: "\r\n") + "\r\n").utf8)

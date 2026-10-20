@@ -1,11 +1,11 @@
 import Foundation
 
-public struct StackSignature: Sendable {
-    public let stack: TechStack
+public struct TraitSignature: Sendable {
+    public let trait: Trait
     public let rules: [Rule]
 
-    public init(_ stack: TechStack, _ rules: [Rule]) {
-        self.stack = stack
+    public init(_ trait: Trait, _ rules: [Rule]) {
+        self.trait = trait
         self.rules = rules
     }
 }
@@ -37,7 +37,7 @@ public enum Evidence: Sendable, CustomStringConvertible {
     case file(String) // Relative to the bundle root, e.g. "Contents/MonoBundle".
     case linkedLibrary(Pattern)
     case entry(in: String, Pattern) // An item in a directory relative to the bundle root, e.g. "Contents/app".
-    case embeddedString(String) // Runs `strings`, so only evaluated when no stack beyond AppKit/UIKit matched.
+    case embeddedString(String) // Runs `strings`, so only evaluated when no trait beyond AppKit/UIKit or a language matched.
 
     public var description: String {
         switch self {

@@ -3,29 +3,29 @@ import LSAppCategory
 
 public final class DetectService: Sendable {
     // Bump when detection logic outside the catalog changes; catalog edits change `version` on their own.
-    private static let engineVersion = 5
+    private static let engineVersion = 6
 
-    private let signatures: [StackSignature]
+    private let signatures: [TraitSignature]
 
     /// Identifies these rules, so results saved under a different version can be discarded.
     public let version: String
 
-    public init(signatures: [StackSignature] = StackSignature.catalog) {
+    public init(signatures: [TraitSignature] = TraitSignature.catalog) {
         self.signatures = signatures
         let ruleText = signatures
-            .flatMap { signature in signature.rules.map { "\(signature.stack.rawValue) \($0.evidence) \($0.confidence.rawValue)" } }
+            .flatMap { signature in signature.rules.map { "\(signature.trait.id) \($0.evidence) \($0.confidence.rawValue)" } }
             .joined(separator: "\n")
         version = "\(Self.engineVersion)-\(String(Self.fnv1a(ruleText), radix: 16))"
     }
 
-    public func detectStack(for appURL: URL) async -> TechStack {
-        detect(appURL).stacks
+    public func detectTraits(for appURL: URL) async -> Set<Trait> {
+        detect(appURL).traits
     }
 
     public func detect(_ appURL: URL) -> Detection {
         // Bundle applies LaunchServices' executable fallbacks (no CFBundleExecutable, WrappedBundle).
         guard let bundle = Bundle(url: appURL) else {
-            return Detection(stacks: .other, possibleStacks: [], matches: [])
+            return Detection(traits: [.other], possibleTraits: [], matches: [])
         }
         let inspector = BundleInspector(bundle: bundle)
 
@@ -33,18 +33,18 @@ public final class DetectService: Sendable {
         // String rules are circumstantial and `strings` is slow, so they run only when nothing beyond the
         // baseline frameworks was found. This also keeps apps that embed DetectiveCore (and so its catalog
         // strings) from matching every string rule.
-        if Self.specificStacks(in: Self.confidentStacks(in: matches)).isEmpty, inspector.executableURL != nil {
+        if Self.specificTraits(in: Self.confidentTraits(in: matches)).isEmpty, inspector.executableURL != nil {
             matches += evaluate(inspector, embeddedStrings: true)
         }
 
-        let confident = Self.confidentStacks(in: matches)
-        let possible = TechStack(matches.map(\.stack)).subtracting(confident)
-        let stacks: TechStack = if confident.isEmpty, inspector.executableURL == nil {
-            .other
+        let confident = Self.confidentTraits(in: matches)
+        let possible = Set(matches.map(\.trait)).subtracting(confident)
+        let traits: Set<Trait> = if confident.isEmpty, inspector.executableURL == nil {
+            [.other]
         } else {
             Self.resolve(confident)
         }
-        return Detection(stacks: stacks, possibleStacks: possible.subtracting(stacks), matches: matches)
+        return Detection(traits: traits, possibleTraits: possible.subtracting(traits), matches: matches)
     }
 
     public func extractCategory(from appURL: URL) -> AppCategory {
@@ -75,7 +75,7 @@ public final class DetectService: Sendable {
             signature.rules
                 .filter { $0.evidence.isEmbeddedString == embeddedStrings }
                 .compactMap { rule in
-                    inspector.match(rule.evidence).map { Match(stack: signature.stack, rule: rule, item: $0) }
+                    inspector.match(rule.evidence).map { Match(trait: signature.trait, rule: rule, item: $0) }
                 }
         }
     }
@@ -85,31 +85,31 @@ public final class DetectService: Sendable {
         text.utf8.reduce(14_695_981_039_346_656_037) { ($0 ^ UInt64($1)) &* 1_099_511_628_211 }
     }
 
-    private static func confidentStacks(in matches: [Match]) -> TechStack {
-        let scores = matches.reduce(into: [TechStack: Int]()) { scores, match in
-            scores[match.stack, default: 0] += match.rule.confidence.rawValue
+    private static func confidentTraits(in matches: [Match]) -> Set<Trait> {
+        let scores = matches.reduce(into: [Trait: Int]()) { scores, match in
+            scores[match.trait, default: 0] += match.rule.confidence.rawValue
         }
-        return TechStack(scores.filter { $0.value >= Confidence.reportingThreshold }.keys)
+        return Set(scores.filter { $0.value >= Confidence.reportingThreshold }.keys)
     }
 
     // AppKit and UIKit underlie every other UI stack, so report them only when nothing more specific was found,
     // together with the language, which tells plain AppKit apps apart. wgpu likewise underlies Iced and egui,
     // so it names the stack only for apps with their own renderer, again with the language.
-    private static func resolve(_ stacks: TechStack) -> TechStack {
-        let specific = specificStacks(in: stacks)
-        let toolkits = specific.subtracting(.wgpu)
+    private static func resolve(_ traits: Set<Trait>) -> Set<Trait> {
+        let specific = specificTraits(in: traits)
+        let toolkits = specific.filter { $0.kind == .ui }
         if !toolkits.isEmpty {
             return toolkits
         }
-        let languages = stacks.intersection(.languages)
+        let languages = traits.filter { $0.kind == .language }
         if !specific.isEmpty {
             return specific.union(languages)
         }
-        let framework: TechStack = stacks.contains(.uiKit) ? .uiKit : .appKit
-        return framework.union(languages.isEmpty ? .objectiveC : languages)
+        let framework: Trait = traits.contains(.uiKit) ? .uiKit : .appKit
+        return languages.isEmpty ? [framework, .objectiveC] : languages.union([framework])
     }
 
-    private static func specificStacks(in stacks: TechStack) -> TechStack {
-        stacks.subtracting([.appKit, .uiKit]).subtracting(.languages)
+    private static func specificTraits(in traits: Set<Trait>) -> Set<Trait> {
+        traits.filter { $0.kind != .language && $0 != .appKit && $0 != .uiKit }
     }
 }

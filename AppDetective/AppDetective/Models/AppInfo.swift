@@ -7,9 +7,9 @@ struct AppInfo: Identifiable, Hashable, Sendable {
     let path: String
     let bundleId: String?
     var version: String?
-    let techStacks: TechStack
-    var possibleStacks: TechStack = []
-    var evidence: [StackEvidence] = []
+    let traits: Set<Trait>
+    var possibleTraits: Set<Trait> = []
+    var evidence: [TraitEvidence] = []
     let category: AppCategory
 
     var iconData: Data?
@@ -25,8 +25,8 @@ extension AppInfo {
             path: url.path,
             bundleId: analysis.bundleId,
             version: analysis.version,
-            techStacks: analysis.stacks,
-            possibleStacks: analysis.possibleStacks,
+            traits: analysis.traits,
+            possibleTraits: analysis.possibleTraits,
             evidence: analysis.evidence,
             category: analysis.category,
             iconData: analysis.iconData,

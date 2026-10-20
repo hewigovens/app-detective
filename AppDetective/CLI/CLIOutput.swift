@@ -10,18 +10,18 @@ struct CLIOutput: Encodable {
     let sizeBytes: Int64?
     let sizeHuman: String?
     let category: String
-    let stacks: [String]
-    let possibleStacks: [String]
+    let traits: [String: [String]] // Keyed by TraitKind raw value.
+    let possibleTraits: [String]
     let evidence: [Evidence]?
 
     struct Evidence: Encodable {
-        let stack: String
+        let trait: String
         let rule: String
         let match: String
         let confidence: String
 
         init(_ match: Match) {
-            stack = match.stack.displayName
+            trait = match.trait.name
             rule = match.rule.evidence.description
             self.match = match.item
             confidence = "\(match.rule.confidence)"
@@ -38,21 +38,24 @@ enum CLIPrinter {
         case let (nil, b?): versionLine = "(\(b))"
         default: versionLine = "—"
         }
-        let stackLine = o.stacks.isEmpty ? "unknown" : o.stacks.joined(separator: ", ")
         print("App:        \(o.name)")
         print("Path:       \(o.path)")
         print("Bundle ID:  \(o.bundleId ?? "—")")
         print("Version:    \(versionLine)")
         print("Size:       \(o.sizeHuman ?? "—")")
         print("Category:   \(o.category)")
-        print("Stacks:     \(stackLine)")
-        if !o.possibleStacks.isEmpty {
-            print("Possibly:   \(o.possibleStacks.joined(separator: ", "))")
+        for kind in TraitKind.allCases {
+            if let names = o.traits[kind.rawValue] {
+                print("\(kind.name + ":")".padding(toLength: 12, withPad: " ", startingAt: 0) + names.joined(separator: ", "))
+            }
+        }
+        if !o.possibleTraits.isEmpty {
+            print("Possibly:   \(o.possibleTraits.joined(separator: ", "))")
         }
         if let evidence = o.evidence {
             print("Evidence:")
             for item in evidence {
-                print("  [\(item.confidence)] \(item.stack): \(item.rule) → \(item.match)")
+                print("  [\(item.confidence)] \(item.trait): \(item.rule) → \(item.match)")
             }
         }
     }

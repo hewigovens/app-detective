@@ -2,7 +2,7 @@ import Foundation
 import Testing
 
 struct CLITests {
-    @Test("--json --explain reports stacks and evidence")
+    @Test("--json --explain reports traits and evidence")
     func jsonOutput() throws {
         // The unit tests are hosted by the app, which embeds the CLI in its resources.
         let cliURL = try #require(Bundle.main.url(forResource: "appdetective", withExtension: nil))
@@ -20,7 +20,7 @@ struct CLITests {
 
         #expect(process.terminationStatus == 0)
         let output = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
-        #expect(output["stacks"] as? [String] == ["Electron"])
+        #expect(output["traits"] as? [String: [String]] == ["ui": ["Electron"]])
         let evidence = try #require(output["evidence"] as? [[String: String]])
         #expect(evidence.first?["match"] == "Electron Framework.framework")
     }

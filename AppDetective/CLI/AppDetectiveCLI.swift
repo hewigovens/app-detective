@@ -60,8 +60,8 @@ struct AppDetectiveCLI {
             sizeBytes: sizeBytes,
             sizeHuman: sizeBytes.map(BundleMetrics.format(bytes:)),
             category: category.description,
-            stacks: detection.stacks.displayNames,
-            possibleStacks: detection.possibleStacks.displayNames,
+            traits: Trait.namesByKind(detection.traits),
+            possibleTraits: Trait.names(detection.possibleTraits),
             evidence: explain ? detection.matches.map(CLIOutput.Evidence.init) : nil
         )
 
@@ -76,11 +76,11 @@ struct AppDetectiveCLI {
         let name = (CommandLine.arguments.first.map { ($0 as NSString).lastPathComponent }) ?? "appdetective"
         print("Usage: \(name) [--json] [--explain] <path-to-.app>")
         print("")
-        print("Detect the tech stack and category of a single macOS app bundle.")
+        print("Detect the traits (UI framework, language, renderer) and category of a single macOS app bundle.")
         print("")
         print("Options:")
         print("  --json        Emit machine-readable JSON instead of text.")
-        print("  --explain     Include the evidence behind each detected stack.")
+        print("  --explain     Include the evidence behind each detected trait.")
         print("  -h, --help    Show this help.")
     }
 }

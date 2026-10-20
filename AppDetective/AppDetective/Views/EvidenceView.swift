@@ -27,13 +27,13 @@ struct EvidenceList: View {
                 ForEach(appInfo.evidence, id: \.self) { evidence in
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 6) {
-                            Text(evidence.stack)
+                            Text(evidence.trait)
                                 .fontWeight(.medium)
                             Text(evidence.isStrong ? "Strong" : "Weak")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(evidence.isStrong ? .green : .orange)
                         }
-                        Text(evidence.kind ?? evidence.rule)
+                        Text(evidence.kind)
                             .foregroundStyle(.secondary)
                         Text(evidence.item)
                             .font(.caption.monospaced())
@@ -45,8 +45,8 @@ struct EvidenceList: View {
                 }
             }
 
-            if !appInfo.possibleStacks.isEmpty {
-                Text("Stacks marked “?” have only weak evidence.")
+            if !appInfo.possibleTraits.isEmpty {
+                Text("Traits marked “?” have only weak evidence.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

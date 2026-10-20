@@ -8,18 +8,18 @@ struct CachedApp: Codable, Sendable {
     let detectorVersion: String
     let bundleId: String?
     let version: String?
-    let stacks: TechStack
-    let possibleStacks: TechStack
-    let evidence: [StackEvidence]
+    let traits: Set<Trait>
+    let possibleTraits: Set<Trait>
+    let evidence: [TraitEvidence]
     let category: AppCategory
     let iconData: Data?
     let size: String?
 }
 
-struct StackEvidence: Codable, Hashable, Sendable {
-    let stack: String
+struct TraitEvidence: Codable, Hashable, Sendable {
+    let trait: String
     let rule: String
-    var kind: String? // Absent in caches written before 1.5.2; the engine version bump re-detects them.
+    let kind: String
     let item: String
     let isStrong: Bool
 }
@@ -42,11 +42,11 @@ enum AppAnalyzer {
             detectorVersion: detectService.version,
             bundleId: bundle?.bundleIdentifier,
             version: bundle.flatMap(version(of:)),
-            stacks: detection.stacks,
-            possibleStacks: detection.possibleStacks,
+            traits: detection.traits,
+            possibleTraits: detection.possibleTraits,
             evidence: detection.matches.map {
-                StackEvidence(
-                    stack: $0.stack.displayName,
+                TraitEvidence(
+                    trait: $0.trait.name,
                     rule: $0.rule.evidence.description,
                     kind: $0.rule.evidence.kind,
                     item: $0.item,

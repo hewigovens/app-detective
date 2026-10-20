@@ -27,7 +27,7 @@ struct AppListCell: View {
             Button {
                 isShowingEvidence = true
             } label: {
-                StackTagRow(techStacks: appInfo.techStacks, possibleStacks: appInfo.possibleStacks)
+                TraitTagRow(traits: appInfo.traits, possibleTraits: appInfo.possibleTraits)
             }
             .buttonStyle(.plain)
             .help("Show detection evidence")

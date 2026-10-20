@@ -11,7 +11,7 @@ struct DetectServiceTests {
         let app = try FakeApp(frameworks: ["Electron Framework.framework"])
         defer { app.remove() }
 
-        #expect(await detectService.detectStack(for: app.url) == .electron)
+        #expect(await detectService.detectTraits(for: app.url) == [.electron])
     }
 
     @Test("Detects Flutter framework")
@@ -19,7 +19,7 @@ struct DetectServiceTests {
         let app = try FakeApp(frameworks: ["FlutterMacOS.framework"])
         defer { app.remove() }
 
-        #expect(await detectService.detectStack(for: app.url) == .flutter)
+        #expect(await detectService.detectTraits(for: app.url) == [.flutter])
     }
 
     @Test("Detects multiple frameworks")
@@ -27,7 +27,7 @@ struct DetectServiceTests {
         let app = try FakeApp(frameworks: ["Electron Framework.framework", "FlutterMacOS.framework"])
         defer { app.remove() }
 
-        #expect(await detectService.detectStack(for: app.url) == [.electron, .flutter])
+        #expect(await detectService.detectTraits(for: app.url) == [.electron, .flutter])
     }
 
     @Test("Chromium Embedded Framework is not reported as Electron")
@@ -35,7 +35,7 @@ struct DetectServiceTests {
         let app = try FakeApp(frameworks: ["Chromium Embedded Framework.framework"])
         defer { app.remove() }
 
-        #expect(await detectService.detectStack(for: app.url) == .cef)
+        #expect(await detectService.detectTraits(for: app.url) == [.cef])
     }
 
     @Test("Detects React Native bundle in resources")
@@ -43,7 +43,7 @@ struct DetectServiceTests {
         let app = try FakeApp(resources: ["main.jsbundle"])
         defer { app.remove() }
 
-        #expect(await detectService.detectStack(for: app.url) == .reactNative)
+        #expect(await detectService.detectTraits(for: app.url) == [.reactNative])
     }
 
     @Test("Detects Electron from app.asar when the framework is renamed")
@@ -51,7 +51,7 @@ struct DetectServiceTests {
         let app = try FakeApp(frameworks: ["Codex Framework.framework"], resources: ["app.asar"])
         defer { app.remove() }
 
-        #expect(await detectService.detectStack(for: app.url) == .electron)
+        #expect(await detectService.detectTraits(for: app.url) == [.electron])
     }
 
     @Test("Detects Xamarin from Contents/MonoBundle")
@@ -59,7 +59,7 @@ struct DetectServiceTests {
         let app = try FakeApp(contents: ["MonoBundle"])
         defer { app.remove() }
 
-        #expect(await detectService.detectStack(for: app.url) == .xamarin)
+        #expect(await detectService.detectTraits(for: app.url) == [.xamarin])
     }
 
     @Test("Detects Unity from the bundled player")
@@ -67,7 +67,7 @@ struct DetectServiceTests {
         let app = try FakeApp(frameworks: ["UnityPlayer.dylib"], resources: ["Data"])
         defer { app.remove() }
 
-        #expect(detectService.detect(app.url).stacks == .unity)
+        #expect(detectService.detect(app.url).traits == [.unity])
     }
 
     @Test("Detects Unreal Engine from its engine directory")
@@ -75,7 +75,7 @@ struct DetectServiceTests {
         let app = try FakeApp(contents: ["UE/Engine"])
         defer { app.remove() }
 
-        #expect(detectService.detect(app.url).stacks == .unreal)
+        #expect(detectService.detect(app.url).traits == [.unreal])
     }
 
     @Test("Detects Compose Multiplatform from Skiko next to the jars")
@@ -84,7 +84,7 @@ struct DetectServiceTests {
         defer { app.remove() }
 
         let detection = detectService.detect(app.url)
-        #expect(detection.stacks == [.compose, .java])
+        #expect(detection.traits == [.compose, .java])
         #expect(detection.matches.map(\.item).contains("libskiko-macos-arm64.dylib"))
     }
 
@@ -93,7 +93,7 @@ struct DetectServiceTests {
         let app = try FakeApp(contents: ["MacOS/libAvaloniaNative.dylib"])
         defer { app.remove() }
 
-        #expect(detectService.detect(app.url).stacks == .avalonia)
+        #expect(detectService.detect(app.url).traits == [.avalonia])
     }
 
     @Test("Detects Xojo from its framework")
@@ -101,7 +101,7 @@ struct DetectServiceTests {
         let app = try FakeApp(frameworks: ["XojoFramework.framework"])
         defer { app.remove() }
 
-        #expect(detectService.detect(app.url).stacks == .xojo)
+        #expect(detectService.detect(app.url).traits == [.xojo])
     }
 
     @Test("Qt requires a Qt module name, not any Qt prefix")
@@ -113,8 +113,8 @@ struct DetectServiceTests {
             otherApp.remove()
         }
 
-        #expect(await detectService.detectStack(for: qtApp.url) == .qt)
-        #expect(await detectService.detectStack(for: otherApp.url) == [.appKit, .objectiveC])
+        #expect(await detectService.detectTraits(for: qtApp.url) == [.qt])
+        #expect(await detectService.detectTraits(for: otherApp.url) == [.appKit, .objectiveC])
     }
 
     @Test("A single weak rule is reported as possible, not detected")
@@ -123,19 +123,19 @@ struct DetectServiceTests {
         defer { app.remove() }
 
         let detection = detectService.detect(app.url)
-        #expect(detection.stacks == [.appKit, .objectiveC])
-        #expect(detection.possibleStacks == .python)
+        #expect(detection.traits == [.appKit, .objectiveC])
+        #expect(detection.possibleTraits == [.python])
         #expect(detection.matches.map(\.item) == ["MyPythonHelpers.framework"])
     }
 
-    @Test("Two weak rules for the same stack are enough to report it")
+    @Test("Two weak rules for the same trait are enough to report it")
     func twoWeakRulesAreReported() throws {
         let app = try FakeApp(frameworks: ["React.framework"], resources: ["index.bundle"])
         defer { app.remove() }
 
         let detection = detectService.detect(app.url)
-        #expect(detection.stacks == .reactNative)
-        #expect(detection.possibleStacks.isEmpty)
+        #expect(detection.traits == [.reactNative])
+        #expect(detection.possibleTraits.isEmpty)
     }
 
     @Test("Custom signatures can be supplied without changing the catalog")
@@ -143,9 +143,9 @@ struct DetectServiceTests {
         let app = try FakeApp(contents: ["Toolkit"])
         defer { app.remove() }
 
-        let service = DetectService(signatures: [StackSignature(.gtk, [.strong(.file("Contents/Toolkit"))])])
+        let service = DetectService(signatures: [TraitSignature(.gtk, [.strong(.file("Contents/Toolkit"))])])
         let detection = service.detect(app.url)
-        #expect(detection.stacks == .gtk)
+        #expect(detection.traits == [.gtk])
         #expect(detection.matches.first?.item == "Contents/Toolkit")
     }
 
@@ -154,49 +154,49 @@ struct DetectServiceTests {
         let app = try FakeApp()
         defer { app.remove() }
 
-        #expect(await detectService.detectStack(for: app.url) == [.appKit, .objectiveC])
+        #expect(await detectService.detectTraits(for: app.url) == [.appKit, .objectiveC])
     }
 
     @Test("AppKit apps report Swift when the executable links the Swift runtime")
     func appKitReportsLanguage() throws {
         let app = try FakeApp(contents: ["SwiftMarker", "ElectronMarker"])
         defer { app.remove() }
-        let swiftRule = StackSignature(.swift, [.strong(.file("Contents/SwiftMarker"))])
-        let electronRule = StackSignature(.electron, [.strong(.file("Contents/ElectronMarker"))])
+        let swiftRule = TraitSignature(.swift, [.strong(.file("Contents/SwiftMarker"))])
+        let electronRule = TraitSignature(.electron, [.strong(.file("Contents/ElectronMarker"))])
 
-        #expect(DetectService(signatures: [swiftRule]).detect(app.url).stacks == [.appKit, .swift])
-        #expect(DetectService(signatures: []).detect(app.url).stacks == [.appKit, .objectiveC])
+        #expect(DetectService(signatures: [swiftRule]).detect(app.url).traits == [.appKit, .swift])
+        #expect(DetectService(signatures: []).detect(app.url).traits == [.appKit, .objectiveC])
         // The language is only reported for plain AppKit apps.
         let detection = DetectService(signatures: [swiftRule, electronRule]).detect(app.url)
-        #expect(detection.stacks == .electron)
-        #expect(detection.possibleStacks.isEmpty)
+        #expect(detection.traits == [.electron])
+        #expect(detection.possibleTraits.isEmpty)
     }
 
     @Test("Rust is reported as the language of AppKit and wgpu apps")
     func rustLanguage() throws {
         let app = try FakeApp(contents: ["RustMarker", "SwiftMarker", "WgpuMarker", "IcedMarker"])
         defer { app.remove() }
-        let rustRule = StackSignature(.rust, [.strong(.file("Contents/RustMarker"))])
-        let swiftRule = StackSignature(.swift, [.strong(.file("Contents/SwiftMarker"))])
-        let wgpuRule = StackSignature(.wgpu, [.strong(.file("Contents/WgpuMarker"))])
-        let icedRule = StackSignature(.iced, [.strong(.file("Contents/IcedMarker"))])
+        let rustRule = TraitSignature(.rust, [.strong(.file("Contents/RustMarker"))])
+        let swiftRule = TraitSignature(.swift, [.strong(.file("Contents/SwiftMarker"))])
+        let wgpuRule = TraitSignature(.wgpu, [.strong(.file("Contents/WgpuMarker"))])
+        let icedRule = TraitSignature(.iced, [.strong(.file("Contents/IcedMarker"))])
 
-        #expect(DetectService(signatures: [rustRule]).detect(app.url).stacks == [.appKit, .rust])
-        #expect(DetectService(signatures: [rustRule, swiftRule]).detect(app.url).stacks == [.appKit, .rust, .swift])
-        #expect(DetectService(signatures: [rustRule, wgpuRule]).detect(app.url).stacks == [.wgpu, .rust])
+        #expect(DetectService(signatures: [rustRule]).detect(app.url).traits == [.appKit, .rust])
+        #expect(DetectService(signatures: [rustRule, swiftRule]).detect(app.url).traits == [.appKit, .rust, .swift])
+        #expect(DetectService(signatures: [rustRule, wgpuRule]).detect(app.url).traits == [.wgpu, .rust])
         // wgpu is only the renderer under a Rust toolkit.
-        #expect(DetectService(signatures: [rustRule, wgpuRule, icedRule]).detect(app.url).stacks == .iced)
+        #expect(DetectService(signatures: [rustRule, wgpuRule, icedRule]).detect(app.url).traits == [.iced])
     }
 
     @Test("Go is reported as the language of AppKit apps, not of Wails apps")
     func goLanguage() throws {
         let app = try FakeApp(contents: ["GoMarker", "WailsMarker"])
         defer { app.remove() }
-        let goRule = StackSignature(.go, [.strong(.file("Contents/GoMarker"))])
-        let wailsRule = StackSignature(.wails, [.strong(.file("Contents/WailsMarker"))])
+        let goRule = TraitSignature(.go, [.strong(.file("Contents/GoMarker"))])
+        let wailsRule = TraitSignature(.wails, [.strong(.file("Contents/WailsMarker"))])
 
-        #expect(DetectService(signatures: [goRule]).detect(app.url).stacks == [.appKit, .go])
-        #expect(DetectService(signatures: [goRule, wailsRule]).detect(app.url).stacks == .wails)
+        #expect(DetectService(signatures: [goRule]).detect(app.url).traits == [.appKit, .go])
+        #expect(DetectService(signatures: [goRule, wailsRule]).detect(app.url).traits == [.wails])
     }
 
     @Test("Finds executable when Info.plist omits CFBundleExecutable")
@@ -205,7 +205,7 @@ struct DetectServiceTests {
         let app = try FakeApp(declaresExecutable: false)
         defer { app.remove() }
 
-        #expect(await detectService.detectStack(for: app.url) == [.appKit, .objectiveC])
+        #expect(await detectService.detectTraits(for: app.url) == [.appKit, .objectiveC])
     }
 
     @Test("Returns other for a directory that is not an app bundle")
@@ -214,7 +214,7 @@ struct DetectServiceTests {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory.deletingLastPathComponent()) }
 
-        #expect(await detectService.detectStack(for: directory) == .other)
+        #expect(await detectService.detectTraits(for: directory) == [.other])
     }
 
     @Test("Reads category from Info.plist")
@@ -248,32 +248,32 @@ struct DetectServiceTests {
     func uiKitIsBaseline() throws {
         let app = try FakeApp(contents: ["UIKitMarker", "SwiftUIMarker"])
         defer { app.remove() }
-        let uiKitRule = StackSignature(.uiKit, [.strong(.file("Contents/UIKitMarker"))])
-        let swiftUIRule = StackSignature(.swiftUI, [.strong(.file("Contents/SwiftUIMarker"))])
+        let uiKitRule = TraitSignature(.uiKit, [.strong(.file("Contents/UIKitMarker"))])
+        let swiftUIRule = TraitSignature(.swiftUI, [.strong(.file("Contents/SwiftUIMarker"))])
 
-        #expect(DetectService(signatures: [uiKitRule]).detect(app.url).stacks == [.uiKit, .objectiveC])
-        #expect(DetectService(signatures: [uiKitRule, swiftUIRule]).detect(app.url).stacks == .swiftUI)
+        #expect(DetectService(signatures: [uiKitRule]).detect(app.url).traits == [.uiKit, .objectiveC])
+        #expect(DetectService(signatures: [uiKitRule, swiftUIRule]).detect(app.url).traits == [.swiftUI])
     }
 
-    @Test("Embedded-string rules are skipped once a stack beyond AppKit is found")
+    @Test("Embedded-string rules are skipped once a trait beyond AppKit is found")
     func embeddedStringsSkippedForSwiftUI() throws {
         // The fake executable is /usr/bin/true, whose strings include this version tag.
         let app = try FakeApp(contents: ["SwiftUIMarker"])
         defer { app.remove() }
-        let gpuiRule = StackSignature(.gpui, [.strong(.embeddedString("PROGRAM:true"))])
-        let swiftUIRule = StackSignature(.swiftUI, [.strong(.file("Contents/SwiftUIMarker"))])
+        let gpuiRule = TraitSignature(.gpui, [.strong(.embeddedString("PROGRAM:true"))])
+        let swiftUIRule = TraitSignature(.swiftUI, [.strong(.file("Contents/SwiftUIMarker"))])
 
-        #expect(DetectService(signatures: [gpuiRule]).detect(app.url).stacks == .gpui)
+        #expect(DetectService(signatures: [gpuiRule]).detect(app.url).traits == [.gpui])
         let detection = DetectService(signatures: [gpuiRule, swiftUIRule]).detect(app.url)
-        #expect(detection.stacks == .swiftUI)
-        #expect(detection.possibleStacks.isEmpty)
-        #expect(detection.matches.map(\.stack) == [.swiftUI])
+        #expect(detection.traits == [.swiftUI])
+        #expect(detection.possibleTraits.isEmpty)
+        #expect(detection.matches.map(\.trait) == [.swiftUI])
     }
 
     @Test("Rules version changes when the rules change")
     func versionTracksRules() {
-        let rules = [StackSignature(.gtk, [.strong(.file("A"))])]
-        let changed = [StackSignature(.gtk, [.weak(.file("A"))])]
+        let rules = [TraitSignature(.gtk, [.strong(.file("A"))])]
+        let changed = [TraitSignature(.gtk, [.weak(.file("A"))])]
 
         #expect(DetectService(signatures: rules).version == DetectService(signatures: rules).version)
         #expect(DetectService(signatures: rules).version != DetectService(signatures: changed).version)

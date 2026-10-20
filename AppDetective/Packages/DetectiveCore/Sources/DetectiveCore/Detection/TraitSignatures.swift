@@ -1,24 +1,24 @@
 import Foundation
 
-extension StackSignature {
-    public static let catalog: [StackSignature] = [
+extension TraitSignature {
+    public static let catalog: [TraitSignature] = [
         // MARK: Native
 
-        StackSignature(.swiftUI, [
+        TraitSignature(.swiftUI, [
             .strong(.linkedLibrary(.contains("/SwiftUI.framework/"))),
         ]),
-        StackSignature(.appKit, [
+        TraitSignature(.appKit, [
             .strong(.linkedLibrary(.contains("/Cocoa.framework/"))),
             .strong(.linkedLibrary(.suffix("/libswiftAppKit.dylib"))),
         ]),
-        StackSignature(.uiKit, [
+        TraitSignature(.uiKit, [
             // macOS has no UIKit at this path; only iOS binaries link it.
             .strong(.linkedLibrary(.prefix("/System/Library/Frameworks/UIKit.framework/"))),
         ]),
-        StackSignature(.catalyst, [
+        TraitSignature(.catalyst, [
             .strong(.linkedLibrary(.prefix("/System/iOSSupport/System/Library/Frameworks/UIKit.framework/"))),
         ]),
-        StackSignature(.swift, [
+        TraitSignature(.swift, [
             .strong(.linkedLibrary(.suffix("/libswiftCore.dylib"))),
             // Apps deploying before macOS 10.14.4 bundle the Swift runtime.
             .strong(.framework(.exact("libswiftCore.dylib"))),
@@ -26,21 +26,21 @@ extension StackSignature {
 
         // MARK: Web runtimes
 
-        StackSignature(.electron, [
+        TraitSignature(.electron, [
             .strong(.framework(.exact("Electron Framework.framework"))),
             .strong(.linkedLibrary(.contains("/Electron Framework.framework/"))),
             .strong(.resource(.exact("app.asar"))),
             .weak(.linkedLibrary(.contains("libnode"))),
         ]),
-        StackSignature(.cef, [
+        TraitSignature(.cef, [
             .strong(.framework(.exact("Chromium Embedded Framework.framework"))),
             .strong(.linkedLibrary(.contains("/Chromium Embedded Framework.framework/"))),
             .strong(.linkedLibrary(.contains("libcef.dylib"))),
         ]),
-        StackSignature(.microsoftEdge, [
+        TraitSignature(.microsoftEdge, [
             .strong(.framework(.exact("Microsoft Edge Framework.framework"))),
         ]),
-        StackSignature(.tauri, [
+        TraitSignature(.tauri, [
             // Injected into the webview by Tauri v2 / v1.
             .strong(.embeddedString("__TAURI_INTERNALS__")),
             .strong(.embeddedString("__TAURI_IPC__")),
@@ -49,13 +49,13 @@ extension StackSignature {
 
         // MARK: Cross-platform UI toolkits
 
-        StackSignature(.flutter, [
+        TraitSignature(.flutter, [
             .strong(.framework(.exact("FlutterMacOS.framework"))),
             .strong(.linkedLibrary(.contains("/FlutterMacOS.framework/"))),
             .strong(.file("Contents/Frameworks/App.framework/Resources/flutter_assets")),
             .weak(.framework(.contains("Flutter"))),
         ]),
-        StackSignature(.reactNative, [
+        TraitSignature(.reactNative, [
             .strong(.resource(.suffix(".jsbundle"))),
             .strong(.framework(.exact("hermes.framework"))),
             .strong(.linkedLibrary(.contains("hermes.framework"))),
@@ -64,75 +64,75 @@ extension StackSignature {
             .weak(.framework(.exact("React.framework"))),
             .weak(.resource(.exact("index.bundle"))),
         ]),
-        StackSignature(.qt, [
+        TraitSignature(.qt, [
             .strong(.framework(.regex(#"^Qt[A-Z][A-Za-z0-9]*\.framework$"#))),
             .strong(.linkedLibrary(.regex(#"/Qt(Core|Gui|Widgets)\.framework/|libQt\d?(Core|Gui|Widgets)"#))),
             .weak(.resource(.exact("qt.conf"))),
         ]),
-        StackSignature(.wxWidgets, [
+        TraitSignature(.wxWidgets, [
             .strong(.linkedLibrary(.contains("libwx_"))),
             .weak(.embeddedString("wx_main")),
             .weak(.embeddedString("wxEvtHandler")),
         ]),
-        StackSignature(.gtk, [
+        TraitSignature(.gtk, [
             .strong(.linkedLibrary(.contains("libgtk-"))),
             .strong(.linkedLibrary(.contains("libgdk-"))),
         ]),
-        StackSignature(.gpui, [
+        TraitSignature(.gpui, [
             .strong(.embeddedString("gpui::")),
             .strong(.embeddedString("gpui/src/")),
         ]),
-        StackSignature(.iced, [
+        TraitSignature(.iced, [
             .strong(.embeddedString("iced_wgpu")),
             .strong(.embeddedString("iced_winit")),
         ]),
-        StackSignature(.egui, [
+        TraitSignature(.egui, [
             // Cargo registry paths, kept in panic messages.
             .strong(.embeddedString("/eframe-")),
             .strong(.embeddedString("/egui-")),
         ]),
-        StackSignature(.slint, [
+        TraitSignature(.slint, [
             .strong(.embeddedString("/slint-")),
         ]),
-        StackSignature(.wgpu, [
+        TraitSignature(.wgpu, [
             // Log targets and panic locations; also inside Iced and egui, which take precedence.
             .strong(.embeddedString("wgpu_core::")),
             .strong(.embeddedString("wgpu_hal::")),
         ]),
-        StackSignature(.wails, [
+        TraitSignature(.wails, [
             // Go module paths from the binary's build info.
             .strong(.embeddedString("github.com/wailsapp/wails")),
         ]),
-        StackSignature(.fyne, [
+        TraitSignature(.fyne, [
             .strong(.embeddedString("fyne.io/fyne")),
         ]),
-        StackSignature(.compose, [
+        TraitSignature(.compose, [
             // jpackage puts the Skia bindings next to the app's jars.
             .strong(.entry(in: "Contents/app", .prefix("libskiko"))),
             .strong(.entry(in: "Contents/app", .prefix("skiko-awt"))),
         ]),
-        StackSignature(.avalonia, [
+        TraitSignature(.avalonia, [
             .strong(.entry(in: "Contents/MacOS", .exact("libAvaloniaNative.dylib"))),
         ]),
-        StackSignature(.xojo, [
+        TraitSignature(.xojo, [
             .strong(.framework(.exact("XojoFramework.framework"))),
         ]),
 
         // MARK: Game engines
 
-        StackSignature(.unity, [
+        TraitSignature(.unity, [
             .strong(.framework(.exact("UnityPlayer.dylib"))),
             .strong(.linkedLibrary(.contains("UnityPlayer"))),
             .weak(.resource(.exact("Data"))),
         ]),
-        StackSignature(.unreal, [
+        TraitSignature(.unreal, [
             .strong(.file("Contents/UE4")),
             .strong(.file("Contents/UE")),
         ]),
 
         // MARK: Language runtimes
 
-        StackSignature(.java, [
+        TraitSignature(.java, [
             .strong(.linkedLibrary(.contains("libjvm"))),
             .strong(.linkedLibrary(.contains("/JavaVM.framework/"))),
             .strong(.linkedLibrary(.contains("JavaNativeFoundation"))),
@@ -142,17 +142,17 @@ extension StackSignature {
             // Also present in any binary that uses JNI.
             .weak(.embeddedString("java/lang/")),
         ]),
-        StackSignature(.rust, [
+        TraitSignature(.rust, [
             // Panic locations in the standard library and its unwrap message.
             .strong(.embeddedString("/library/std/src/")),
             .strong(.embeddedString("called `Result::unwrap()` on an `Err` value")),
         ]),
-        StackSignature(.go, [
+        TraitSignature(.go, [
             // The module build info header and a runtime function name, both kept in stripped binaries.
             .strong(.embeddedString("Go buildinf:")),
             .strong(.embeddedString("runtime.gopanic")),
         ]),
-        StackSignature(.python, [
+        TraitSignature(.python, [
             .strong(.framework(.exact("Python.framework"))),
             .strong(.linkedLibrary(.contains("/Python.framework/"))),
             .strong(.linkedLibrary(.contains("libpython"))),
@@ -162,7 +162,7 @@ extension StackSignature {
             .strong(.framework(.exact("base_library.zip"))),
             .weak(.framework(.regex(#"(?i)python.*\.framework$"#))),
         ]),
-        StackSignature(.xamarin, [
+        TraitSignature(.xamarin, [
             .strong(.file("Contents/MonoBundle")),
             .strong(.linkedLibrary(.contains("libmono"))),
             .strong(.linkedLibrary(.contains("libcoreclr"))),

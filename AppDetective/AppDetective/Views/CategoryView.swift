@@ -27,32 +27,36 @@ struct CategoryView: View {
                 }
             }
 
-            Section("Tech Stacks") {
-                Label {
-                    Text("All Stacks")
-                } icon: {
-                    SidebarIcon(systemName: "square.stack.3d.up")
-                }
-                .tag(SidebarItem.allStacks)
+            ForEach(TraitKind.allCases, id: \.self) { kind in
+                if let traits = viewModel.sortedTraits[kind] {
+                    Section(kind.pluralName) {
+                        Label {
+                            Text("All")
+                        } icon: {
+                            SidebarIcon(systemName: "square.stack.3d.up")
+                        }
+                        .tag(SidebarItem.allTraits(kind))
 
-                ForEach(viewModel.sortedStacks, id: \.self) { stack in
-                    Label {
-                        Text(stack.displayName)
-                    } icon: {
-                        Circle()
-                            .fill(stack.mainColor)
-                            .frame(width: 9, height: 9)
-                            .frame(width: SidebarIcon.width)
+                        ForEach(traits) { trait in
+                            Label {
+                                Text(trait.name)
+                            } icon: {
+                                Circle()
+                                    .fill(trait.color)
+                                    .frame(width: 9, height: 9)
+                                    .frame(width: SidebarIcon.width)
+                            }
+                            .badge(viewModel.traitCounts[trait] ?? 0)
+                            .tag(SidebarItem.trait(trait))
+                        }
                     }
-                    .badge(viewModel.stackCounts[stack] ?? 0)
-                    .tag(SidebarItem.stack(stack))
                 }
             }
         }
         .listStyle(.sidebar)
     }
 
-    // Category and stack filters combine, so each section keeps its own selected row.
+    // Category and trait filters combine, so each section keeps its own selected row.
     private var selection: Binding<Set<SidebarItem>> {
         Binding {
             selectedItems
@@ -61,18 +65,16 @@ struct CategoryView: View {
                 switch item {
                 case .allCategories: viewModel.selectedCategory = nil
                 case let .category(category): viewModel.selectedCategory = category
-                case .allStacks: viewModel.selectedTechStack = nil
-                case let .stack(stack): viewModel.selectedTechStack = stack
+                case let .allTraits(kind): viewModel.selectedTraits[kind] = nil
+                case let .trait(trait): viewModel.selectedTraits[trait.kind] = trait
                 }
             }
         }
     }
 
     private var selectedItems: Set<SidebarItem> {
-        [
-            viewModel.selectedCategory.map(SidebarItem.category) ?? .allCategories,
-            viewModel.selectedTechStack.map(SidebarItem.stack) ?? .allStacks,
-        ]
+        Set(TraitKind.allCases.map { kind in viewModel.selectedTraits[kind].map(SidebarItem.trait) ?? .allTraits(kind) })
+            .union([viewModel.selectedCategory.map(SidebarItem.category) ?? .allCategories])
     }
 }
 
@@ -95,8 +97,8 @@ private struct SidebarIcon: View {
 private enum SidebarItem: Hashable {
     case allCategories
     case category(AppCategory)
-    case allStacks
-    case stack(TechStack)
+    case allTraits(TraitKind)
+    case trait(Trait)
 }
 
 #Preview {
