@@ -3,7 +3,7 @@ import LSAppCategory
 
 public final class DetectService: Sendable {
     // Bump when detection logic outside the catalog changes; catalog edits change `version` on their own.
-    private static let engineVersion = 4
+    private static let engineVersion = 5
 
     private let signatures: [StackSignature]
 
@@ -93,14 +93,20 @@ public final class DetectService: Sendable {
     }
 
     // AppKit and UIKit underlie every other UI stack, so report them only when nothing more specific was found,
-    // together with the language, which tells plain AppKit apps apart.
+    // together with the language, which tells plain AppKit apps apart. wgpu likewise underlies Iced and egui,
+    // so it names the stack only for apps with their own renderer, again with the language.
     private static func resolve(_ stacks: TechStack) -> TechStack {
         let specific = specificStacks(in: stacks)
+        let toolkits = specific.subtracting(.wgpu)
+        if !toolkits.isEmpty {
+            return toolkits
+        }
+        let languages = stacks.intersection(.languages)
         if !specific.isEmpty {
-            return specific
+            return specific.union(languages)
         }
         let framework: TechStack = stacks.contains(.uiKit) ? .uiKit : .appKit
-        return framework.union(stacks.contains(.swift) ? .swift : .objectiveC)
+        return framework.union(languages.isEmpty ? .objectiveC : languages)
     }
 
     private static func specificStacks(in stacks: TechStack) -> TechStack {

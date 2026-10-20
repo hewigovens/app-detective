@@ -94,6 +94,11 @@ extension StackSignature {
         StackSignature(.slint, [
             .strong(.embeddedString("/slint-")),
         ]),
+        StackSignature(.wgpu, [
+            // Log targets and panic locations; also inside Iced and egui, which take precedence.
+            .strong(.embeddedString("wgpu_core::")),
+            .strong(.embeddedString("wgpu_hal::")),
+        ]),
         StackSignature(.wails, [
             // Go module paths from the binary's build info.
             .strong(.embeddedString("github.com/wailsapp/wails")),
@@ -136,6 +141,11 @@ extension StackSignature {
             .strong(.file("Contents/Java")),
             // Also present in any binary that uses JNI.
             .weak(.embeddedString("java/lang/")),
+        ]),
+        StackSignature(.rust, [
+            // Panic locations in the standard library and its unwrap message.
+            .strong(.embeddedString("/library/std/src/")),
+            .strong(.embeddedString("called `Result::unwrap()` on an `Err` value")),
         ]),
         StackSignature(.python, [
             .strong(.framework(.exact("Python.framework"))),

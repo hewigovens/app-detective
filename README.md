@@ -60,7 +60,7 @@ $ appdetective --json /System/Applications/Calculator.app
 
 ### Native Apple Frameworks
 - SwiftUI
-- AppKit, reported with its language (Swift or Objective-C)
+- AppKit, reported with its language (Swift, Objective-C, or Rust)
 - UIKit (iOS apps on Apple silicon)
 - Catalyst
 
@@ -73,7 +73,7 @@ $ appdetective --json /System/Applications/Calculator.app
 - Xamarin/MAUI
 - Flutter
 - React Native
-- Tauri / GPUI / Iced / egui / Slint
+- Tauri / GPUI / Iced / egui / Slint / wgpu
 - Wails / Fyne
 - Compose Multiplatform
 - Avalonia

@@ -10,6 +10,7 @@ extension TechStack {
         case .uiKit: return Color.indigo
         case .swift: return Color(hex: "#F05138")
         case .objectiveC: return Color(hex: "#8E8E93")
+        case .rust: return Color(hex: "#DEA584")
         case .electron: return Color.cyan
         case .cef: return Color(hex: "#3498db")
         case .python: return Color(hex: "#336c9d")
@@ -33,6 +34,7 @@ extension TechStack {
         case .xojo: return Color(hex: "#C9302C")
         case .egui: return Color(hex: "#E0B84C")
         case .slint: return Color(hex: "#2379F4")
+        case .wgpu: return Color(hex: "#5C7CFA")
         case .other: return Color.gray
         default:
             if self.contains(.swiftUI) { return Color.orange }

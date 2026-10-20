@@ -37,20 +37,22 @@ public struct TechStack: OptionSet, Codable, Hashable, Sendable {
     public static let xojo = TechStack(rawValue: 1 << 27)
     public static let egui = TechStack(rawValue: 1 << 28)
     public static let slint = TechStack(rawValue: 1 << 29)
+    public static let rust = TechStack(rawValue: 1 << 30)
+    public static let wgpu = TechStack(rawValue: 1 << 31)
 
     public static let native: TechStack = [.swiftUI, .appKit, .catalyst, .uiKit]
-    // Reported only with AppKit or UIKit, to tell Swift and Objective-C apps apart.
-    public static let languages: TechStack = [.swift, .objectiveC]
+    // Reported only with AppKit, UIKit, or wgpu, to tell what the app itself is written in.
+    public static let languages: TechStack = [.swift, .objectiveC, .rust]
     public static let crossPlatform: TechStack = [
         .electron, .cef, .python, .qt, .wxWidgets, .gtk, .java,
         .xamarin, .flutter, .reactNative, .tauri, .gpui, .iced, .microsoftEdge,
-        .unity, .unreal, .compose, .avalonia, .wails, .fyne, .xojo, .egui, .slint,
+        .unity, .unreal, .compose, .avalonia, .wails, .fyne, .xojo, .egui, .slint, .wgpu,
     ]
 
     public static let allStacks: [TechStack] = [
-        .swiftUI, .appKit, .uiKit, .catalyst, .swift, .objectiveC,
+        .swiftUI, .appKit, .uiKit, .catalyst, .swift, .objectiveC, .rust,
         .electron, .cef, .microsoftEdge, .flutter, .qt, .reactNative, .java, .python,
-        .xamarin, .avalonia, .compose, .tauri, .wxWidgets, .gpui, .iced, .egui, .slint, .wails, .fyne, .gtk,
+        .xamarin, .avalonia, .compose, .tauri, .wxWidgets, .gpui, .iced, .egui, .slint, .wgpu, .wails, .fyne, .gtk,
         .unity, .unreal, .xojo,
         .other,
     ]
@@ -62,6 +64,7 @@ public struct TechStack: OptionSet, Codable, Hashable, Sendable {
         Self.uiKit.rawValue: "UIKit (iOS)",
         Self.swift.rawValue: "Swift",
         Self.objectiveC.rawValue: "Objective-C",
+        Self.rust.rawValue: "Rust",
         Self.electron.rawValue: "Electron",
         Self.python.rawValue: "Python",
         Self.qt.rawValue: "Qt",
@@ -85,6 +88,7 @@ public struct TechStack: OptionSet, Codable, Hashable, Sendable {
         Self.xojo.rawValue: "Xojo",
         Self.egui.rawValue: "egui",
         Self.slint.rawValue: "Slint",
+        Self.wgpu.rawValue: "wgpu",
         Self.other.rawValue: "Other",
     ]
 

@@ -172,6 +172,22 @@ struct DetectServiceTests {
         #expect(detection.possibleStacks.isEmpty)
     }
 
+    @Test("Rust is reported as the language of AppKit and wgpu apps")
+    func rustLanguage() throws {
+        let app = try FakeApp(contents: ["RustMarker", "SwiftMarker", "WgpuMarker", "IcedMarker"])
+        defer { app.remove() }
+        let rustRule = StackSignature(.rust, [.strong(.file("Contents/RustMarker"))])
+        let swiftRule = StackSignature(.swift, [.strong(.file("Contents/SwiftMarker"))])
+        let wgpuRule = StackSignature(.wgpu, [.strong(.file("Contents/WgpuMarker"))])
+        let icedRule = StackSignature(.iced, [.strong(.file("Contents/IcedMarker"))])
+
+        #expect(DetectService(signatures: [rustRule]).detect(app.url).stacks == [.appKit, .rust])
+        #expect(DetectService(signatures: [rustRule, swiftRule]).detect(app.url).stacks == [.appKit, .rust, .swift])
+        #expect(DetectService(signatures: [rustRule, wgpuRule]).detect(app.url).stacks == [.wgpu, .rust])
+        // wgpu is only the renderer under a Rust toolkit.
+        #expect(DetectService(signatures: [rustRule, wgpuRule, icedRule]).detect(app.url).stacks == .iced)
+    }
+
     @Test("Finds executable when Info.plist omits CFBundleExecutable")
     func findsExecutableWithoutBundleExecutableKey() async throws {
         // Like Muse.app, whose executable is found only by the bundle name.
