@@ -3,7 +3,7 @@ import LSAppCategory
 
 public final class DetectService: Sendable {
     // Bump when detection logic outside the catalog changes; catalog edits change `version` on their own.
-    private static let engineVersion = 7
+    private static let engineVersion = 8
 
     private let signatures: [TraitSignature]
 
@@ -32,7 +32,7 @@ public final class DetectService: Sendable {
         var matches = evaluate(inspector, embeddedStrings: false)
         // Embedded-string rules for UI frameworks and renderers are circumstantial, so they run only when nothing
         // beyond the baseline frameworks was found.
-        if Self.specificTraits(in: Self.confidentTraits(in: matches)).isEmpty, inspector.executableURL != nil {
+        if Self.toolkits(in: Self.confidentTraits(in: matches)).isEmpty, inspector.executableURL != nil {
             matches += evaluate(inspector, embeddedStrings: true)
         }
 
@@ -95,7 +95,7 @@ public final class DetectService: Sendable {
     // was found, and not for apps that draw their own UI with a renderer. Apple frameworks without another
     // language mean Objective-C; SwiftUI always comes with Swift.
     private static func resolve(_ traits: Set<Trait>) -> Set<Trait> {
-        let toolkits = specificTraits(in: traits).filter { $0.kind == .ui }
+        let toolkits = toolkits(in: traits)
         let renderers = traits.filter { $0.kind == .renderer }
         let ui: Set<Trait> = if !toolkits.isEmpty {
             toolkits
@@ -108,10 +108,10 @@ public final class DetectService: Sendable {
         if languages.isEmpty, !ui.isEmpty, ui.isSubset(of: [.appKit, .uiKit, .catalyst]) {
             languages = [.objectiveC]
         }
-        return ui.union(languages).union(renderers)
+        return ui.union(languages).union(traits.filter { $0.kind == .renderer || $0.kind == .updater })
     }
 
-    private static func specificTraits(in traits: Set<Trait>) -> Set<Trait> {
-        traits.filter { $0.kind != .language && $0 != .appKit && $0 != .uiKit }
+    private static func toolkits(in traits: Set<Trait>) -> Set<Trait> {
+        traits.filter { $0.kind == .ui && $0 != .appKit && $0 != .uiKit }
     }
 }

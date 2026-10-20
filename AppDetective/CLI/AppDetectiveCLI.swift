@@ -76,7 +76,7 @@ struct AppDetectiveCLI {
         let name = (CommandLine.arguments.first.map { ($0 as NSString).lastPathComponent }) ?? "appdetective"
         print("Usage: \(name) [--json] [--explain] <path-to-.app>")
         print("")
-        print("Detect the traits (UI framework, language, renderer) and category of a single macOS app bundle.")
+        print("Detect the traits (UI framework, language, renderer, updater) and category of a single macOS app bundle.")
         print("")
         print("Options:")
         print("  --json        Emit machine-readable JSON instead of text.")

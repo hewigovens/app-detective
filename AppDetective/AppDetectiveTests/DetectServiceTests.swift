@@ -224,6 +224,32 @@ struct DetectServiceTests {
         try writePlist(["CFBundleExecutable": executableURL.lastPathComponent], to: infoURL)
     }
 
+    @Test("Detects updaters next to the UI framework")
+    func detectsUpdaters() async throws {
+        let sparkleApp = try FakeApp(frameworks: ["Sparkle.framework"])
+        let storeApp = try FakeApp(contents: ["_MASReceipt"])
+        let electronApp = try FakeApp(frameworks: ["Electron Framework.framework", "Squirrel.framework"])
+        defer {
+            sparkleApp.remove()
+            storeApp.remove()
+            electronApp.remove()
+        }
+
+        #expect(await detectService.detectTraits(for: sparkleApp.url) == [.appKit, .objectiveC, .sparkle])
+        #expect(await detectService.detectTraits(for: storeApp.url) == [.appKit, .objectiveC, .appStore])
+        #expect(await detectService.detectTraits(for: electronApp.url) == [.electron, .squirrel])
+    }
+
+    @Test("An updater doesn't stop embedded-string rules from running")
+    func updaterKeepsEmbeddedStrings() throws {
+        let app = try FakeApp(frameworks: ["Sparkle.framework"])
+        defer { app.remove() }
+        let gpuiRule = TraitSignature(.gpui, [.strong(.embeddedString("PROGRAM:true"))])
+        let sparkleRule = TraitSignature(.sparkle, [.strong(.framework(.exact("Sparkle.framework")))])
+
+        #expect(DetectService(signatures: [gpuiRule, sparkleRule]).detect(app.url).traits == [.gpui, .sparkle])
+    }
+
     @Test("Finds executable when Info.plist omits CFBundleExecutable")
     func findsExecutableWithoutBundleExecutableKey() async throws {
         // Like Muse.app, whose executable is found only by the bundle name.

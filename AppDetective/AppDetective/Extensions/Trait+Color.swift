@@ -36,8 +36,12 @@ extension Trait {
         Trait.slint.id: Color(hex: "#2379F4"),
         Trait.swift.id: Color(hex: "#F05138"),
         Trait.objectiveC.id: Color(hex: "#8E8E93"),
-        Trait.rust.id: Color(hex: "#DEA584"),
+        Trait.rust.id: Color(hex: "#B7410E"),
         Trait.go.id: Color(hex: "#007D9C"),
         Trait.wgpu.id: Color(hex: "#5C7CFA"),
+        Trait.appStore.id: Color(hex: "#0D96F6"),
+        Trait.sparkle.id: Color(hex: "#E8A33D"),
+        Trait.squirrel.id: Color(hex: "#A0785A"),
+        Trait.tauriUpdater.id: Color(hex: "#FFC131"),
     ]
 }

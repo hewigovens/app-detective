@@ -130,6 +130,24 @@ extension TraitSignature {
             .strong(.file("Contents/UE")),
         ]),
 
+        // MARK: Updaters
+
+        TraitSignature(.appStore, [
+            .strong(.file("Contents/_MASReceipt")),
+            // iOS apps on Apple silicon keep their store metadata next to the wrapped app.
+            .strong(.file("Wrapper/iTunesMetadata.plist")),
+        ]),
+        TraitSignature(.sparkle, [
+            .strong(.framework(.exact("Sparkle.framework"))),
+        ]),
+        TraitSignature(.squirrel, [
+            // Electron's autoUpdater.
+            .strong(.framework(.exact("Squirrel.framework"))),
+        ]),
+        TraitSignature(.tauriUpdater, [
+            .strong(.codeString("tauri_plugin_updater")),
+        ]),
+
         // MARK: Language runtimes
 
         TraitSignature(.java, [

@@ -3,7 +3,7 @@
 [![CI](https://github.com/hewigovens/app-detective/actions/workflows/ci.yml/badge.svg)](https://github.com/hewigovens/app-detective/actions/workflows/ci.yml)
 ![Release](https://img.shields.io/github/v/release/hewigovens/app-detective)
 
-App Detective analyzes and identifies the UI tech stacks used by macOS applications.
+App Detective identifies how macOS apps are built: their UI framework, language, renderer, and updater.
 
 ![App Detective](Assets/main.png)
 
@@ -33,13 +33,14 @@ $ appdetective /Applications/Visual\ Studio\ Code.app
 App:        Visual Studio Code.app
 Path:       /Applications/Visual Studio Code.app
 Bundle ID:  com.microsoft.VSCode
-Version:    1.117.0 (1.117.0)
-Size:       635.6 MB
+Version:    1.142.0 (1.142.0)
+Size:       900 MB
 Category:   Developer Tools
-Stacks:     Electron
+UI:         Electron
+Updater:    Squirrel
 ```
 
-Use `--json` for machine-readable output (handy for scripts and agents):
+Use `--json` for machine-readable output (handy for scripts and agents), and `--explain` to see the evidence behind each trait:
 
 ```bash
 $ appdetective --json /System/Applications/Calculator.app
@@ -49,38 +50,37 @@ $ appdetective --json /System/Applications/Calculator.app
   "category" : "Other",
   "name" : "Calculator.app",
   "path" : "/System/Applications/Calculator.app",
-  "sizeBytes" : 6017365,
-  "sizeHuman" : "6 MB",
-  "stacks" : [ "SwiftUI" ],
+  "possibleTraits" : [ ],
+  "sizeBytes" : 4954666,
+  "sizeHuman" : "5 MB",
+  "traits" : {
+    "language" : [ "Swift" ],
+    "ui" : [ "SwiftUI" ]
+  },
   "version" : "12.0"
 }
 ```
 
-## Supported Technology Stacks
+## What It Detects
 
-### Native Apple Frameworks
-- SwiftUI
-- AppKit, reported with its language (Swift, Objective-C, Rust, or Go)
-- UIKit (iOS apps on Apple silicon)
-- Catalyst
+Each app gets a list of traits, grouped by kind.
 
-### Cross-Platform Frameworks
-- Electron
-- Chromium Embedded Framework
-- Python
-- Qt
-- Java
-- Xamarin/MAUI
-- Flutter
-- React Native
-- Tauri / GPUI / Iced / egui / Slint / wgpu
-- Wails / Fyne
-- Compose Multiplatform
-- Avalonia
-- GTK
-- wxWidgets
-- Xojo
-- Unity / Unreal Engine
+### UI Frameworks
+- Native: SwiftUI, AppKit, UIKit (iOS apps on Apple silicon), Catalyst
+- Web runtimes: Electron, Chromium Embedded Framework, Microsoft Edge
+- Cross-platform: Flutter, React Native, Qt, GTK, wxWidgets, Compose Multiplatform, Avalonia, Xamarin/MAUI, Xojo
+- Rust and Go: Tauri, GPUI, Iced, egui, Slint, Wails, Fyne
+- Runtimes: Java, Python
+- Game engines: Unity, Unreal Engine
+
+### Languages
+- Swift, Objective-C, Rust, Go, found in the app's executable, its own frameworks, and its extensions
+
+### Renderers
+- wgpu, for apps that draw their own UI on the GPU
+
+### Updaters
+- Sparkle, Squirrel (Electron), Tauri Updater, App Store
 
 ## Contributing
 

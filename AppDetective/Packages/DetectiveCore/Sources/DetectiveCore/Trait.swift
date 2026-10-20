@@ -4,12 +4,14 @@ public enum TraitKind: String, CaseIterable, Codable, Sendable {
     case ui
     case language
     case renderer
+    case updater
 
     public var name: String {
         switch self {
         case .ui: "UI"
         case .language: "Language"
         case .renderer: "Renderer"
+        case .updater: "Updater"
         }
     }
 
@@ -18,6 +20,7 @@ public enum TraitKind: String, CaseIterable, Codable, Sendable {
         case .ui: "UI Frameworks"
         case .language: "Languages"
         case .renderer: "Renderers"
+        case .updater: "Updaters"
         }
     }
 }
@@ -71,6 +74,11 @@ public struct Trait: Hashable, Codable, Sendable, Identifiable, CustomStringConv
 
     public static let wgpu = Trait("wgpu", .renderer, "wgpu")
 
+    public static let appStore = Trait("appStore", .updater, "App Store")
+    public static let sparkle = Trait("sparkle", .updater, "Sparkle")
+    public static let squirrel = Trait("squirrel", .updater, "Squirrel")
+    public static let tauriUpdater = Trait("tauriUpdater", .updater, "Tauri Updater")
+
     // Display order: by kind, then native before cross-platform.
     public static let all: [Trait] = [
         .swiftUI, .appKit, .uiKit, .catalyst,
@@ -80,6 +88,7 @@ public struct Trait: Hashable, Codable, Sendable, Identifiable, CustomStringConv
         .other,
         .swift, .objectiveC, .rust, .go,
         .wgpu,
+        .appStore, .sparkle, .squirrel, .tauriUpdater,
     ]
 
     public static func sorted(_ traits: Set<Trait>) -> [Trait] {
