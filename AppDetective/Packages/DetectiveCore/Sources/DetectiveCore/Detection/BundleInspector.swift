@@ -33,9 +33,9 @@ final class BundleInspector {
             }
     }()
 
-    private lazy var embeddedStrings: String = {
-        guard let executableURL else { return "" }
-        return ProcessRunner.output(of: "/usr/bin/strings", arguments: [executableURL.path]) ?? ""
+    private lazy var embeddedStrings: Data = {
+        guard let executableURL else { return Data() }
+        return ProcessRunner.data(of: "/usr/bin/strings", arguments: [executableURL.path]) ?? Data()
     }()
 
     func match(_ evidence: Evidence) -> String? {
@@ -53,7 +53,8 @@ final class BundleInspector {
         case let .entry(directory, pattern):
             entries(in: directory).first(where: pattern.matches)
         case let .embeddedString(text):
-            embeddedStrings.contains(text) ? text : nil
+            // String.contains is Unicode-aware and takes seconds on the megabytes `strings` prints for large binaries.
+            embeddedStrings.range(of: Data(text.utf8)) != nil ? text : nil
         }
     }
 

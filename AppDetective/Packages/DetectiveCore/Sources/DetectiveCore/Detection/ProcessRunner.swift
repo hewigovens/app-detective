@@ -2,6 +2,10 @@ import Foundation
 
 enum ProcessRunner {
     static func output(of toolPath: String, arguments: [String], timeout: TimeInterval = 10) -> String? {
+        data(of: toolPath, arguments: arguments, timeout: timeout).map { String(decoding: $0, as: UTF8.self) }
+    }
+
+    static func data(of toolPath: String, arguments: [String], timeout: TimeInterval = 10) -> Data? {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: toolPath)
         process.arguments = arguments
@@ -29,7 +33,7 @@ enum ProcessRunner {
             return nil
         }
         process.waitUntilExit()
-        return String(decoding: collector.data, as: UTF8.self)
+        return collector.data
     }
 }
 
