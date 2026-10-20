@@ -188,6 +188,17 @@ struct DetectServiceTests {
         #expect(DetectService(signatures: [rustRule, wgpuRule, icedRule]).detect(app.url).stacks == .iced)
     }
 
+    @Test("Go is reported as the language of AppKit apps, not of Wails apps")
+    func goLanguage() throws {
+        let app = try FakeApp(contents: ["GoMarker", "WailsMarker"])
+        defer { app.remove() }
+        let goRule = StackSignature(.go, [.strong(.file("Contents/GoMarker"))])
+        let wailsRule = StackSignature(.wails, [.strong(.file("Contents/WailsMarker"))])
+
+        #expect(DetectService(signatures: [goRule]).detect(app.url).stacks == [.appKit, .go])
+        #expect(DetectService(signatures: [goRule, wailsRule]).detect(app.url).stacks == .wails)
+    }
+
     @Test("Finds executable when Info.plist omits CFBundleExecutable")
     func findsExecutableWithoutBundleExecutableKey() async throws {
         // Like Muse.app, whose executable is found only by the bundle name.

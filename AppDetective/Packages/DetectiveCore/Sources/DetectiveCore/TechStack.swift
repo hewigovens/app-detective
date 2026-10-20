@@ -39,10 +39,11 @@ public struct TechStack: OptionSet, Codable, Hashable, Sendable {
     public static let slint = TechStack(rawValue: 1 << 29)
     public static let rust = TechStack(rawValue: 1 << 30)
     public static let wgpu = TechStack(rawValue: 1 << 31)
+    public static let go = TechStack(rawValue: 1 << 32)
 
     public static let native: TechStack = [.swiftUI, .appKit, .catalyst, .uiKit]
     // Reported only with AppKit, UIKit, or wgpu, to tell what the app itself is written in.
-    public static let languages: TechStack = [.swift, .objectiveC, .rust]
+    public static let languages: TechStack = [.swift, .objectiveC, .rust, .go]
     public static let crossPlatform: TechStack = [
         .electron, .cef, .python, .qt, .wxWidgets, .gtk, .java,
         .xamarin, .flutter, .reactNative, .tauri, .gpui, .iced, .microsoftEdge,
@@ -50,7 +51,7 @@ public struct TechStack: OptionSet, Codable, Hashable, Sendable {
     ]
 
     public static let allStacks: [TechStack] = [
-        .swiftUI, .appKit, .uiKit, .catalyst, .swift, .objectiveC, .rust,
+        .swiftUI, .appKit, .uiKit, .catalyst, .swift, .objectiveC, .rust, .go,
         .electron, .cef, .microsoftEdge, .flutter, .qt, .reactNative, .java, .python,
         .xamarin, .avalonia, .compose, .tauri, .wxWidgets, .gpui, .iced, .egui, .slint, .wgpu, .wails, .fyne, .gtk,
         .unity, .unreal, .xojo,
@@ -65,6 +66,7 @@ public struct TechStack: OptionSet, Codable, Hashable, Sendable {
         Self.swift.rawValue: "Swift",
         Self.objectiveC.rawValue: "Objective-C",
         Self.rust.rawValue: "Rust",
+        Self.go.rawValue: "Go",
         Self.electron.rawValue: "Electron",
         Self.python.rawValue: "Python",
         Self.qt.rawValue: "Qt",

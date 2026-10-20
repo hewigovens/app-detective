@@ -147,6 +147,11 @@ extension StackSignature {
             .strong(.embeddedString("/library/std/src/")),
             .strong(.embeddedString("called `Result::unwrap()` on an `Err` value")),
         ]),
+        StackSignature(.go, [
+            // The module build info header and a runtime function name, both kept in stripped binaries.
+            .strong(.embeddedString("Go buildinf:")),
+            .strong(.embeddedString("runtime.gopanic")),
+        ]),
         StackSignature(.python, [
             .strong(.framework(.exact("Python.framework"))),
             .strong(.linkedLibrary(.contains("/Python.framework/"))),

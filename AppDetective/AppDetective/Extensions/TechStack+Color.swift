@@ -11,6 +11,7 @@ extension TechStack {
         case .swift: return Color(hex: "#F05138")
         case .objectiveC: return Color(hex: "#8E8E93")
         case .rust: return Color(hex: "#DEA584")
+        case .go: return Color(hex: "#007D9C")
         case .electron: return Color.cyan
         case .cef: return Color(hex: "#3498db")
         case .python: return Color(hex: "#336c9d")
