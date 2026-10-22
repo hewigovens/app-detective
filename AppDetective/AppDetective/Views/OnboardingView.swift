@@ -20,7 +20,7 @@ struct OnboardingView: View {
             Text("Welcome to \(Constants.AppName)")
                 .font(.largeTitle)
 
-            Text("Find out what each of your apps is built with.")
+            Text("Find out what each of your apps is built with and how it ships.")
                 .foregroundStyle(.secondary)
 
             HStack {

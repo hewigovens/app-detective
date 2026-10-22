@@ -99,19 +99,16 @@ zip version:
 	bash scripts/package-release-zip.sh "{{EXPORT_DIR}}/AppDetective-{{version}}/{{APP_BUNDLE}}" "$zip_path"
 	bash scripts/verify-release-archive.sh "$zip_path" notarized
 
-# Create a GitHub draft release. Uses releases/<version>.md if present, else fallback notes.
+# Create a GitHub draft release from releases/<version>.md.
 create-release version:
 	#!/usr/bin/env bash
 	set -euo pipefail
 	notes_path="releases/{{version}}.md"
 	if gh release view {{version}} &>/dev/null; then
 		echo "Release {{version}} already exists"
-	elif [ -f "$notes_path" ]; then
+	else
 		echo "Creating release {{version}} from $notes_path"
 		gh release create {{version}} --draft --title "{{version}}" --notes-file "$notes_path"
-	else
-		echo "Creating release {{version}} (no $notes_path — using fallback notes)"
-		gh release create {{version}} --draft --title "{{version}}" --notes "Release {{version}}"
 	fi
 
 # Notarize the exported app bundle (NOTARY_PROFILE env overrides keychain profile, default: notarytool).
@@ -158,9 +155,12 @@ update-appcast version:
 		exit 1
 	fi
 	build_number=$(grep 'CURRENT_PROJECT_VERSION' {{PROJECT_SPEC}} | head -1 | awk '{print $2}')
+	# The app target's, which comes first in the spec.
+	minimum_system_version=$(grep 'deploymentTarget' {{PROJECT_SPEC}} | head -1 | tr -d '"' | awk '{print $2}')
 	sparkle_bin="${SPARKLE_SIGN_UPDATE:-}"
 	if [ -z "$sparkle_bin" ]; then
-		sparkle_bin=$(find ~/Library/Developer/Xcode/DerivedData -name "sign_update" -type f 2>/dev/null | head -1)
+		# Newest first, so a stale Sparkle from another project's DerivedData isn't picked.
+		sparkle_bin=$(ls -t ~/Library/Developer/Xcode/DerivedData/*/SourcePackages/artifacts/sparkle/Sparkle/bin/sign_update 2>/dev/null | head -1)
 	fi
 	if [ -z "$sparkle_bin" ] || [ ! -x "$sparkle_bin" ]; then
 		echo "Could not locate Sparkle sign_update. Set SPARKLE_SIGN_UPDATE or run 'just generate && just build' first." >&2
@@ -175,7 +175,7 @@ update-appcast version:
 		echo "Error: no Sparkle edSignature in sign_update output: $sign_output" >&2
 		exit 1
 	fi
-	python3 scripts/update-appcast.py "{{version}}" "$build_number" "AppDetective" "$zip_path" "docs/appcast.xml" "$sig"
+	python3 scripts/update-appcast.py "{{version}}" "$build_number" "$zip_path" "docs/appcast.xml" "$sig" "$minimum_system_version"
 
 # Build a Release .app locally with ad-hoc signing and produce a zip + sha256.
 # No notarization, no network calls — sanity-check a release candidate.
@@ -204,8 +204,16 @@ release-dry-run version:
 	shasum -a 256 "$zip_path" | tee "$zip_path.sha256"
 	echo "Dry-run artifact: $zip_path"
 
+# Check that project.yml carries the version and its release notes exist.
+check-release version:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	grep -q "MARKETING_VERSION: {{version}}$" {{PROJECT_SPEC}} || { echo "Set MARKETING_VERSION to {{version}} in {{PROJECT_SPEC}} first" >&2; exit 1; }
+	[ -f "releases/{{version}}.md" ] || { echo "Write releases/{{version}}.md first" >&2; exit 1; }
+
 # Convenience recipe to run the full release pipeline.
 release version:
+	just check-release {{version}}
 	just create-release {{version}}
 	just archive {{version}}
 	just export {{version}}
@@ -225,7 +233,11 @@ update-cask version:
 		exit 1
 	fi
 	sha256=$(shasum -a 256 "$zip_path" | cut -d' ' -f1)
-	cask_path="../tap/Casks/app-detective.rb"
+	cask_path="${TAP_DIR:-../tap}/Casks/app-detective.rb"
+	if [ ! -f "$cask_path" ]; then
+		echo "Cask not found at $cask_path. Set TAP_DIR to the tap checkout." >&2
+		exit 1
+	fi
 	sed -i '' \
 	  -e 's/version "[^"]*"/version "{{version}}"/' \
 	  -e "s/sha256 \"[^\"]*\"/sha256 \"$sha256\"/" \

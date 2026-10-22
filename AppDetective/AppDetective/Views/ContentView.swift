@@ -12,7 +12,6 @@ struct ContentView: View {
 
     var body: some View {
         @Bindable var viewModel = viewModel
-        @Bindable var categoryViewModel = categoryViewModel
 
         NavigationSplitView {
             CategoryView(viewModel: categoryViewModel)
@@ -59,7 +58,15 @@ struct ContentView: View {
                 ContentUnavailableView("No Apps", systemImage: "app.dashed")
             }
         } else if categoryViewModel.filteredApps.isEmpty {
-            ContentUnavailableView.search(text: categoryViewModel.searchText)
+            if categoryViewModel.searchText.isEmpty {
+                ContentUnavailableView {
+                    Label("No Matching Apps", systemImage: "line.3.horizontal.decrease.circle")
+                } actions: {
+                    Button("Reset Filters", action: categoryViewModel.resetFilters)
+                }
+            } else {
+                ContentUnavailableView.search(text: categoryViewModel.searchText)
+            }
         } else {
             @Bindable var categoryViewModel = categoryViewModel
             List(categoryViewModel.filteredApps, selection: $categoryViewModel.selectedAppID) { app in

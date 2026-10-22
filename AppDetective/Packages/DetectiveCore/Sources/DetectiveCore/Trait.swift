@@ -131,8 +131,10 @@ public enum Trait: String, CaseIterable, Codable, Comparable, Identifiable, Send
         }
     }
 
+    private static let order = Dictionary(uniqueKeysWithValues: allCases.enumerated().map { ($1, $0) })
+
     public static func < (lhs: Trait, rhs: Trait) -> Bool {
-        allCases.firstIndex(of: lhs)! < allCases.firstIndex(of: rhs)!
+        order[lhs]! < order[rhs]!
     }
 }
 

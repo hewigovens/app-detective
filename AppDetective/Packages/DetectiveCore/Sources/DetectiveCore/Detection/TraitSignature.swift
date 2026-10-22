@@ -38,7 +38,7 @@ public enum Evidence: Sendable, CustomStringConvertible {
     case linkedLibrary(Pattern)
     case entry(in: String, Pattern) // An item in a directory relative to the bundle root, e.g. "Contents/app".
     case embeddedString(String) // In the executable; evaluated only when no UI framework beyond AppKit/UIKit matched.
-    case codeString(String) // In the executable, the app's own frameworks, or its extensions.
+    case codeString(String) // In the executable, the app's own frameworks and dylibs, or its extensions; not a matched UI framework's runtime.
     case signer(Pattern) // The leaf certificate's common name.
     case signatureFlag(SignatureFlag)
     case entitlement(String) // A true Boolean entitlement.
@@ -51,7 +51,7 @@ public enum Evidence: Sendable, CustomStringConvertible {
         case let .file(path): "file \(path)"
         case let .linkedLibrary(pattern): "linked library \(pattern)"
         case let .entry(directory, pattern): "\(directory) entry \(pattern)"
-        case let .embeddedString(text): "string \"\(text)\""
+        case let .embeddedString(text): "embedded string \"\(text)\""
         case let .codeString(text): "code string \"\(text)\""
         case let .signer(pattern): "signer \(pattern)"
         case let .signatureFlag(flag): "signature flag \(flag.rawValue)"
@@ -59,7 +59,7 @@ public enum Evidence: Sendable, CustomStringConvertible {
         }
     }
 
-    public var kind: String {
+    public var label: String {
         switch self {
         case .framework: "Framework"
         case .resource: "Resource"
@@ -68,7 +68,7 @@ public enum Evidence: Sendable, CustomStringConvertible {
         case .linkedLibrary: "Linked library"
         case let .entry(directory, _): "Entry in \(directory)"
         case .embeddedString: "Embedded string"
-        case .codeString: "String in the app's code"
+        case .codeString: "Code string"
         case .signer: "Signing certificate"
         case .signatureFlag: "Code signature flag"
         case .entitlement: "Entitlement"
@@ -78,13 +78,13 @@ public enum Evidence: Sendable, CustomStringConvertible {
     enum Pass {
         case bundle
         case code
-        case deferred
+        case embedded
     }
 
     var pass: Pass {
         switch self {
         case .codeString: .code
-        case .embeddedString: .deferred
+        case .embeddedString: .embedded
         default: .bundle
         }
     }
@@ -107,7 +107,7 @@ public enum Pattern: Sendable, CustomStringConvertible {
     case contains(String)
     case regex(String)
 
-    public func matches(_ value: String) -> Bool {
+    func matches(_ value: String) -> Bool {
         switch self {
         case let .exact(text): value == text
         case let .prefix(text): value.hasPrefix(text)

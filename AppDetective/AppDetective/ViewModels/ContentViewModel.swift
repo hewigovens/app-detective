@@ -1,5 +1,6 @@
 import DetectiveCore
 import Foundation
+import OSLog
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -198,6 +199,7 @@ final class ContentViewModel {
         do {
             try data.write(to: url, options: .atomic)
         } catch {
+            Logger.app.error("Export failed: \(error.localizedDescription)")
             warningMessage = "Export failed: \(error.localizedDescription)"
         }
     }

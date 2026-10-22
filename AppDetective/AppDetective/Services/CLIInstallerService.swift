@@ -15,21 +15,8 @@ enum CLIInstallerError: LocalizedError {
     }
 }
 
-private actor CLIPathStatusCache {
-    private var cachedValue: Bool?
-
-    func value() -> Bool? {
-        cachedValue
-    }
-
-    func setValue(_ value: Bool) {
-        cachedValue = value
-    }
-}
-
-struct CLIInstallerService {
+enum CLIInstallerService {
     static let toolName = "appdetective"
-    private static let pathStatusCache = CLIPathStatusCache()
 
     static var installDirectory: URL {
         FileManager.default.homeDirectoryForCurrentUser
@@ -74,18 +61,13 @@ struct CLIInstallerService {
         return false
     }
 
+    // Not cached, so a PATH fixed after the first prompt is noticed.
     static func isOnPath() async -> Bool {
-        if let cachedValue = await pathStatusCache.value() {
-            return cachedValue
-        }
-
         let path = await loginShellPATH() ?? ProcessInfo.processInfo.environment["PATH"] ?? ""
-        let isOnPath = pathContainsInstallDirectory(path)
-        await pathStatusCache.setValue(isOnPath)
-        return isOnPath
+        return pathContainsInstallDirectory(path)
     }
 
-    static func loginShellPATH() async -> String? {
+    private static func loginShellPATH() async -> String? {
         await Task.detached(priority: .userInitiated) {
             loginShellPATHSync()
         }.value

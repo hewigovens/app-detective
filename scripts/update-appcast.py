@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
-"""Generate Sparkle appcast.xml from release artifacts."""
-import sys
+"""Rewrite the Sparkle appcast with a single item for the release."""
 import os
+import sys
+from datetime import datetime, timezone
 
-if len(sys.argv) < 6:
-    print("Usage: update-appcast.py <version> <build_number> <app_name> <zip_path> <appcast_path> [signature]")
+if len(sys.argv) != 7:
+    print("Usage: update-appcast.py <version> <build_number> <zip_path> <appcast_path> <signature> <minimum_system_version>")
     sys.exit(1)
 
 version = sys.argv[1]
 build_number = sys.argv[2]
-app_name = sys.argv[3]
-zip_path = sys.argv[4]
-appcast_path = sys.argv[5]
-signature = sys.argv[6] if len(sys.argv) > 6 else "PENDING"
+zip_path = sys.argv[3]
+appcast_path = sys.argv[4]
+signature = sys.argv[5]
+minimum_system_version = sys.argv[6]
 
 file_size = os.path.getsize(zip_path)
 
-from datetime import datetime, timezone
 pub_date = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S %z")
 
 appcast = f"""<?xml version="1.0" encoding="utf-8"?>
@@ -31,6 +31,8 @@ appcast = f"""<?xml version="1.0" encoding="utf-8"?>
             <sparkle:version>{build_number}</sparkle:version>
             <sparkle:shortVersionString>{version}</sparkle:shortVersionString>
             <pubDate>{pub_date}</pubDate>
+            <sparkle:minimumSystemVersion>{minimum_system_version}</sparkle:minimumSystemVersion>
+            <sparkle:releaseNotesLink>https://github.com/hewigovens/app-detective/releases/tag/{version}</sparkle:releaseNotesLink>
             <enclosure url="https://github.com/hewigovens/app-detective/releases/download/{version}/AppDetective-{version}.zip"
                        sparkle:edSignature="{signature}"
                        length="{file_size}"

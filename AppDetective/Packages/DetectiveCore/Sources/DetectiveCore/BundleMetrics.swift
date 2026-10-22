@@ -1,15 +1,19 @@
 import Foundation
 
+extension Bundle {
+    public var shortVersion: String? {
+        object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+    }
+
+    public var build: String? {
+        object(forInfoDictionaryKey: "CFBundleVersion") as? String
+    }
+}
+
 public enum BundleMetrics {
     public static func size(at url: URL) -> Int64? {
-        let resolved = url.resolvingSymlinksInPath()
-        let keys: Set<URLResourceKey> = [.totalFileSizeKey, .totalFileAllocatedSizeKey]
-        if let values = try? resolved.resourceValues(forKeys: keys) {
-            if let total = values.totalFileSize { return Int64(total) }
-            if let allocated = values.totalFileAllocatedSize { return Int64(allocated) }
-        }
         guard let enumerator = FileManager.default.enumerator(
-            at: resolved,
+            at: url.resolvingSymlinksInPath(),
             includingPropertiesForKeys: [.fileSizeKey],
             options: []
         ) else {
@@ -22,6 +26,16 @@ public enum BundleMetrics {
             }
         }
         return total
+    }
+
+    // The build alone when it repeats the version.
+    public static func version(short: String?, build: String?) -> String? {
+        switch (short, build) {
+        case let (short?, build?) where short != build: "\(short) (\(build))"
+        case let (short?, _): short
+        case let (nil, build?): build
+        case (nil, nil): nil
+        }
     }
 
     public static func format(bytes: Int64) -> String {

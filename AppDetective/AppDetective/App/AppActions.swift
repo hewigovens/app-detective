@@ -25,7 +25,7 @@ enum AppActions {
         }
 
         switch (wasInstalled, alert.runModal()) {
-        case (true, .alertFirstButtonReturn), (false, .alertFirstButtonReturn):
+        case (_, .alertFirstButtonReturn):
             performInstall(isOnPath: isOnPath)
         case (true, .alertSecondButtonReturn):
             performUninstall()

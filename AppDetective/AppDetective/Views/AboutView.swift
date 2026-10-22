@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct AboutView: View {
-    @Bindable var updater: SparkleUpdater
+    let updater: SparkleUpdater
 
     private var versionString: String {
         let info = Bundle.main.infoDictionary
@@ -11,6 +11,8 @@ struct AboutView: View {
     }
 
     var body: some View {
+        @Bindable var updater = updater
+
         VStack(spacing: 20) {
             Image(nsImage: NSApplication.shared.applicationIconImage)
                 .resizable()
@@ -24,17 +26,17 @@ struct AboutView: View {
 
                 Text(versionString)
                     .font(.body)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
 
             Toggle("Check for updates automatically", isOn: $updater.autoChecksEnabled)
 
-            Link("View on GitHub", destination: URL(string: Constants.githubLink)!)
+            Link("View on GitHub", destination: URL(string: Constants.GitHubLink)!)
                 .buttonStyle(.link)
 
             Text("© 2025–\(Calendar.current.component(.year, from: .now).formatted(.number.grouping(.never))) \(Constants.AppName)")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
         }
         .padding(30)
         .frame(width: 350)

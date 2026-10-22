@@ -54,4 +54,15 @@ struct CategoryViewModelTests {
         #expect(viewModel.selectedTraits.isEmpty)
         #expect(viewModel.filteredApps.map(\.name) == ["Music"])
     }
+
+    @Test("A selected trait stays listed after switching to a category without it")
+    func keepsSelectedTraitListed() {
+        let viewModel = makeViewModel()
+
+        viewModel.selectedTraits[.ui] = .electron
+        viewModel.selectedCategory = .productivity
+        #expect(viewModel.filteredApps.isEmpty)
+        #expect(viewModel.sortedTraits[.ui]?.last == .electron)
+        #expect(viewModel.traitCounts[.electron] == nil)
+    }
 }

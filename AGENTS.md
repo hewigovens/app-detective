@@ -16,6 +16,7 @@
 - `AppDetective/AppDetective/app.icon` is an Icon Composer bundle; its SVG layers are written by `scripts/generate-icon.py`, so change the geometry there and rerun it rather than editing the SVGs.
 
 ## Release Packaging
+- Bump `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in `AppDetective/project.yml`, write `releases/<version>.md`, then run `just release <version>`; CONTRIBUTING.md lists the steps around it.
 - Package release apps with `scripts/package-release-zip.sh`, which uses `ditto --norsrc` so AppleDouble metadata is not written into signed app bundles.
 - Verify final notarized archives with `scripts/verify-release-archive.sh <zip> notarized`; it extracts the archive and runs `codesign`, `stapler validate`, and `spctl -av` on the extracted app.
 

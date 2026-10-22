@@ -2,7 +2,7 @@ import DetectiveCore
 import SwiftUI
 
 struct AppListCell: View {
-    // How the app is built; distribution, security, and background items are in the detail view.
+    // How the app is built; graphics, distribution, security, and background items are in the detail view.
     private static let listedKinds: Set<TraitKind> = [.ui, .language, .renderer, .updater]
 
     let appInfo: AppInfo
@@ -38,7 +38,6 @@ struct AppListCell: View {
                 EvidenceView(appInfo: appInfo)
             }
         }
-        .padding(.vertical, 0)
     }
 }
 

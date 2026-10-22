@@ -7,7 +7,7 @@ final class BundleInspector {
     // Referenced below, so it is in every binary that links DetectiveCore, whose catalog strings must not match.
     private static let catalogMarker = Data("DetectiveCore.BundleInspector.catalogMarker".utf8)
 
-    let bundle: Bundle
+    private let bundle: Bundle
     // Frameworks left out of code-string searches; set before the first one runs.
     var excludedFrameworks: Set<String> = []
 
@@ -43,7 +43,6 @@ final class BundleInspector {
 
     private lazy var executable: Binary? = executableURL.map(binary(at:))
 
-    // The executable, the app's own frameworks and dylibs, and its app and system extensions.
     private lazy var codeBinaries: [Binary] = {
         let frameworkURLs = frameworks
             .filter { !excludedFrameworks.contains($0) }
@@ -95,7 +94,7 @@ final class BundleInspector {
         case let .entry(directory, pattern):
             entries(in: directory).first(where: pattern.matches)
         case let .embeddedString(text):
-            firstBinary(containing: text, in: [executable].compactMap { $0 }).map { _ in text }
+            firstBinary(containing: text, in: [executable].compactMap { $0 })
         case let .codeString(text):
             firstBinary(containing: text, in: codeBinaries)
         case let .signer(pattern):

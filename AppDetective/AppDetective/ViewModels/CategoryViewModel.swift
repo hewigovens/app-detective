@@ -46,8 +46,10 @@ final class CategoryViewModel {
                 counts[trait, default: 0] += 1
             }
         }
-        // Most common first; catalog order breaks ties so the list is stable.
+        // Most common first; catalog order breaks ties so the list is stable. A selected trait the category lacks
+        // stays listed, at zero, so its filter can still be cleared.
         let present = traitCounts.sorted { ($0.value, $1.key) > ($1.value, $0.key) }.map(\.key)
+            + selectedTraits.values.filter { traitCounts[$0] == nil }
         sortedTraits = Dictionary(grouping: present, by: \.kind)
 
         let query = searchText.lowercased()

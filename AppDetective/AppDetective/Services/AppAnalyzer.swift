@@ -19,7 +19,7 @@ struct CachedApp: Codable, Sendable {
 struct TraitEvidence: Codable, Hashable, Sendable {
     let trait: String
     let rule: String
-    let kind: String
+    let label: String
     let item: String
     let isStrong: Bool
 }
@@ -41,14 +41,14 @@ enum AppAnalyzer {
             fingerprint: fingerprint,
             detectorVersion: detectService.version,
             bundleId: bundle?.bundleIdentifier,
-            version: bundle.flatMap(version(of:)),
+            version: BundleMetrics.version(short: bundle?.shortVersion, build: bundle?.build),
             traits: detection.traits,
             possibleTraits: detection.possibleTraits,
             evidence: detection.matches.map {
                 TraitEvidence(
                     trait: $0.trait.name,
                     rule: $0.rule.evidence.description,
-                    kind: $0.rule.evidence.kind,
+                    label: $0.rule.evidence.label,
                     item: $0.item,
                     isStrong: $0.rule.confidence == .strong
                 )
@@ -57,17 +57,6 @@ enum AppAnalyzer {
             iconData: isUnchanged ? cached?.iconData : iconData(forAppAt: url.path),
             size: isUnchanged ? cached?.size : BundleMetrics.size(at: url).map(BundleMetrics.format(bytes:))
         )
-    }
-
-    private static func version(of bundle: Bundle) -> String? {
-        let short = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
-        let build = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String
-        switch (short, build) {
-        case let (short?, build?) where short != build: return "\(short) (\(build))"
-        case let (short?, _): return short
-        case let (nil, build?): return build
-        case (nil, nil): return nil
-        }
     }
 
     private static func fingerprint(of appURL: URL) -> Date? {

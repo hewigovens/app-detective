@@ -4,7 +4,7 @@ import LSAppCategory
 
 @main
 struct AppDetectiveCLI {
-    static func main() async {
+    static func main() {
         var positional: [String] = []
         var jsonOutput = false
         var explain = false
@@ -18,6 +18,9 @@ struct AppDetectiveCLI {
                 jsonOutput = true
             case "--explain":
                 explain = true
+            case let option where option.hasPrefix("-"):
+                CLIPrinter.error("unknown option: \(option)", json: jsonOutput)
+                exit(1)
             default:
                 positional.append(arg)
             }
@@ -28,7 +31,7 @@ struct AppDetectiveCLI {
             exit(0)
         }
         guard positional.count == 1 else {
-            printUsage()
+            printUsage(to: .standardError)
             exit(1)
         }
 
@@ -55,8 +58,8 @@ struct AppDetectiveCLI {
             name: url.lastPathComponent,
             path: url.path,
             bundleId: bundle?.bundleIdentifier,
-            version: bundle?.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
-            build: bundle?.object(forInfoDictionaryKey: "CFBundleVersion") as? String,
+            version: bundle?.shortVersion,
+            build: bundle?.build,
             sizeBytes: sizeBytes,
             sizeHuman: sizeBytes.map(BundleMetrics.format(bytes:)),
             category: category.description,
@@ -72,15 +75,20 @@ struct AppDetectiveCLI {
         }
     }
 
-    static func printUsage() {
+    static func printUsage(to handle: FileHandle = .standardOutput) {
         let name = (CommandLine.arguments.first.map { ($0 as NSString).lastPathComponent }) ?? "appdetective"
-        print("Usage: \(name) [--json] [--explain] <path-to-.app>")
-        print("")
-        print("Detect the traits (UI framework, language, renderer, updater) and category of a single macOS app bundle.")
-        print("")
-        print("Options:")
-        print("  --json        Emit machine-readable JSON instead of text.")
-        print("  --explain     Include the evidence behind each detected trait.")
-        print("  -h, --help    Show this help.")
+        let usage = """
+        Usage: \(name) [--json] [--explain] <path-to-.app>
+
+        Detect the traits and category of a single macOS app bundle: its UI framework, language, renderer,
+        graphics API, distribution, updater, security settings, and background items.
+
+        Options:
+          --json        Emit machine-readable JSON instead of text.
+          --explain     Include the evidence behind each detected trait.
+          -h, --help    Show this help.
+
+        """
+        try? handle.write(contentsOf: Data(usage.utf8))
     }
 }

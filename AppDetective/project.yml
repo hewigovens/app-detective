@@ -44,6 +44,8 @@ targets:
         info:
             path: Info.plist
             properties:
+                CFBundleShortVersionString: $(MARKETING_VERSION)
+                CFBundleVersion: $(CURRENT_PROJECT_VERSION)
                 SUFeedURL: https://raw.githubusercontent.com/hewigovens/app-detective/main/docs/appcast.xml
                 SUPublicEDKey: UOMJSZnts1cRolglWcFAcibe9T9dD9flzz7fAQ3jmoQ=
                 SUEnableAutomaticChecks: true
@@ -51,8 +53,6 @@ targets:
         settings:
             base:
                 ASSETCATALOG_COMPILER_APPICON_NAME: app
-                DEAD_CODE_STRIPPING: YES
-                DEVELOPMENT_ASSET_PATHS: '"AppDetective/Preview Content"'
                 ENABLE_HARDENED_RUNTIME: YES
                 INFOPLIST_KEY_CFBundleDisplayName: AppDetective
                 GENERATE_INFOPLIST_FILE: YES
@@ -74,6 +74,7 @@ targets:
                 PRODUCT_NAME: appdetective
                 # The binary's name would otherwise collide with the app's module on case-insensitive disks.
                 PRODUCT_MODULE_NAME: AppDetectiveCLI
+                # Ad-hoc on its own; the app's embed step re-signs it with the app's identity and hardened runtime.
                 CODE_SIGN_STYLE: Automatic
                 CODE_SIGN_IDENTITY: "-"
                 ENABLE_HARDENED_RUNTIME: NO
@@ -95,7 +96,6 @@ targets:
         settings:
             base:
                 BUNDLE_LOADER: "$(TEST_HOST)"
-                DEAD_CODE_STRIPPING: YES
                 GENERATE_INFOPLIST_FILE: YES
                 PRODUCT_BUNDLE_IDENTIFIER: dev.hewig.AppDetectiveTests
                 TEST_HOST: "$(BUILT_PRODUCTS_DIR)/AppDetective.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AppDetective"
@@ -109,7 +109,6 @@ targets:
             - target: AppDetective
         settings:
             base:
-                DEAD_CODE_STRIPPING: YES
                 GENERATE_INFOPLIST_FILE: YES
                 PRODUCT_BUNDLE_IDENTIFIER: dev.hewig.AppDetectiveUITests
                 TEST_TARGET_NAME: AppDetective

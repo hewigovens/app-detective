@@ -2,7 +2,7 @@ import Foundation
 
 extension TraitSignature {
     public static let catalog: [TraitSignature] = [
-        // MARK: Native
+        // MARK: Native UI
 
         TraitSignature(.swiftUI, [
             .strong(.linkedLibrary(.contains("/SwiftUI.framework/"))),
@@ -17,11 +17,6 @@ extension TraitSignature {
         ]),
         TraitSignature(.catalyst, [
             .strong(.linkedLibrary(.prefix("/System/iOSSupport/System/Library/Frameworks/UIKit.framework/"))),
-        ]),
-        TraitSignature(.swift, [
-            .strong(.linkedLibrary(.suffix("/libswiftCore.dylib"))),
-            // Apps deploying before macOS 10.14.4 bundle the Swift runtime.
-            .strong(.framework(.exact("libswiftCore.dylib"))),
         ]),
 
         // MARK: Web runtimes
@@ -94,11 +89,6 @@ extension TraitSignature {
         TraitSignature(.slint, [
             .strong(.embeddedString("/slint-")),
         ]),
-        TraitSignature(.wgpu, [
-            // Log targets and panic locations, so also present in apps built on Iced or egui.
-            .strong(.embeddedString("wgpu_core::")),
-            .strong(.embeddedString("wgpu_hal::")),
-        ]),
         TraitSignature(.wails, [
             // Go module paths from the binary's build info.
             .strong(.embeddedString("github.com/wailsapp/wails")),
@@ -128,6 +118,63 @@ extension TraitSignature {
         TraitSignature(.unreal, [
             .strong(.file("Contents/UE4")),
             .strong(.file("Contents/UE")),
+        ]),
+
+        // MARK: Languages
+
+        TraitSignature(.swift, [
+            .strong(.linkedLibrary(.suffix("/libswiftCore.dylib"))),
+            // Apps deploying before macOS 10.14.4 bundle the Swift runtime.
+            .strong(.framework(.exact("libswiftCore.dylib"))),
+        ]),
+        TraitSignature(.rust, [
+            // Panic locations in the standard library and its unwrap message.
+            .strong(.codeString("/library/std/src/")),
+            .strong(.codeString("called `Result::unwrap()` on an `Err` value")),
+        ]),
+        TraitSignature(.go, [
+            // The module build info header and a runtime function name, both kept in stripped binaries.
+            .strong(.codeString("Go buildinf:")),
+            .strong(.codeString("runtime.gopanic")),
+        ]),
+
+        // MARK: Language runtimes as UI
+
+        TraitSignature(.java, [
+            .strong(.linkedLibrary(.contains("libjvm"))),
+            .strong(.linkedLibrary(.contains("/JavaVM.framework/"))),
+            .strong(.linkedLibrary(.contains("JavaNativeFoundation"))),
+            .strong(.plugIn(.regex(#"\.(jdk|jre)$"#))),
+            .strong(.file("Contents/runtime/Contents/Home")),
+            .strong(.file("Contents/Java")),
+            // Also present in any binary that uses JNI.
+            .weak(.embeddedString("java/lang/")),
+        ]),
+        TraitSignature(.python, [
+            .strong(.framework(.exact("Python.framework"))),
+            .strong(.linkedLibrary(.contains("/Python.framework/"))),
+            .strong(.linkedLibrary(.contains("libpython"))),
+            // py2app and PyInstaller bootstrap files.
+            .strong(.resource(.exact("__boot__.py"))),
+            .strong(.resource(.exact("base_library.zip"))),
+            .strong(.framework(.exact("base_library.zip"))),
+            .weak(.framework(.regex(#"(?i)python.*\.framework$"#))),
+        ]),
+        TraitSignature(.xamarin, [
+            .strong(.file("Contents/MonoBundle")),
+            .strong(.linkedLibrary(.contains("libmono"))),
+            .strong(.linkedLibrary(.contains("libcoreclr"))),
+            .strong(.framework(.contains("Xamarin"))),
+            .strong(.framework(.contains("Microsoft.Maui"))),
+            .weak(.linkedLibrary(.contains("Microsoft.Maui"))),
+        ]),
+
+        // MARK: Renderers
+
+        TraitSignature(.wgpu, [
+            // Log targets and panic locations, so also present in apps built on Iced or egui.
+            .strong(.embeddedString("wgpu_core::")),
+            .strong(.embeddedString("wgpu_hal::")),
         ]),
 
         // MARK: Graphics APIs
@@ -211,47 +258,6 @@ extension TraitSignature {
         ]),
         TraitSignature(.systemExtension, [
             .strong(.entry(in: "Contents/Library/SystemExtensions", .suffix(".systemextension"))),
-        ]),
-
-        // MARK: Language runtimes
-
-        TraitSignature(.java, [
-            .strong(.linkedLibrary(.contains("libjvm"))),
-            .strong(.linkedLibrary(.contains("/JavaVM.framework/"))),
-            .strong(.linkedLibrary(.contains("JavaNativeFoundation"))),
-            .strong(.plugIn(.regex(#"\.(jdk|jre)$"#))),
-            .strong(.file("Contents/runtime/Contents/Home")),
-            .strong(.file("Contents/Java")),
-            // Also present in any binary that uses JNI.
-            .weak(.embeddedString("java/lang/")),
-        ]),
-        TraitSignature(.rust, [
-            // Panic locations in the standard library and its unwrap message.
-            .strong(.codeString("/library/std/src/")),
-            .strong(.codeString("called `Result::unwrap()` on an `Err` value")),
-        ]),
-        TraitSignature(.go, [
-            // The module build info header and a runtime function name, both kept in stripped binaries.
-            .strong(.codeString("Go buildinf:")),
-            .strong(.codeString("runtime.gopanic")),
-        ]),
-        TraitSignature(.python, [
-            .strong(.framework(.exact("Python.framework"))),
-            .strong(.linkedLibrary(.contains("/Python.framework/"))),
-            .strong(.linkedLibrary(.contains("libpython"))),
-            // py2app and PyInstaller bootstrap files.
-            .strong(.resource(.exact("__boot__.py"))),
-            .strong(.resource(.exact("base_library.zip"))),
-            .strong(.framework(.exact("base_library.zip"))),
-            .weak(.framework(.regex(#"(?i)python.*\.framework$"#))),
-        ]),
-        TraitSignature(.xamarin, [
-            .strong(.file("Contents/MonoBundle")),
-            .strong(.linkedLibrary(.contains("libmono"))),
-            .strong(.linkedLibrary(.contains("libcoreclr"))),
-            .strong(.framework(.contains("Xamarin"))),
-            .strong(.framework(.contains("Microsoft.Maui"))),
-            .weak(.linkedLibrary(.contains("Microsoft.Maui"))),
         ]),
     ]
 }

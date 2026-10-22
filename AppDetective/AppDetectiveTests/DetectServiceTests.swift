@@ -7,7 +7,7 @@ struct DetectServiceTests {
     let detectService = DetectService()
 
     @Test("Detects Electron framework")
-    func detectsElectron() async throws {
+    func detectsElectron() throws {
         let app = try FakeApp(frameworks: ["Electron Framework.framework"])
         defer { app.remove() }
 
@@ -15,15 +15,15 @@ struct DetectServiceTests {
     }
 
     @Test("Detects Flutter framework")
-    func detectsFlutter() async throws {
+    func detectsFlutter() throws {
         let app = try FakeApp(frameworks: ["FlutterMacOS.framework"])
         defer { app.remove() }
 
         #expect(detectService.detect(app.url).traits == [.flutter])
     }
 
-    @Test("Detects multiple frameworks")
-    func detectsMultipleFrameworks() async throws {
+    @Test("Detects multiple UI frameworks")
+    func detectsMultipleFrameworks() throws {
         let app = try FakeApp(frameworks: ["Electron Framework.framework", "FlutterMacOS.framework"])
         defer { app.remove() }
 
@@ -31,7 +31,7 @@ struct DetectServiceTests {
     }
 
     @Test("Chromium Embedded Framework is not reported as Electron")
-    func detectsCEFWithoutElectron() async throws {
+    func detectsCEFWithoutElectron() throws {
         let app = try FakeApp(frameworks: ["Chromium Embedded Framework.framework"])
         defer { app.remove() }
 
@@ -39,7 +39,7 @@ struct DetectServiceTests {
     }
 
     @Test("Detects React Native bundle in resources")
-    func detectsReactNative() async throws {
+    func detectsReactNative() throws {
         let app = try FakeApp(resources: ["main.jsbundle"])
         defer { app.remove() }
 
@@ -47,7 +47,7 @@ struct DetectServiceTests {
     }
 
     @Test("Detects Electron from app.asar when the framework is renamed")
-    func detectsElectronFromAsar() async throws {
+    func detectsElectronFromAsar() throws {
         let app = try FakeApp(frameworks: ["Codex Framework.framework"], resources: ["app.asar"])
         defer { app.remove() }
 
@@ -55,7 +55,7 @@ struct DetectServiceTests {
     }
 
     @Test("Detects Xamarin from Contents/MonoBundle")
-    func detectsXamarinFromMonoBundle() async throws {
+    func detectsXamarinFromMonoBundle() throws {
         let app = try FakeApp(contents: ["MonoBundle"])
         defer { app.remove() }
 
@@ -105,7 +105,7 @@ struct DetectServiceTests {
     }
 
     @Test("Qt requires a Qt module name, not any Qt prefix")
-    func qtRequiresModuleName() async throws {
+    func qtRequiresModuleName() throws {
         let qtApp = try FakeApp(frameworks: ["QtWidgets.framework"])
         let otherApp = try FakeApp(frameworks: ["Qtum.framework"])
         defer {
@@ -150,7 +150,7 @@ struct DetectServiceTests {
     }
 
     @Test("Falls back to AppKit for a plain native executable")
-    func fallsBackToAppKit() async throws {
+    func fallsBackToAppKit() throws {
         let app = try FakeApp()
         defer { app.remove() }
 
@@ -225,7 +225,7 @@ struct DetectServiceTests {
     }
 
     @Test("Detects updaters next to the UI framework")
-    func detectsUpdaters() async throws {
+    func detectsUpdaters() throws {
         let sparkleApp = try FakeApp(frameworks: ["Sparkle.framework"])
         let electronApp = try FakeApp(frameworks: ["Electron Framework.framework", "Squirrel.framework"])
         defer {
@@ -284,7 +284,7 @@ struct DetectServiceTests {
     }
 
     @Test("Finds executable when Info.plist omits CFBundleExecutable")
-    func findsExecutableWithoutBundleExecutableKey() async throws {
+    func findsExecutableWithoutBundleExecutableKey() throws {
         // Like Muse.app, whose executable is found only by the bundle name.
         let app = try FakeApp(declaresExecutable: false)
         defer { app.remove() }
@@ -292,8 +292,21 @@ struct DetectServiceTests {
         #expect(detectService.detect(app.url).traits == [.appKit, .objectiveC])
     }
 
+    @Test("A bundle without an executable is other, keeping what its contents show")
+    func otherKeepsBundleContents() throws {
+        let directory = try makeTempDirectory().appendingPathComponent("Stub.app")
+        try FileManager.default.createDirectory(
+            at: directory.appendingPathComponent("Contents/Library/LaunchAgents/com.example.agent.plist"),
+            withIntermediateDirectories: true
+        )
+        try writePlist(["CFBundleIdentifier": "test.stub"], to: directory.appendingPathComponent("Contents/Info.plist"))
+        defer { try? FileManager.default.removeItem(at: directory.deletingLastPathComponent()) }
+
+        #expect(detectService.detect(directory).traits == [.other, .launchAgent])
+    }
+
     @Test("Returns other for a directory that is not an app bundle")
-    func returnsOtherForEmptyDirectory() async throws {
+    func returnsOtherForEmptyDirectory() throws {
         let directory = try makeTempDirectory().appendingPathComponent("Empty.app")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory.deletingLastPathComponent()) }

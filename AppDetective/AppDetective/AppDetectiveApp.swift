@@ -49,7 +49,7 @@ struct AppDetectiveApp: App {
                     contentViewModel.exportResults()
                 }
                 .keyboardShortcut("e")
-                .disabled(contentViewModel.appResults.isEmpty)
+                .disabled(contentViewModel.categoryViewModel.filteredApps.isEmpty)
             }
             CommandGroup(after: .sidebar) {
                 Button(contentViewModel.isShowingInspector ? "Hide Inspector" : "Show Inspector") {
@@ -59,7 +59,7 @@ struct AppDetectiveApp: App {
             }
             CommandGroup(after: .help) {
                 Button("Sponsor App Detective…") {
-                    NSWorkspace.shared.open(URL(string: Constants.sponsorLink)!)
+                    NSWorkspace.shared.open(URL(string: Constants.SponsorLink)!)
                 }
             }
         }

@@ -3,7 +3,7 @@ import LSAppCategory
 
 public final class DetectService: Sendable {
     // Bump when detection logic outside the catalog changes; catalog edits change `version` on their own.
-    private static let engineVersion = 10
+    private static let engineVersion = 11
 
     private let signatures: [TraitSignature]
 
@@ -30,14 +30,15 @@ public final class DetectService: Sendable {
         inspector.excludedFrameworks = Set(matches.filter { $0.trait.kind == .ui && $0.rule.evidence.isFramework }.map(\.item))
         matches += evaluate(inspector, .code)
         // Embedded strings are circumstantial, so they count only when no UI framework beyond the baseline was found.
-        if Self.toolkits(in: Self.confidentTraits(in: matches)).isEmpty, inspector.executableURL != nil {
-            matches += evaluate(inspector, .deferred)
+        if Self.toolkits(in: Self.confidentTraits(in: matches)).isEmpty {
+            matches += evaluate(inspector, .embedded)
         }
 
         let confident = Self.confidentTraits(in: matches)
         let possible = Set(matches.map(\.trait)).subtracting(confident)
-        let traits: Set<Trait> = if confident.isEmpty, inspector.executableURL == nil {
-            [.other]
+        // Signing and bundle contents say nothing about how a bundle without an executable is built.
+        let traits: Set<Trait> = if inspector.executableURL == nil, confident.of([.ui, .language, .renderer]).isEmpty {
+            confident.union([.other])
         } else {
             Self.resolve(confident)
         }

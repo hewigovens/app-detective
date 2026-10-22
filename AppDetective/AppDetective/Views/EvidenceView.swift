@@ -20,29 +20,31 @@ struct EvidenceList: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if appInfo.evidence.isEmpty {
-                Text("No specific evidence found; native apps fall back to AppKit.")
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(appInfo.evidence, id: \.self) { evidence in
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 6) {
-                            Text(evidence.trait)
-                                .fontWeight(.medium)
-                            Text(evidence.isStrong ? "Strong" : "Weak")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(evidence.isStrong ? .green : .orange)
-                        }
-                        Text(evidence.kind)
-                            .foregroundStyle(.secondary)
-                        Text(evidence.item)
-                            .font(.caption.monospaced())
-                            .foregroundStyle(.tertiary)
-                            .textSelection(.enabled)
+            ForEach(appInfo.evidence, id: \.self) { evidence in
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(evidence.trait)
+                            .fontWeight(.medium)
+                        Text(evidence.isStrong ? "Strong" : "Weak")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(evidence.isStrong ? .green : .orange)
                     }
-                    .fixedSize(horizontal: false, vertical: true)
-                    .help(evidence.rule)
+                    Text(evidence.label)
+                        .foregroundStyle(.secondary)
+                    Text(evidence.item)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.tertiary)
+                        .textSelection(.enabled)
                 }
+                .fixedSize(horizontal: false, vertical: true)
+                .help(evidence.rule)
+            }
+
+            let inferred = appInfo.inferredTraits
+            if !inferred.isEmpty {
+                Text("\(inferred.names.formatted(.list(type: .and))): inferred, as nothing more specific was found.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             if !appInfo.possibleTraits.isEmpty {

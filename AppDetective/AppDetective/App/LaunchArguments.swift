@@ -48,12 +48,13 @@ enum LaunchArguments {
                 continue
             }
 
-            if argument == "-ApplePersistenceIgnoreState" || argument == scanFolder {
+            // A single-dash `-Key value` pair sets a user default, such as -AppleLanguages "(de)".
+            if argument == scanFolder || (argument.hasPrefix("-") && !argument.hasPrefix("--")) {
                 shouldSkipNextArgument = true
                 continue
             }
 
-            if argument.hasPrefix("\(scanFolder)=") || argument.hasPrefix("-") {
+            if argument.hasPrefix("-") {
                 continue
             }
 

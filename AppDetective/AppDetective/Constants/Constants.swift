@@ -1,8 +1,8 @@
 import Foundation
 
-public enum Constants {
-    public static let AppName = "App Detective"
-    public static let BundleId = "dev.hewig.AppDetective"
-    public static let sponsorLink = "https://github.com/sponsors/hewigovens?frequency=one-time"
-    public static let githubLink = "https://github.com/hewigovens/app-detective"
+enum Constants {
+    static let AppName = "App Detective"
+    static let BundleId = "dev.hewig.AppDetective"
+    static let SponsorLink = "https://github.com/sponsors/hewigovens?frequency=one-time"
+    static let GitHubLink = "https://github.com/hewigovens/app-detective"
 }

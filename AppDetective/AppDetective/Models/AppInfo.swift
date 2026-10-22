@@ -16,6 +16,11 @@ struct AppInfo: Identifiable, Hashable, Sendable {
     var size: String?
 
     var id: String { path }
+
+    // Fallbacks such as AppKit and Objective-C, which no rule matched.
+    var inferredTraits: Set<Trait> {
+        traits.filter { trait in !evidence.contains { $0.trait == trait.name } }
+    }
 }
 
 extension AppInfo {

@@ -7,6 +7,10 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     runs-on: xcode-27
@@ -18,8 +22,8 @@ jobs:
     - name: Setup Just
       uses: extractions/setup-just@v2
 
-    - name: Setup XcodeGen
-      run: brew install xcodegen
+    - name: Setup XcodeGen and xcbeautify
+      run: brew install xcodegen xcbeautify
 
     - name: Build project
       run: just build

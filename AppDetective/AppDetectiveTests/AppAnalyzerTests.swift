@@ -7,7 +7,7 @@ struct AppAnalyzerTests {
     private let detectService = DetectService()
     private let sentinelIcon = Data("cached-icon".utf8)
 
-    private func cachedEntry(for app: FakeApp, fingerprint: Date?, version: String) -> CachedApp {
+    private func cachedEntry(fingerprint: Date?, version: String) -> CachedApp {
         CachedApp(
             fingerprint: fingerprint,
             detectorVersion: version,
@@ -31,7 +31,7 @@ struct AppAnalyzerTests {
     func reusesCache() throws {
         let app = try FakeApp()
         defer { app.remove() }
-        let cached = cachedEntry(for: app, fingerprint: try infoPlistDate(of: app), version: detectService.version)
+        let cached = cachedEntry(fingerprint: try infoPlistDate(of: app), version: detectService.version)
 
         let result = AppAnalyzer.analyze(app.url, cached: cached, detectService: detectService)
 
@@ -43,7 +43,7 @@ struct AppAnalyzerTests {
     func redetectsOnNewRules() throws {
         let app = try FakeApp()
         defer { app.remove() }
-        let cached = cachedEntry(for: app, fingerprint: try infoPlistDate(of: app), version: "old")
+        let cached = cachedEntry(fingerprint: try infoPlistDate(of: app), version: "old")
 
         let result = AppAnalyzer.analyze(app.url, cached: cached, detectService: detectService)
 
@@ -57,7 +57,7 @@ struct AppAnalyzerTests {
     func reloadsUpdatedApp() throws {
         let app = try FakeApp()
         defer { app.remove() }
-        let cached = cachedEntry(for: app, fingerprint: .distantPast, version: detectService.version)
+        let cached = cachedEntry(fingerprint: .distantPast, version: detectService.version)
 
         let result = AppAnalyzer.analyze(app.url, cached: cached, detectService: detectService)
 

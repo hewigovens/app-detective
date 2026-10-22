@@ -31,17 +31,10 @@ struct CLIOutput: Encodable {
 
 enum CLIPrinter {
     static func text(_ o: CLIOutput) {
-        let versionLine: String
-        switch (o.version, o.build) {
-        case let (v?, b?): versionLine = "\(v) (\(b))"
-        case let (v?, nil): versionLine = v
-        case let (nil, b?): versionLine = "(\(b))"
-        default: versionLine = "—"
-        }
         line("App", o.name)
         line("Path", o.path)
         line("Bundle ID", o.bundleId ?? "—")
-        line("Version", versionLine)
+        line("Version", BundleMetrics.version(short: o.version, build: o.build) ?? "—")
         line("Size", o.sizeHuman ?? "—")
         line("Category", o.category)
         for kind in TraitKind.allCases {
@@ -65,9 +58,13 @@ enum CLIPrinter {
         print("\(label):".padding(toLength: 14, withPad: " ", startingAt: 0) + value)
     }
 
-    static func json(_ o: CLIOutput) {
+    private static let encoder: JSONEncoder = {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        return encoder
+    }()
+
+    static func json(_ o: CLIOutput) {
         do {
             let data = try encoder.encode(o)
             try FileHandle.standardOutput.write(contentsOf: data)
@@ -80,8 +77,6 @@ enum CLIPrinter {
 
     static func error(_ message: String, json: Bool) {
         if json {
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
             if let data = try? encoder.encode(["error": message]) {
                 try? FileHandle.standardError.write(contentsOf: data)
                 try? FileHandle.standardError.write(contentsOf: Data("\n".utf8))
