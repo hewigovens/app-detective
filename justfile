@@ -14,6 +14,8 @@ RUN_DERIVED_DATA := "build/DerivedData"
 ARCHIVE_DIR := "build/archive"
 EXPORT_DIR := "build/export"
 DIST_DIR := "build/dist"
+# CI runners launch the unsigned UI test runner; a local Mac kills it, so local tests sign with the development team.
+TEST_SIGNING := if env("CI", "") == "true" { "CODE_SIGNING_ALLOWED=NO" } else { "-allowProvisioningUpdates" }
 
 # Generate the Xcode project from XcodeGen spec.
 generate:
@@ -27,7 +29,7 @@ build:
 # Run tests using xcbeautify
 test:
 	just generate
-	set -o pipefail && xcodebuild -project {{PROJECT}} -scheme {{SCHEME}} test CODE_SIGNING_ALLOWED=NO | xcbeautify
+	set -o pipefail && xcodebuild -project {{PROJECT}} -scheme {{SCHEME}} test {{TEST_SIGNING}} | xcbeautify
 
 # Clean build artifacts
 clean:
