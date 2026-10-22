@@ -6,13 +6,15 @@
         <description>App Detective updates</description>
         <language>en</language>
         <item>
-            <title>Version 1.5.3</title>
-            <sparkle:version>11</sparkle:version>
-            <sparkle:shortVersionString>1.5.3</sparkle:shortVersionString>
-            <pubDate>Tue, 20 Oct 2026 10:23:29 +0000</pubDate>
-            <enclosure url="https://github.com/hewigovens/app-detective/releases/download/1.5.3/AppDetective-1.5.3.zip"
-                       sparkle:edSignature="A7+K7vVV1TGhHMkCaXIEDWQ83xCLIKzo/zOHHKSO9Po1RDIlOvLEEEZnCq9v7qHeYoJbhZ44XZFZqDJWh68pDQ=="
-                       length="3514294"
+            <title>Version 1.6.0</title>
+            <sparkle:version>12</sparkle:version>
+            <sparkle:shortVersionString>1.6.0</sparkle:shortVersionString>
+            <pubDate>Thu, 22 Oct 2026 09:52:06 +0000</pubDate>
+            <sparkle:minimumSystemVersion>14.6</sparkle:minimumSystemVersion>
+            <sparkle:releaseNotesLink>https://github.com/hewigovens/app-detective/releases/tag/1.6.0</sparkle:releaseNotesLink>
+            <enclosure url="https://github.com/hewigovens/app-detective/releases/download/1.6.0/AppDetective-1.6.0.zip"
+                       sparkle:edSignature="EFqYpZcyBeZVYn2iTFrbPp2jumrq6xiNY8MK1t+D+/PoqmtxdilmTpHiR5Jr2pyXZqtqJxNw6y1A8MYIrODQAA=="
+                       length="3610776"
                        type="application/octet-stream"/>
         </item>
     </channel>
