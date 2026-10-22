@@ -4,14 +4,22 @@ public enum TraitKind: String, CaseIterable, Codable, CodingKeyRepresentable, Se
     case ui
     case language
     case renderer
+    case graphics
+    case distribution
     case updater
+    case security
+    case background
 
     public var name: String {
         switch self {
         case .ui: "UI"
         case .language: "Language"
         case .renderer: "Renderer"
+        case .graphics: "Graphics"
+        case .distribution: "Distribution"
         case .updater: "Updater"
+        case .security: "Security"
+        case .background: "Background"
         }
     }
 
@@ -20,7 +28,11 @@ public enum TraitKind: String, CaseIterable, Codable, CodingKeyRepresentable, Se
         case .ui: "UI Frameworks"
         case .language: "Languages"
         case .renderer: "Renderers"
+        case .graphics: "Graphics APIs"
+        case .distribution: "Distribution"
         case .updater: "Updaters"
+        case .security: "Security"
+        case .background: "Background Items"
         }
     }
 }
@@ -34,7 +46,11 @@ public enum Trait: String, CaseIterable, Codable, Comparable, Identifiable, Send
     case other
     case swift, objectiveC, rust, go
     case wgpu
-    case appStore, sparkle, squirrel, tauriUpdater
+    case metal, openGL, vulkan
+    case appStore, testFlight, developerID, apple, adHoc
+    case sparkle, squirrel, tauriUpdater
+    case sandbox, hardenedRuntime, notarized
+    case loginItem, launchAgent, launchDaemon, privilegedHelper, systemExtension
 
     public var id: String { rawValue }
 
@@ -44,7 +60,11 @@ public enum Trait: String, CaseIterable, Codable, Comparable, Identifiable, Send
         switch self {
         case .swift, .objectiveC, .rust, .go: .language
         case .wgpu: .renderer
-        case .appStore, .sparkle, .squirrel, .tauriUpdater: .updater
+        case .metal, .openGL, .vulkan: .graphics
+        case .appStore, .testFlight, .developerID, .apple, .adHoc: .distribution
+        case .sparkle, .squirrel, .tauriUpdater: .updater
+        case .sandbox, .hardenedRuntime, .notarized: .security
+        case .loginItem, .launchAgent, .launchDaemon, .privilegedHelper, .systemExtension: .background
         default: .ui
         }
     }
@@ -89,10 +109,25 @@ public enum Trait: String, CaseIterable, Codable, Comparable, Identifiable, Send
         case .rust: "Rust"
         case .go: "Go"
         case .wgpu: "wgpu"
+        case .metal: "Metal"
+        case .openGL: "OpenGL"
+        case .vulkan: "Vulkan"
         case .appStore: "App Store"
+        case .testFlight: "TestFlight"
+        case .developerID: "Developer ID"
+        case .apple: "Apple"
+        case .adHoc: "Ad-hoc Signed"
         case .sparkle: "Sparkle"
         case .squirrel: "Squirrel"
         case .tauriUpdater: "Tauri Updater"
+        case .sandbox: "App Sandbox"
+        case .hardenedRuntime: "Hardened Runtime"
+        case .notarized: "Notarized"
+        case .loginItem: "Login Item"
+        case .launchAgent: "Launch Agent"
+        case .launchDaemon: "Launch Daemon"
+        case .privilegedHelper: "Privileged Helper"
+        case .systemExtension: "System Extension"
         }
     }
 
@@ -103,7 +138,11 @@ public enum Trait: String, CaseIterable, Codable, Comparable, Identifiable, Send
 
 extension Set<Trait> {
     public func of(_ kind: TraitKind) -> Set<Trait> {
-        filter { $0.kind == kind }
+        of([kind])
+    }
+
+    public func of(_ kinds: Set<TraitKind>) -> Set<Trait> {
+        filter { kinds.contains($0.kind) }
     }
 
     public var names: [String] {

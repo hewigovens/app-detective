@@ -3,7 +3,7 @@
 [![CI](https://github.com/hewigovens/app-detective/actions/workflows/ci.yml/badge.svg)](https://github.com/hewigovens/app-detective/actions/workflows/ci.yml)
 ![Release](https://img.shields.io/github/v/release/hewigovens/app-detective)
 
-App Detective identifies how macOS apps are built: their UI framework, language, renderer, and updater.
+App Detective identifies how macOS apps are built and shipped: their UI framework, language, renderer, graphics API, distribution, updater, security settings, and background items.
 
 ![App Detective](Assets/main.png)
 
@@ -30,14 +30,16 @@ open -a "App Detective" --args --scan-folder /Applications
 
 ```bash
 $ appdetective /Applications/Visual\ Studio\ Code.app
-App:        Visual Studio Code.app
-Path:       /Applications/Visual Studio Code.app
-Bundle ID:  com.microsoft.VSCode
-Version:    1.142.0 (1.142.0)
-Size:       900 MB
-Category:   Developer Tools
-UI:         Electron
-Updater:    Squirrel
+App:          Visual Studio Code.app
+Path:         /Applications/Visual Studio Code.app
+Bundle ID:    com.microsoft.VSCode
+Version:      1.142.0 (1.142.0)
+Size:         900 MB
+Category:     Developer Tools
+UI:           Electron
+Distribution: Developer ID
+Updater:      Squirrel
+Security:     Hardened Runtime, Notarized
 ```
 
 Use `--json` for machine-readable output (handy for scripts and agents), and `--explain` to see the evidence behind each trait:
@@ -54,7 +56,9 @@ $ appdetective --json /System/Applications/Calculator.app
   "sizeBytes" : 4954666,
   "sizeHuman" : "5 MB",
   "traits" : {
+    "distribution" : [ "Apple" ],
     "language" : [ "Swift" ],
+    "security" : [ "App Sandbox" ],
     "ui" : [ "SwiftUI" ]
   },
   "version" : "12.0"
@@ -79,8 +83,20 @@ Each app gets a list of traits, grouped by kind.
 ### Renderers
 - wgpu, for apps that draw their own UI on the GPU
 
+### Graphics APIs
+- Metal, OpenGL, Vulkan (MoltenVK), from the libraries the app links or bundles
+
+### Distribution
+- App Store, TestFlight, Developer ID, Apple, ad-hoc signed, from the code signature
+
 ### Updaters
-- Sparkle, Squirrel (Electron), Tauri Updater, App Store
+- Sparkle, Squirrel (Electron), Tauri Updater
+
+### Security
+- App Sandbox, Hardened Runtime, and Notarized (when the ticket is stapled)
+
+### Background Items
+- Login items, launch agents and daemons, privileged helpers, and system extensions the app bundles
 
 ## Contributing
 

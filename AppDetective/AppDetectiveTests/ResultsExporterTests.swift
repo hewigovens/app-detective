@@ -18,8 +18,8 @@ struct ResultsExporterTests {
         let text = try #require(String(data: ResultsExporter.csv([app]), encoding: .utf8))
         let lines = text.components(separatedBy: "\r\n")
 
-        #expect(lines[0] == "Name,Path,Bundle ID,Version,Category,UI Frameworks,Languages,Renderers,Updaters,Possible Traits,Size")
-        #expect(lines[1] == #""Say ""Hi"", World",/Applications/Say.app,,,Utilities,Electron; Python,Rust,,Squirrel,Java,12 MB"#)
+        #expect(lines[0] == "Name,Path,Bundle ID,Version,Category,UI Frameworks,Languages,Renderers,Graphics APIs,Distribution,Updaters,Security,Background Items,Possible Traits,Size")
+        #expect(lines[1] == #""Say ""Hi"", World",/Applications/Say.app,,,Utilities,Electron; Python,Rust,,,,Squirrel,,,Java,12 MB"#)
     }
 
     @Test("JSON groups traits by kind and lists possible traits")

@@ -39,6 +39,9 @@ public enum Evidence: Sendable, CustomStringConvertible {
     case entry(in: String, Pattern) // An item in a directory relative to the bundle root, e.g. "Contents/app".
     case embeddedString(String) // In the executable; evaluated only when no UI framework beyond AppKit/UIKit matched.
     case codeString(String) // In the executable, the app's own frameworks, or its extensions.
+    case signer(Pattern) // The leaf certificate's common name.
+    case signatureFlag(SignatureFlag)
+    case entitlement(String) // A true Boolean entitlement.
 
     public var description: String {
         switch self {
@@ -50,6 +53,9 @@ public enum Evidence: Sendable, CustomStringConvertible {
         case let .entry(directory, pattern): "\(directory) entry \(pattern)"
         case let .embeddedString(text): "string \"\(text)\""
         case let .codeString(text): "code string \"\(text)\""
+        case let .signer(pattern): "signer \(pattern)"
+        case let .signatureFlag(flag): "signature flag \(flag.rawValue)"
+        case let .entitlement(key): "entitlement \(key)"
         }
     }
 
@@ -63,6 +69,9 @@ public enum Evidence: Sendable, CustomStringConvertible {
         case let .entry(directory, _): "Entry in \(directory)"
         case .embeddedString: "Embedded string"
         case .codeString: "String in the app's code"
+        case .signer: "Signing certificate"
+        case .signatureFlag: "Code signature flag"
+        case .entitlement: "Entitlement"
         }
     }
 
@@ -84,6 +93,11 @@ public enum Evidence: Sendable, CustomStringConvertible {
         if case .framework = self { return true }
         return false
     }
+}
+
+public enum SignatureFlag: String, Sendable {
+    case adHoc = "adhoc"
+    case hardenedRuntime = "runtime"
 }
 
 public enum Pattern: Sendable, CustomStringConvertible {

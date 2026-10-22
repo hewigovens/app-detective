@@ -17,8 +17,10 @@ struct FakeApp {
         let contentsURL = url.appendingPathComponent("Contents")
         let macOSURL = contentsURL.appendingPathComponent("MacOS")
         try fileManager.createDirectory(at: macOSURL, withIntermediateDirectories: true)
-        // A Mach-O that links only libSystem.
-        try fileManager.copyItem(atPath: "/usr/bin/true", toPath: macOSURL.appendingPathComponent(name).path)
+        // A Mach-O that links only libSystem, unsigned so it doesn't read as Apple's.
+        let executablePath = macOSURL.appendingPathComponent(name).path
+        try fileManager.copyItem(atPath: "/usr/bin/true", toPath: executablePath)
+        try run("/usr/bin/codesign", ["--remove-signature", executablePath])
 
         var info: [String: Any] = ["CFBundleIdentifier": "test.\(name)", "CFBundlePackageType": "APPL"]
         if declaresExecutable {
@@ -38,6 +40,14 @@ struct FakeApp {
 
     func remove() {
         try? FileManager.default.removeItem(at: url.deletingLastPathComponent())
+    }
+}
+
+func run(_ path: String, _ arguments: [String]) throws {
+    let process = try Process.run(URL(fileURLWithPath: path), arguments: arguments)
+    process.waitUntilExit()
+    guard process.terminationStatus == 0 else {
+        throw CocoaError(.executableLoad, userInfo: [NSFilePathErrorKey: path])
     }
 }
 

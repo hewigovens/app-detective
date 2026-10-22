@@ -2,6 +2,9 @@ import DetectiveCore
 import SwiftUI
 
 struct AppListCell: View {
+    // How the app is built; distribution, security, and background items are in the detail view.
+    private static let listedKinds: Set<TraitKind> = [.ui, .language, .renderer, .updater]
+
     let appInfo: AppInfo
     @State private var isShowingEvidence = false
 
@@ -27,7 +30,7 @@ struct AppListCell: View {
             Button {
                 isShowingEvidence = true
             } label: {
-                TraitTagRow(traits: appInfo.traits, possibleTraits: appInfo.possibleTraits)
+                TraitTagRow(traits: appInfo.traits.of(Self.listedKinds), possibleTraits: appInfo.possibleTraits.of(Self.listedKinds))
             }
             .buttonStyle(.plain)
             .help("Show detection evidence")

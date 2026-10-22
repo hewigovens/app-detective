@@ -1,4 +1,5 @@
 import Foundation
+import Security
 
 final class BundleInspector {
     private typealias Binary = (path: String, bytes: Data)
@@ -55,6 +56,27 @@ final class BundleInspector {
         return [executable].compactMap { $0 } + urls.map(binary(at:))
     }()
 
+    private lazy var signingInformation: [String: Any] = {
+        // The executable, as iOS apps on Apple silicon are signed inside their wrapper.
+        var code: SecStaticCode?
+        var information: CFDictionary?
+        guard
+            SecStaticCodeCreateWithPath((executableURL ?? bundle.bundleURL) as CFURL, [], &code) == errSecSuccess,
+            let code,
+            SecCodeCopySigningInformation(code, SecCSFlags(rawValue: kSecCSSigningInformation | kSecCSRequirementInformation), &information) == errSecSuccess
+        else {
+            return [:]
+        }
+        return information as? [String: Any] ?? [:]
+    }()
+
+    private lazy var signer: String? = {
+        guard let leaf = (signingInformation[kSecCodeInfoCertificates as String] as? [SecCertificate])?.first else { return nil }
+        return SecCertificateCopySubjectSummary(leaf) as String?
+    }()
+
+    private lazy var entitlements = signingInformation[kSecCodeInfoEntitlementsDict as String] as? [String: Any] ?? [:]
+
     private lazy var rootPath = bundle.bundleURL.resolvingSymlinksInPath().path + "/"
     private var catalogHosts: [String: Bool] = [:]
 
@@ -76,6 +98,20 @@ final class BundleInspector {
             firstBinary(containing: text, in: [executable].compactMap { $0 }).map { _ in text }
         case let .codeString(text):
             firstBinary(containing: text, in: codeBinaries)
+        case let .signer(pattern):
+            signer.flatMap { pattern.matches($0) ? $0 : nil }
+        case let .signatureFlag(flag):
+            hasSignatureFlag(flag) ? flag.rawValue : nil
+        case let .entitlement(key):
+            entitlements[key] as? Bool == true ? key : nil
+        }
+    }
+
+    private func hasSignatureFlag(_ flag: SignatureFlag) -> Bool {
+        let flags = SecCodeSignatureFlags(rawValue: signingInformation[kSecCodeInfoFlags as String] as? UInt32 ?? 0)
+        return switch flag {
+        case .adHoc: flags.contains(.adhoc)
+        case .hardenedRuntime: flags.contains(.runtime)
         }
     }
 

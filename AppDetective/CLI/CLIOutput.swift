@@ -38,19 +38,19 @@ enum CLIPrinter {
         case let (nil, b?): versionLine = "(\(b))"
         default: versionLine = "—"
         }
-        print("App:        \(o.name)")
-        print("Path:       \(o.path)")
-        print("Bundle ID:  \(o.bundleId ?? "—")")
-        print("Version:    \(versionLine)")
-        print("Size:       \(o.sizeHuman ?? "—")")
-        print("Category:   \(o.category)")
+        line("App", o.name)
+        line("Path", o.path)
+        line("Bundle ID", o.bundleId ?? "—")
+        line("Version", versionLine)
+        line("Size", o.sizeHuman ?? "—")
+        line("Category", o.category)
         for kind in TraitKind.allCases {
             if let names = o.traits[kind] {
-                print("\(kind.name + ":")".padding(toLength: 12, withPad: " ", startingAt: 0) + names.joined(separator: ", "))
+                line(kind.name, names.joined(separator: ", "))
             }
         }
         if !o.possibleTraits.isEmpty {
-            print("Possibly:   \(o.possibleTraits.joined(separator: ", "))")
+            line("Possibly", o.possibleTraits.joined(separator: ", "))
         }
         if let evidence = o.evidence {
             print("Evidence:")
@@ -58,6 +58,11 @@ enum CLIPrinter {
                 print("  [\(item.confidence)] \(item.trait): \(item.rule) → \(item.match)")
             }
         }
+    }
+
+    // Wide enough for the longest label, "Distribution:".
+    private static func line(_ label: String, _ value: String) {
+        print("\(label):".padding(toLength: 14, withPad: " ", startingAt: 0) + value)
     }
 
     static func json(_ o: CLIOutput) {

@@ -7,13 +7,13 @@ struct SystemAppTests {
     typealias SystemApp = (path: String, traits: Set<DetectiveCore.Trait>)
 
     static let apps: [SystemApp] = [
-        ("/System/Applications/Calculator.app", [.swiftUI, .swift]),
-        ("/System/Applications/TextEdit.app", [.appKit, .swift]),
-        ("/System/Applications/Automator.app", [.appKit, .objectiveC]),
-        ("/System/Applications/Stocks.app", [.catalyst, .swift]),
-        ("/System/Applications/Maps.app", [.catalyst, .swiftUI, .swift]),
-        ("/System/Applications/Utilities/Disk Utility.app", [.appKit, .objectiveC]),
-        ("/System/Applications/Utilities/Terminal.app", [.appKit, .swift]),
+        ("/System/Applications/Calculator.app", [.swiftUI, .swift, .apple, .sandbox]),
+        ("/System/Applications/TextEdit.app", [.appKit, .swift, .apple, .sandbox]),
+        ("/System/Applications/Automator.app", [.appKit, .objectiveC, .apple, .hardenedRuntime]),
+        ("/System/Applications/Stocks.app", [.catalyst, .swift, .apple, .sandbox]),
+        ("/System/Applications/Maps.app", [.catalyst, .swiftUI, .swift, .apple, .sandbox]),
+        ("/System/Applications/Utilities/Disk Utility.app", [.appKit, .objectiveC, .apple]),
+        ("/System/Applications/Utilities/Terminal.app", [.appKit, .swift, .apple]),
     ]
 
     @Test("System apps resolve to the expected traits", arguments: apps)

@@ -130,13 +130,46 @@ extension TraitSignature {
             .strong(.file("Contents/UE")),
         ]),
 
-        // MARK: Updaters
+        // MARK: Graphics APIs
+
+        TraitSignature(.metal, [
+            .strong(.linkedLibrary(.contains("/Metal.framework/"))),
+            .strong(.linkedLibrary(.contains("/MetalKit.framework/"))),
+            .strong(.resource(.suffix(".metallib"))),
+        ]),
+        TraitSignature(.openGL, [
+            .strong(.linkedLibrary(.contains("/OpenGL.framework/"))),
+        ]),
+        TraitSignature(.vulkan, [
+            .strong(.framework(.prefix("libMoltenVK"))),
+            .strong(.framework(.prefix("libvulkan"))),
+            .strong(.framework(.exact("MoltenVK.framework"))),
+            .strong(.linkedLibrary(.contains("MoltenVK"))),
+            .strong(.linkedLibrary(.contains("libvulkan"))),
+        ]),
+
+        // MARK: Distribution
 
         TraitSignature(.appStore, [
-            .strong(.file("Contents/_MASReceipt")),
-            // iOS apps on Apple silicon keep their store metadata next to the wrapped app.
-            .strong(.file("Wrapper/iTunesMetadata.plist")),
+            .strong(.signer(.exact("Apple Mac OS Application Signing"))),
+            .strong(.signer(.exact("Apple iPhone OS Application Signing"))),
         ]),
+        TraitSignature(.testFlight, [
+            .strong(.signer(.exact("TestFlight Beta Distribution"))),
+        ]),
+        TraitSignature(.developerID, [
+            .strong(.signer(.prefix("Developer ID Application:"))),
+        ]),
+        TraitSignature(.apple, [
+            .strong(.signer(.exact("Software Signing"))),
+            .strong(.signer(.exact("macOS Software Signing"))),
+        ]),
+        TraitSignature(.adHoc, [
+            .strong(.signatureFlag(.adHoc)),
+        ]),
+
+        // MARK: Updaters
+
         TraitSignature(.sparkle, [
             .strong(.framework(.exact("Sparkle.framework"))),
         ]),
@@ -146,6 +179,38 @@ extension TraitSignature {
         ]),
         TraitSignature(.tauriUpdater, [
             .strong(.codeString("tauri_plugin_updater")),
+        ]),
+
+        // MARK: Security
+
+        TraitSignature(.sandbox, [
+            .strong(.entitlement("com.apple.security.app-sandbox")),
+        ]),
+        TraitSignature(.hardenedRuntime, [
+            .strong(.signatureFlag(.hardenedRuntime)),
+        ]),
+        TraitSignature(.notarized, [
+            // Where `stapler` puts the ticket; notarized apps without one stapled aren't reported.
+            .strong(.file("Contents/CodeResources")),
+        ]),
+
+        // MARK: Background items
+
+        TraitSignature(.loginItem, [
+            .strong(.entry(in: "Contents/Library/LoginItems", .suffix(".app"))),
+        ]),
+        TraitSignature(.launchAgent, [
+            .strong(.entry(in: "Contents/Library/LaunchAgents", .suffix(".plist"))),
+        ]),
+        TraitSignature(.launchDaemon, [
+            .strong(.entry(in: "Contents/Library/LaunchDaemons", .suffix(".plist"))),
+        ]),
+        TraitSignature(.privilegedHelper, [
+            // SMJobBless helpers, named by their label.
+            .strong(.entry(in: "Contents/Library/LaunchServices", .regex("^[^.]"))),
+        ]),
+        TraitSignature(.systemExtension, [
+            .strong(.entry(in: "Contents/Library/SystemExtensions", .suffix(".systemextension"))),
         ]),
 
         // MARK: Language runtimes

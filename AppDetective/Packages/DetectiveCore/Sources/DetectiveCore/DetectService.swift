@@ -3,7 +3,7 @@ import LSAppCategory
 
 public final class DetectService: Sendable {
     // Bump when detection logic outside the catalog changes; catalog edits change `version` on their own.
-    private static let engineVersion = 9
+    private static let engineVersion = 10
 
     private let signatures: [TraitSignature]
 
@@ -91,7 +91,7 @@ public final class DetectService: Sendable {
 
     // The baseline UI is reported only when nothing more specific was found, and not for apps that draw their
     // own UI with a renderer. Apple frameworks without another language mean Objective-C; SwiftUI always
-    // comes with Swift.
+    // comes with Swift. Every other kind is reported as matched.
     private static func resolve(_ traits: Set<Trait>) -> Set<Trait> {
         let toolkits = toolkits(in: traits)
         let renderers = traits.of(.renderer)
@@ -106,7 +106,7 @@ public final class DetectService: Sendable {
         if languages.isEmpty, !ui.isEmpty, ui.isSubset(of: [.appKit, .uiKit, .catalyst]) {
             languages = [.objectiveC]
         }
-        return ui.union(languages).union(renderers).union(traits.of(.updater))
+        return ui.union(languages).union(traits.filter { $0.kind != .ui && $0.kind != .language })
     }
 
     private static func toolkits(in traits: Set<Trait>) -> Set<Trait> {

@@ -227,17 +227,50 @@ struct DetectServiceTests {
     @Test("Detects updaters next to the UI framework")
     func detectsUpdaters() async throws {
         let sparkleApp = try FakeApp(frameworks: ["Sparkle.framework"])
-        let storeApp = try FakeApp(contents: ["_MASReceipt"])
         let electronApp = try FakeApp(frameworks: ["Electron Framework.framework", "Squirrel.framework"])
         defer {
             sparkleApp.remove()
-            storeApp.remove()
             electronApp.remove()
         }
 
         #expect(detectService.detect(sparkleApp.url).traits == [.appKit, .objectiveC, .sparkle])
-        #expect(detectService.detect(storeApp.url).traits == [.appKit, .objectiveC, .appStore])
         #expect(detectService.detect(electronApp.url).traits == [.electron, .squirrel])
+    }
+
+    @Test("Detects background items, Metal shaders, and a stapled ticket")
+    func detectsBundledComponents() throws {
+        let app = try FakeApp(
+            resources: ["default.metallib"],
+            contents: [
+                "CodeResources",
+                "Library/LoginItems/Helper.app",
+                "Library/LaunchAgents/com.example.agent.plist",
+                "Library/LaunchDaemons/com.example.daemon.plist",
+                "Library/LaunchServices/com.example.helper",
+                "Library/LaunchServices/.DS_Store",
+                "Library/SystemExtensions/com.example.tunnel.systemextension",
+            ]
+        )
+        defer { app.remove() }
+
+        let expected: Set<DetectiveCore.Trait> = [
+            .appKit, .objectiveC, .metal, .notarized,
+            .loginItem, .launchAgent, .launchDaemon, .privilegedHelper, .systemExtension,
+        ]
+        #expect(detectService.detect(app.url).traits == expected)
+    }
+
+    @Test("Reads distribution and security from the code signature")
+    func readsCodeSignature() throws {
+        let app = try FakeApp()
+        defer { app.remove() }
+        #expect(detectService.detect(app.url).traits == [.appKit, .objectiveC])
+
+        let entitlementsURL = app.url.deletingLastPathComponent().appendingPathComponent("entitlements.plist")
+        try writePlist(["com.apple.security.app-sandbox": true], to: entitlementsURL)
+        try run("/usr/bin/codesign", ["--sign", "-", "--options", "runtime", "--entitlements", entitlementsURL.path, app.url.path])
+
+        #expect(detectService.detect(app.url).traits == [.appKit, .objectiveC, .adHoc, .sandbox, .hardenedRuntime])
     }
 
     @Test("An updater doesn't stop embedded-string rules from running")
