@@ -9,9 +9,125 @@
             <title>Version 1.6.0</title>
             <sparkle:version>12</sparkle:version>
             <sparkle:shortVersionString>1.6.0</sparkle:shortVersionString>
-            <pubDate>Thu, 22 Oct 2026 09:52:06 +0000</pubDate>
+            <pubDate>Fri, 23 Oct 2026 05:10:21 +0000</pubDate>
             <sparkle:minimumSystemVersion>14.6</sparkle:minimumSystemVersion>
-            <sparkle:releaseNotesLink>https://github.com/hewigovens/app-detective/releases/tag/1.6.0</sparkle:releaseNotesLink>
+            <description><![CDATA[
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>App Detective 1.6.0 — Release notes</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --background: #f7f8fa;
+      --surface: #ffffff;
+      --text: #20242c;
+      --muted: #626b78;
+      --border: #dfe4ec;
+      --accent: #1d4ed8;
+      --tint: #eaf1ff;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --background: #181b21;
+        --surface: #22262e;
+        --text: #edf0f6;
+        --muted: #adb6c5;
+        --border: #3b424f;
+        --accent: #93baff;
+        --tint: #283b5d;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      background: var(--background);
+      color: var(--text);
+      font: 13px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow-wrap: anywhere;
+    }
+    .release { max-width: 720px; margin: 0 auto; }
+    header { padding-bottom: 22px; border-bottom: 1px solid var(--border); }
+    h1 { margin: 0 0 12px; font-size: 28px; line-height: 1.2; letter-spacing: -0.035em; }
+    .metadata { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; color: var(--muted); }
+    .version { padding: 3px 10px; border-radius: 7px; background: var(--tint); color: var(--accent); font-weight: 650; }
+    main h2 { margin: 24px 0 10px; font-size: 16px; line-height: 1.35; }
+    main ul, main ol { margin: 0; padding: 16px 18px 16px 34px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+    main li + li { margin-top: 10px; }
+    main li::marker { color: var(--accent); }
+    main li ul, main li ol { margin-top: 10px; padding: 0 0 0 18px; border: 0; }
+    code { padding: 1px 4px; border-radius: 4px; background: var(--tint); font: 0.92em ui-monospace, SFMono-Regular, Menlo, monospace; }
+    pre { overflow-x: auto; padding: 14px; border-radius: 10px; background: var(--surface); }
+    pre code { padding: 0; background: transparent; }
+    a { color: var(--accent); text-underline-offset: 3px; }
+    a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+    footer { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--muted); }
+    @media (max-width: 420px) { body { padding: 16px; } h1 { font-size: 24px; } }
+    @media (prefers-contrast: more) { :root { --muted: var(--text); --border: var(--text); } }
+  </style>
+</head>
+<body>
+  <div class="release">
+    <header>
+      <h1>What’s new</h1>
+      <div class="metadata"><span class="version">v1.6.0</span><time datetime="2026-10-23">October 23, 2026</time></div>
+    </header>
+    <main>
+<h2>Detection</h2>
+<ul>
+<li>Results are now <strong>traits</strong> grouped by kind, so an app can be SwiftUI <em>and</em> Swift <em>and</em> Sparkle at once instead of having a single stack.
+</li>
+<li><strong>Languages</strong> for every app: Swift, Objective-C, Rust, and <strong>Go</strong>, found in the app's executable, its own frameworks, and its extensions. Tailscale shows Go from its network extension; SwiftUI apps with a Rust core show both.
+</li>
+<li>New kinds:
+<ul>
+<li><strong>Graphics</strong>: Metal, OpenGL, Vulkan (MoltenVK).
+</li>
+<li><strong>Distribution</strong>: App Store, TestFlight, Developer ID, Apple, and ad-hoc signed, read from the code signature. App Store moves here from Updaters, and TestFlight builds are no longer reported as App Store.
+</li>
+<li><strong>Updaters</strong>: Sparkle, Squirrel, and Tauri Updater.
+</li>
+<li><strong>Security</strong>: App Sandbox, Hardened Runtime, and Notarized (when the ticket is stapled).
+</li>
+<li><strong>Background items</strong>: login items, launch agents and daemons, privileged helpers, and system extensions.
+</li></ul></li>
+<li>Bundles without an executable are reported as Other but keep what their contents show.
+</li>
+<li>Cached results are re-detected on first launch.
+</li></ul>
+<h2>Main window</h2>
+<ul>
+<li>The sidebar has a section per kind; pick one trait from each to combine filters.
+</li>
+<li>App rows keep their tags to how the app is built (UI, language, renderer, updater); the inspector lists every kind.
+</li>
+<li>The evidence list says which traits were inferred, such as AppKit and Objective-C when nothing more specific matched.
+</li>
+<li>A trait filter stays visible after switching to a category without it, and an empty result offers <strong>Reset Filters</strong>.
+</li>
+<li><strong>File → Export Results…</strong> is disabled when no apps match, and CSV gets a column per kind.
+</li></ul>
+<h2>Command-line tool</h2>
+<ul>
+<li>Text output prints one line per kind. In <code>--json</code>, <code>traits</code> is an object keyed by kind (<code>ui</code>, <code>language</code>, <code>renderer</code>, <code>graphics</code>, <code>distribution</code>, <code>updater</code>, <code>security</code>, <code>background</code>).
+</li>
+<li>Unknown options are reported instead of being read as the app path.
+</li></ul>
+<h2>Performance</h2>
+<ul>
+<li>Binaries are searched in place instead of through <code>strings</code>: Tern went from 3.7s to 0.6s, and a full <code>/Applications</code> scan takes a few seconds.
+</li></ul>
+    </main>
+    <footer><a href="https://github.com/hewigovens/app-detective/releases">All releases</a></footer>
+  </div>
+</body>
+</html>
+
+            ]]></description>
             <enclosure url="https://github.com/hewigovens/app-detective/releases/download/1.6.0/AppDetective-1.6.0.zip"
                        sparkle:edSignature="EFqYpZcyBeZVYn2iTFrbPp2jumrq6xiNY8MK1t+D+/PoqmtxdilmTpHiR5Jr2pyXZqtqJxNw6y1A8MYIrODQAA=="
                        length="3610776"
