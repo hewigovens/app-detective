@@ -32,7 +32,7 @@ extension AppInfo {
             version: analysis.version,
             traits: analysis.traits,
             possibleTraits: analysis.possibleTraits,
-            evidence: analysis.evidence,
+            evidence: analysis.evidence.mergingRules(),
             category: analysis.category,
             iconData: analysis.iconData,
             size: analysis.size

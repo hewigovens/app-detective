@@ -24,6 +24,30 @@ struct TraitEvidence: Codable, Hashable, Sendable {
     let isStrong: Bool
 }
 
+extension [TraitEvidence] {
+    // Several rules of a trait can match one item, such as two strings in the same binary; list the item once.
+    func mergingRules() -> [TraitEvidence] {
+        var merged: [TraitEvidence] = []
+        for evidence in self {
+            guard let index = merged.firstIndex(where: {
+                $0.trait == evidence.trait && $0.label == evidence.label && $0.item == evidence.item
+            }) else {
+                merged.append(evidence)
+                continue
+            }
+            let existing = merged[index]
+            merged[index] = TraitEvidence(
+                trait: existing.trait,
+                rule: existing.rule + "\n" + evidence.rule,
+                label: existing.label,
+                item: existing.item,
+                isStrong: existing.isStrong || evidence.isStrong
+            )
+        }
+        return merged
+    }
+}
+
 enum AppAnalyzer {
     // Rows draw icons at 44pt; 128px stays sharp on Retina.
     private static let iconPixelSize: CGFloat = 128

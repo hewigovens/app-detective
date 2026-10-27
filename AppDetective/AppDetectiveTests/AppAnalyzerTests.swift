@@ -65,4 +65,21 @@ struct AppAnalyzerTests {
         #expect(result.iconData != sentinelIcon)
         #expect(result.size != "1 KB")
     }
+
+    @Test("Lists an item matched by several rules of one trait once")
+    func mergesRulesMatchingOneItem() {
+        let binary = "Contents/MacOS/App"
+        let evidence = [
+            TraitEvidence(trait: "Rust", rule: "code string A", label: "Code string", item: binary, isStrong: false),
+            TraitEvidence(trait: "Rust", rule: "code string B", label: "Code string", item: binary, isStrong: true),
+            TraitEvidence(trait: "Go", rule: "code string C", label: "Code string", item: binary, isStrong: true),
+        ]
+
+        let merged = evidence.mergingRules()
+
+        #expect(merged == [
+            TraitEvidence(trait: "Rust", rule: "code string A\ncode string B", label: "Code string", item: binary, isStrong: true),
+            TraitEvidence(trait: "Go", rule: "code string C", label: "Code string", item: binary, isStrong: true),
+        ])
+    }
 }
