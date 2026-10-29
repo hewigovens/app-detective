@@ -78,7 +78,7 @@
     </header>
     <main>
 <ul>
-<li>The inspector shows who signed an app, such as <strong>Developer ID Application: Superlogical, Inc. (AG92C3PT77)</strong>, the certificate <code>codesign</code> lists first as its Authority. The command-line tool prints it as <strong>Signed By</strong> (<code>signer</code> in <code>--json</code>), and exported JSON and CSV include it.
+<li>The inspector shows who signed an app, such as <strong>Developer ID Application: Company Name (TEAMID)</strong>, the certificate <code>codesign</code> lists first as its Authority. The command-line tool prints it as <strong>Signed By</strong> (<code>signer</code> in <code>--json</code>), and exported JSON and CSV include it.
 </li>
 <li>Calmer colors: app tags are neutral capsules with a colored dot, sidebar icons are gray, and only the active filters are highlighted instead of every section's <strong>All</strong> row.
 </li>
