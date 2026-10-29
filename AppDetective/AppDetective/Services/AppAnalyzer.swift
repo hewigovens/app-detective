@@ -11,6 +11,7 @@ struct CachedApp: Codable, Sendable {
     let traits: Set<Trait>
     let possibleTraits: Set<Trait>
     let evidence: [TraitEvidence]
+    let signer: String?
     let category: AppCategory
     let iconData: Data?
     let size: String?
@@ -77,6 +78,7 @@ enum AppAnalyzer {
                     isStrong: $0.rule.confidence == .strong
                 )
             },
+            signer: detection.signer,
             category: detectService.extractCategory(from: url),
             iconData: isUnchanged ? cached?.iconData : iconData(forAppAt: url.path),
             size: isUnchanged ? cached?.size : BundleMetrics.size(at: url).map(BundleMetrics.format(bytes:))

@@ -72,16 +72,16 @@ struct CategoryView: View {
         }
     }
 
+    // Only active trait filters are highlighted; highlighting every section's unfiltered "All" row filled the sidebar.
     private var selectedItems: Set<SidebarItem> {
         let category = viewModel.selectedCategory.map(SidebarItem.category) ?? .allCategories
-        let traits = TraitKind.allCases.map { kind in viewModel.selectedTraits[kind].map(SidebarItem.trait) ?? .allTraits(kind) }
-        return Set([category] + traits)
+        return Set([category] + viewModel.selectedTraits.values.map(SidebarItem.trait))
     }
 }
 
 // SF Symbols differ in size and width, so each one is scaled to fit the same box inside the same slot,
-// which keeps the titles aligned and the icons visually even. The sidebar's own label style still
-// colors it, including the white-on-selection swap.
+// which keeps the titles aligned and the icons visually even. Secondary rather than the sidebar's accent
+// tint, which colored every row and outweighed the trait dots; it still turns white on selection.
 private struct SidebarIcon: View {
     static let width: CGFloat = 20
     let systemName: String
@@ -92,6 +92,7 @@ private struct SidebarIcon: View {
             .scaledToFit()
             .frame(width: 16, height: 16)
             .frame(width: Self.width, height: 18)
+            .foregroundStyle(.secondary)
     }
 }
 

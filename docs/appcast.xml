@@ -6,10 +6,10 @@
         <description>App Detective updates</description>
         <language>en</language>
         <item>
-            <title>Version 1.6.0</title>
-            <sparkle:version>12</sparkle:version>
-            <sparkle:shortVersionString>1.6.0</sparkle:shortVersionString>
-            <pubDate>Fri, 23 Oct 2026 05:10:21 +0000</pubDate>
+            <title>Version 1.6.1</title>
+            <sparkle:version>13</sparkle:version>
+            <sparkle:shortVersionString>1.6.1</sparkle:shortVersionString>
+            <pubDate>Thu, 29 Oct 2026 11:12:31 +0000</pubDate>
             <sparkle:minimumSystemVersion>14.6</sparkle:minimumSystemVersion>
             <description><![CDATA[
 <!DOCTYPE html>
@@ -18,7 +18,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title>App Detective 1.6.0 — Release notes</title>
+  <title>App Detective 1.6.1 — Release notes</title>
   <style>
     :root {
       color-scheme: light dark;
@@ -74,52 +74,19 @@
   <div class="release">
     <header>
       <h1>What’s new</h1>
-      <div class="metadata"><span class="version">v1.6.0</span><time datetime="2026-10-23">October 23, 2026</time></div>
+      <div class="metadata"><span class="version">v1.6.1</span><time datetime="2026-10-29">October 29, 2026</time></div>
     </header>
     <main>
-<h2>Detection</h2>
 <ul>
-<li>Results are now <strong>traits</strong> grouped by kind, so an app can be SwiftUI <em>and</em> Swift <em>and</em> Sparkle at once instead of having a single stack.
+<li>The inspector shows who signed an app, such as <strong>Developer ID Application: Superlogical, Inc. (AG92C3PT77)</strong>, the certificate <code>codesign</code> lists first as its Authority. The command-line tool prints it as <strong>Signed By</strong> (<code>signer</code> in <code>--json</code>), and exported JSON and CSV include it.
 </li>
-<li><strong>Languages</strong> for every app: Swift, Objective-C, Rust, and <strong>Go</strong>, found in the app's executable, its own frameworks, and its extensions. Tailscale shows Go from its network extension; SwiftUI apps with a Rust core show both.
+<li>Calmer colors: app tags are neutral capsules with a colored dot, sidebar icons are gray, and only the active filters are highlighted instead of every section's <strong>All</strong> row.
 </li>
-<li>New kinds:
-<ul>
-<li><strong>Graphics</strong>: Metal, OpenGL, Vulkan (MoltenVK).
+<li>Evidence lists an item once per trait when several rules match it, such as Rust's two code strings in one binary, with every matched rule in its tooltip.
 </li>
-<li><strong>Distribution</strong>: App Store, TestFlight, Developer ID, Apple, and ad-hoc signed, read from the code signature. App Store moves here from Updaters, and TestFlight builds are no longer reported as App Store.
-</li>
-<li><strong>Updaters</strong>: Sparkle, Squirrel, and Tauri Updater.
-</li>
-<li><strong>Security</strong>: App Sandbox, Hardened Runtime, and Notarized (when the ticket is stapled).
-</li>
-<li><strong>Background items</strong>: login items, launch agents and daemons, privileged helpers, and system extensions.
-</li></ul></li>
-<li>Bundles without an executable are reported as Other but keep what their contents show.
+<li>The update prompt shows these release notes instead of linking to the GitHub release page.
 </li>
 <li>Cached results are re-detected on first launch.
-</li></ul>
-<h2>Main window</h2>
-<ul>
-<li>The sidebar has a section per kind; pick one trait from each to combine filters.
-</li>
-<li>App rows keep their tags to how the app is built (UI, language, renderer, updater); the inspector lists every kind.
-</li>
-<li>The evidence list says which traits were inferred, such as AppKit and Objective-C when nothing more specific matched.
-</li>
-<li>A trait filter stays visible after switching to a category without it, and an empty result offers <strong>Reset Filters</strong>.
-</li>
-<li><strong>File → Export Results…</strong> is disabled when no apps match, and CSV gets a column per kind.
-</li></ul>
-<h2>Command-line tool</h2>
-<ul>
-<li>Text output prints one line per kind. In <code>--json</code>, <code>traits</code> is an object keyed by kind (<code>ui</code>, <code>language</code>, <code>renderer</code>, <code>graphics</code>, <code>distribution</code>, <code>updater</code>, <code>security</code>, <code>background</code>).
-</li>
-<li>Unknown options are reported instead of being read as the app path.
-</li></ul>
-<h2>Performance</h2>
-<ul>
-<li>Binaries are searched in place instead of through <code>strings</code>: Tern went from 3.7s to 0.6s, and a full <code>/Applications</code> scan takes a few seconds.
 </li></ul>
     </main>
     <footer><a href="https://github.com/hewigovens/app-detective/releases">All releases</a></footer>
@@ -128,9 +95,9 @@
 </html>
 
             ]]></description>
-            <enclosure url="https://github.com/hewigovens/app-detective/releases/download/1.6.0/AppDetective-1.6.0.zip"
-                       sparkle:edSignature="EFqYpZcyBeZVYn2iTFrbPp2jumrq6xiNY8MK1t+D+/PoqmtxdilmTpHiR5Jr2pyXZqtqJxNw6y1A8MYIrODQAA=="
-                       length="3610776"
+            <enclosure url="https://github.com/hewigovens/app-detective/releases/download/1.6.1/AppDetective-1.6.1.zip"
+                       sparkle:edSignature="gLCgZXoB+SqL5D0NSyCvV0WqVoF2ayoyltG/PhAzq3proAito+CAFk9QJcvnHqz/S1HADMhlAQKUFL2G2Xw0AQ=="
+                       length="3616584"
                        type="application/octet-stream"/>
         </item>
     </channel>

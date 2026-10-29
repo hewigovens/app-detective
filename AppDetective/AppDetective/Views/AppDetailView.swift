@@ -21,6 +21,7 @@ struct AppDetailView: View {
                     LabeledContent("Version", value: app.version ?? "—")
                     LabeledContent("Category", value: app.category.description)
                     LabeledContent("Size", value: app.size ?? "—")
+                    LabeledContent("Signed By", value: app.signer ?? "—")
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Path")
                         Text(app.path)

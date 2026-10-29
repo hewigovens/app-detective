@@ -10,6 +10,7 @@ struct AppInfo: Identifiable, Hashable, Sendable {
     let traits: Set<Trait>
     var possibleTraits: Set<Trait> = []
     var evidence: [TraitEvidence] = []
+    var signer: String?
     let category: AppCategory
 
     var iconData: Data?
@@ -33,6 +34,7 @@ extension AppInfo {
             traits: analysis.traits,
             possibleTraits: analysis.possibleTraits,
             evidence: analysis.evidence.mergingRules(),
+            signer: analysis.signer,
             category: analysis.category,
             iconData: analysis.iconData,
             size: analysis.size

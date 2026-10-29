@@ -16,6 +16,7 @@ struct AppAnalyzerTests {
             traits: [.gtk],
             possibleTraits: [],
             evidence: [],
+            signer: nil,
             category: .games,
             iconData: sentinelIcon,
             size: "1 KB"

@@ -3,7 +3,7 @@ import LSAppCategory
 
 public final class DetectService: Sendable {
     // Bump when detection logic outside the catalog changes; catalog edits change `version` on their own.
-    private static let engineVersion = 11
+    private static let engineVersion = 12
 
     private let signatures: [TraitSignature]
 
@@ -21,7 +21,7 @@ public final class DetectService: Sendable {
     public func detect(_ appURL: URL) -> Detection {
         // Bundle applies LaunchServices' executable fallbacks (no CFBundleExecutable, WrappedBundle).
         guard let bundle = Bundle(url: appURL) else {
-            return Detection(traits: [.other], possibleTraits: [], matches: [])
+            return Detection(traits: [.other], possibleTraits: [], matches: [], signer: nil)
         }
         let inspector = BundleInspector(bundle: bundle)
 
@@ -42,7 +42,7 @@ public final class DetectService: Sendable {
         } else {
             Self.resolve(confident)
         }
-        return Detection(traits: traits, possibleTraits: possible.subtracting(traits), matches: matches)
+        return Detection(traits: traits, possibleTraits: possible.subtracting(traits), matches: matches, signer: inspector.signer)
     }
 
     public func extractCategory(from appURL: URL) -> AppCategory {

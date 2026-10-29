@@ -10,6 +10,7 @@ struct CLIOutput: Encodable {
     let sizeBytes: Int64?
     let sizeHuman: String?
     let category: String
+    let signer: String?
     let traits: [TraitKind: [String]]
     let possibleTraits: [String]
     let evidence: [Evidence]?
@@ -37,6 +38,7 @@ enum CLIPrinter {
         line("Version", BundleMetrics.version(short: o.version, build: o.build) ?? "—")
         line("Size", o.sizeHuman ?? "—")
         line("Category", o.category)
+        line("Signed By", o.signer ?? "—")
         for kind in TraitKind.allCases {
             if let names = o.traits[kind] {
                 line(kind.name, names.joined(separator: ", "))

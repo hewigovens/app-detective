@@ -9,6 +9,7 @@ struct ResultsExporterTests {
         bundleId: nil,
         traits: [.electron, .python, .rust, .squirrel],
         possibleTraits: [.java],
+        signer: "Developer ID Application: Say, Inc. (ABCDE12345)",
         category: .utilities,
         size: "12 MB"
     )
@@ -18,8 +19,8 @@ struct ResultsExporterTests {
         let text = try #require(String(data: ResultsExporter.csv([app]), encoding: .utf8))
         let lines = text.components(separatedBy: "\r\n")
 
-        #expect(lines[0] == "Name,Path,Bundle ID,Version,Category,UI Frameworks,Languages,Renderers,Graphics APIs,Distribution,Updaters,Security,Background Items,Possible Traits,Size")
-        #expect(lines[1] == #""Say ""Hi"", World",/Applications/Say.app,,,Utilities,Electron; Python,Rust,,,,Squirrel,,,Java,12 MB"#)
+        #expect(lines[0] == "Name,Path,Bundle ID,Version,Category,Signed By,UI Frameworks,Languages,Renderers,Graphics APIs,Distribution,Updaters,Security,Background Items,Possible Traits,Size")
+        #expect(lines[1] == #""Say ""Hi"", World",/Applications/Say.app,,,Utilities,"Developer ID Application: Say, Inc. (ABCDE12345)",Electron; Python,Rust,,,,Squirrel,,,Java,12 MB"#)
     }
 
     @Test("JSON groups traits by kind and lists possible traits")
@@ -29,5 +30,6 @@ struct ResultsExporterTests {
         #expect(rows.first?["traits"] as? [String: [String]] == ["ui": ["Electron", "Python"], "language": ["Rust"], "updater": ["Squirrel"]])
         #expect(rows.first?["possibleTraits"] as? [String] == ["Java"])
         #expect(rows.first?["bundleId"] == nil)
+        #expect(rows.first?["signer"] as? String == "Developer ID Application: Say, Inc. (ABCDE12345)")
     }
 }

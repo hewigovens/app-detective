@@ -63,6 +63,7 @@ struct AppDetectiveCLI {
             sizeBytes: sizeBytes,
             sizeHuman: sizeBytes.map(BundleMetrics.format(bytes:)),
             category: category.description,
+            signer: detection.signer,
             traits: detection.traits.namesByKind,
             possibleTraits: detection.possibleTraits.names,
             evidence: explain ? detection.matches.map(CLIOutput.Evidence.init) : nil

@@ -8,6 +8,7 @@ enum ResultsExporter {
         let bundleId: String?
         let version: String?
         let category: String
+        let signer: String?
         let traits: [TraitKind: [String]]
         let possibleTraits: [String]
         let size: String?
@@ -18,6 +19,7 @@ enum ResultsExporter {
             bundleId = app.bundleId
             version = app.version
             category = app.category.description
+            signer = app.signer
             traits = app.traits.namesByKind
             possibleTraits = app.possibleTraits.names
             size = app.size
@@ -31,10 +33,10 @@ enum ResultsExporter {
     }
 
     static func csv(_ apps: [AppInfo]) -> Data {
-        let header = ["Name", "Path", "Bundle ID", "Version", "Category"]
+        let header = ["Name", "Path", "Bundle ID", "Version", "Category", "Signed By"]
             + TraitKind.allCases.map(\.pluralName) + ["Possible Traits", "Size"]
         let rows = apps.map(Row.init).map { row in
-            [row.name, row.path, row.bundleId ?? "", row.version ?? "", row.category]
+            [row.name, row.path, row.bundleId ?? "", row.version ?? "", row.category, row.signer ?? ""]
                 + TraitKind.allCases.map { row.traits[$0, default: []].joined(separator: "; ") }
                 + [row.possibleTraits.joined(separator: "; "), row.size ?? ""]
         }

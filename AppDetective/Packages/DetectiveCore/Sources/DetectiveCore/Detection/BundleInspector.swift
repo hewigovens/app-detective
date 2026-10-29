@@ -69,7 +69,7 @@ final class BundleInspector {
         return information as? [String: Any] ?? [:]
     }()
 
-    private lazy var signer: String? = {
+    lazy var signer: String? = {
         guard let leaf = (signingInformation[kSecCodeInfoCertificates as String] as? [SecCertificate])?.first else { return nil }
         return SecCertificateCopySubjectSummary(leaf) as String?
     }()
